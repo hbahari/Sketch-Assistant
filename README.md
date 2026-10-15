@@ -24,9 +24,6 @@ Offline photo -> pencil-sketch helper for drawing learners. Python + Kivy + Open
 - Riskiest part is the OpenCV recipe on mobile. If it fails, the fallback is replacing OpenCV
   with numpy/Pillow in core/ (all code is isolated there).
 
-## Next steps (ideas)
-Object mode, PDF export, better face/landmark detection (YuNet ONNX), per-style tuning sliders.
-
 ## Build the Android APK (no Linux needed) - GitHub Actions
 1. Create a free GitHub repo and upload this folder (the `.gitignore` keeps `venv/` out).
 2. Open the repo's **Actions** tab -> **Build Android APK** -> **Run workflow**.
