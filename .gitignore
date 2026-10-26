@@ -1,0 +1,13 @@
+venv/
+.venv/
+__pycache__/
+.buildozer/
+bin/
+shots/
+.idea/
+*.pyc
+
+# never commit signing material
+*.keystore
+*.jks
+key.properties

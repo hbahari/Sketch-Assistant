@@ -1,0 +1,6 @@
+kivy>=2.2
+opencv-python-headless
+numpy
+plyer
+pytest
+pillow
