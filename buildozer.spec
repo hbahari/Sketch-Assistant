@@ -23,7 +23,10 @@ android.numeric_version = 1
 # dies on "charset_normalizer-...-android_24_arm64_v8a.whl is not a supported wheel on
 # this platform". Listing it explicitly is p4a's own documented workaround, and 2.1.1
 # is the newest release that is pure Python on every platform (requests allows >=2,<4).
-requirements = python3,kivy,numpy,opencv,plyer,pyjnius,android,charset-normalizer==2.1.1
+# NOTE the UNDERSCORE: p4a compares Requirement(module).name (which keeps the hyphen)
+# against the report name normalised to underscores, so "charset-normalizer" never
+# matches and the pin is ignored. Spelled with an underscore, it matches and works.
+requirements = python3,kivy,numpy,opencv,plyer,pyjnius,android,charset_normalizer==2.1.1
 
 # Pin the toolchain. Buildozer otherwise tracks p4a's master branch, which moves and
 # will eventually break the build without anything in this repo changing.
