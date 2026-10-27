@@ -46,7 +46,7 @@ shows no ads. It does not collect your name, email address, location, contacts, 
 identifiers or any other personal information, and it does not create an account or ask
 you to sign in.
 
-The app does not make network requests. It works fully offline, including in aeroplane mode.
+The app does not make network requests. It works fully offline, including in airplane mode.
 
 ## Children
 
@@ -61,12 +61,4 @@ date at the top shows when the policy last changed.
 
 ## Contact
 
-Questions about this policy or about privacy in Sketch Assistant:
-
-**[your-contact-email@example.com]**
-
-<!--
-BEFORE PUBLISHING: replace the contact address above with a real one you monitor.
-Google Play requires a reachable privacy policy with a working contact, and reviewers
-do check. Everything else in this document is already accurate for the current app.
--->
+Questions about this policy or about privacy in Sketch Assistant: golemapps1@gmail.com
