@@ -152,11 +152,13 @@ Then run the release workflow again. Tagging a commit `v0.1.1` also triggers it.
   correct in this repo — this note is here in case someone reintroduces either pin.
 - **A build that used to work suddenly fails** — check `p4a.branch` is still pinned in
   `buildozer.spec`. Without it buildozer tracks python-for-android's `master`, which moves.
-- **`ImportError: cannot import name 'BuildDependencyInstallError'`** — two pip versions layered
-  in one venv inside the build tree. Only `~/.buildozer` (the downloaded SDK/NDK) may be cached;
-  the in-repo `.buildozer` build tree must be rebuilt each run, which the workflows now enforce
-  with a `rm -rf .buildozer` step. If it recurs, clear the Actions caches under
-  **Actions → Caches** and run again.
+- **`ImportError: cannot import name 'BuildDependencyInstallError'`** — an upstream
+  python-for-android bug that only fires when `android.archs` lists more than one architecture.
+  p4a creates its build venv in the shared build directory but runs that step once per arch, so
+  the second pass re-seeds the hostpython pip (25.3) over the 26.2.2 the first pass installed,
+  mixing two pip versions in one `site-packages`. Keep `android.archs = arm64-v8a`.
+  Two related guards are also in place: only `~/.buildozer` (the SDK/NDK) is cached, never the
+  in-repo build tree, and the workflows `rm -rf .buildozer` before building.
 - **`ubuntu-22.04` runner unavailable** — GitHub retires runner images over time. Change
   `runs-on:` to `ubuntu-latest` in both workflow files.
 - **"The .aab came out unsigned"** — one of the four secrets is missing or misspelt. The names

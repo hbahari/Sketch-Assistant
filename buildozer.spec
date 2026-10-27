@@ -41,9 +41,17 @@ android.api = 36
 android.minapi = 24
 android.accept_sdk_license = True
 
-# 64-bit is mandatory on Play; 32-bit is included so older phones are still covered.
-# An .aab ships only the slice each device needs, so this does not bloat the download.
-android.archs = arm64-v8a, armeabi-v7a
+# ONE architecture only, deliberately. python-for-android's run_pymodules_install()
+# loops over ctx.archs but creates its venv in the shared ctx.build_dir, so a second
+# architecture re-runs `python -m venv` over the first one's venv. That re-seeds the
+# hostpython-bundled pip (25.3) on top of the 26.2.2 the first pass upgraded to, leaving
+# pip 26.2's build_env/ package beside pip 25.3's exceptions.py, and the build dies with
+# "ImportError: cannot import name 'BuildDependencyInstallError'".
+#
+# arm64-v8a covers essentially every Android phone sold since 2017. Adding armeabi-v7a
+# back means hitting that upstream bug, so leave it off unless you need 32-bit devices
+# and have verified p4a has fixed it.
+android.archs = arm64-v8a
 
 # `buildozer android release` -> bin/*.aab (what the Play Console wants)
 # `buildozer android debug`   -> bin/*.apk (what you sideload to test)
