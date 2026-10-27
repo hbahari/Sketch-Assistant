@@ -143,6 +143,15 @@ Then run the release workflow again. Tagging a commit `v0.1.1` also triggers it.
 
 - **OpenCV recipe errors** — the heaviest and most fragile part of the build. Send me the last
   ~50 lines of the failed step and I will work through it.
+- **C errors compiling Kivy** mentioning `python3.14`, `_PyLong_AsByteArray`,
+  `_PyUnicode_FastCopyCharacters` or "expected 6, have 5" — a toolchain mismatch, not an app bug.
+  python-for-android builds against Python 3.14, and two things must line up with it:
+  `buildozer.spec` must **not** pin `kivy==2.3.0` (the recipe's own 2.3.1 carries the 3.14
+  patches), and the workflow must **not** install `cython<3` (each recipe installs the Cython
+  version it needs; forcing 0.29 emits private C API calls Python 3.14 removed). Both are already
+  correct in this repo — this note is here in case someone reintroduces either pin.
+- **A build that used to work suddenly fails** — check `p4a.branch` is still pinned in
+  `buildozer.spec`. Without it buildozer tracks python-for-android's `master`, which moves.
 - **`ubuntu-22.04` runner unavailable** — GitHub retires runner images over time. Change
   `runs-on:` to `ubuntu-latest` in both workflow files.
 - **"The .aab came out unsigned"** — one of the four secrets is missing or misspelt. The names

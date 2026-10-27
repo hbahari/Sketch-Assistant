@@ -1,9 +1,9 @@
 [app]
 title = Sketch Assistant
-package.name = golemapps.sketchassistant.app
+package.name = sketchassistant
 # Change this to a domain you control before publishing; it becomes the Play Store app ID
 # (org.sketchassistant.sketchassistant) and can never be changed after the first upload.
-package.domain = golemapps.sketchassistant
+package.domain = org.sketchassistant
 
 source.dir = .
 source.include_exts = py,png,jpg,kv,xml,onnx
@@ -14,7 +14,14 @@ version = 0.1.0
 # versionCode: MUST increase on every upload to the Play Console
 android.numeric_version = 1
 
-requirements = python3,kivy==2.3.0,numpy,opencv,plyer,pyjnius,android
+# Versions come from the pinned python-for-android below, which ships a tested set:
+# Python 3.14.2, Kivy 2.3.1, numpy 2.3.0, OpenCV 4.12.0, pyjnius 1.7.0.
+# Do NOT pin kivy here: an older Kivy will not compile against Python 3.14.
+requirements = python3,kivy,numpy,opencv,plyer,pyjnius,android
+
+# Pin the toolchain. Buildozer otherwise tracks p4a's master branch, which moves and
+# will eventually break the build without anything in this repo changing.
+p4a.branch = v2026.05.09
 
 orientation = portrait
 fullscreen = 0

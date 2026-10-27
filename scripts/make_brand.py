@@ -96,15 +96,24 @@ fg.alpha_composite(art, (74, 74))
 fg.save(BRAND / "icon_fg.png")
 Image.new("RGB", (432, 432), TILE).save(BRAND / "icon_bg.png")
 
+# Play Store listing icon: FULL SQUARE, opaque, no pre-rounded corners and no drop shadow.
+# Google Play masks it to a 30% radius and adds its own shadow, so pre-rounding would
+# double-round it and transparent corners would show the Play UI background through.
+play = Image.new("RGB", (512, 512), TILE)
+inner = ART.resize((470, 470), Image.LANCZOS)          # a little breathing room inside the mask
+play.paste(inner, (21, 21))
+play.convert("RGBA").save(BRAND / "play_store_icon.png")   # 32-bit PNG, fully opaque
+
 # Play Store feature graphic (1024x500, required for the store listing)
 fx = Image.new("RGB", (1024, 500), TILE)
 fd = ImageDraw.Draw(fx)
-fx.paste(ART.resize((430, 430), Image.LANCZOS), (40, 35))
+fx.paste(ART.resize((420, 420), Image.LANCZOS), (58, 40))
 _f = lambda sz, bold=True: ImageFont.truetype(
     "/usr/share/fonts/truetype/crosextra/Caladea-%s.ttf" % ("BoldItalic" if bold else "Regular"), sz)
-fd.text((510, 178), "Sketch Assistant", font=_f(62), fill=INK)
-fd.text((514, 260), "Turn any photo into a drawing guide", font=_f(30, False), fill=(70, 70, 74))
-fd.rectangle((514, 322, 514 + 150, 322 + 7), fill=AMBER)
+# keep every element inside the central ~80%: Google crops this graphic on some surfaces
+fd.text((500, 182), "Sketch Assistant", font=_f(57), fill=INK)
+fd.text((504, 258), "Turn any photo into a drawing guide", font=_f(28, False), fill=(70, 70, 74))
+fd.rectangle((504, 314, 504 + 140, 314 + 7), fill=AMBER)
 fx.save(BRAND / "feature_graphic.png")
 
 ps = Image.new("RGB", (1024, 1024), TILE)

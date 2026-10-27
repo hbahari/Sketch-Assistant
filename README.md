@@ -35,6 +35,9 @@ Everything builds on GitHub Actions - nothing to install locally.
 Full walkthrough, including the signing key, the four GitHub secrets and the Play Console
 checklist: **[PLAYSTORE.md](PLAYSTORE.md)**.
 
+Store listing copy, data-safety answers and the declaration forms: **[PLAY_LISTING.md](PLAY_LISTING.md)**.
+Privacy policy to publish: **[PRIVACY_POLICY.md](PRIVACY_POLICY.md)**.
+
 Local alternative (Ubuntu / WSL2): `scripts/package_android.sh`.
 
 ## Modes, detail slider, face model
