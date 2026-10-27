@@ -25,7 +25,12 @@ jobs:
           sudo apt-get install -y git zip unzip autoconf automake libtool pkg-config \
             zlib1g-dev libncurses-dev cmake libffi-dev libssl-dev
           sudo apt-get install -y libtinfo5 || true   # only present on older Ubuntu
-          pip install "buildozer==1.6.0" virtualenv
+          # Pin the Python build tooling. virtualenv seeds every venv it makes with its own
+          # bundled pip (26.2.2), so the runner's pip must match it -- otherwise pip 26
+          # modules end up importing a pip 25 exceptions.py and the build dies with
+          # "ImportError: cannot import name 'BuildDependencyInstallError'".
+          python -m pip install --upgrade "pip==26.2.2"
+          pip install "buildozer==1.6.0" "virtualenv==21.14.13"
           # No global Cython pin: each p4a recipe installs the exact version it
           # needs (kivy <=3.0.12, pyjnius <3.2). Forcing Cython 0.29 here makes it
           # emit pre-3.12 private C API calls that Python 3.14 rejects.
