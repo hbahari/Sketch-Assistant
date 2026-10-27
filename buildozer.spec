@@ -17,7 +17,13 @@ android.numeric_version = 1
 # Versions come from the pinned python-for-android below, which ships a tested set:
 # Python 3.14.2, Kivy 2.3.1, numpy 2.3.0, OpenCV 4.12.0, pyjnius 1.7.0.
 # Do NOT pin kivy here: an older Kivy will not compile against Python 3.14.
-requirements = python3,kivy,numpy,opencv,plyer,pyjnius,android
+# charset-normalizer is pinned because Kivy's recipe pulls in `requests`, whose
+# charset-normalizer dependency started publishing compiled Android wheels at 3.5.2.
+# p4a resolves those with --platform but then installs them WITHOUT it, so the build
+# dies on "charset_normalizer-...-android_24_arm64_v8a.whl is not a supported wheel on
+# this platform". Listing it explicitly is p4a's own documented workaround, and 2.1.1
+# is the newest release that is pure Python on every platform (requests allows >=2,<4).
+requirements = python3,kivy,numpy,opencv,plyer,pyjnius,android,charset-normalizer==2.1.1
 
 # Pin the toolchain. Buildozer otherwise tracks p4a's master branch, which moves and
 # will eventually break the build without anything in this repo changing.

@@ -159,6 +159,11 @@ Then run the release workflow again. Tagging a commit `v0.1.1` also triggers it.
   mixing two pip versions in one `site-packages`. Keep `android.archs = arm64-v8a`.
   Two related guards are also in place: only `~/.buildozer` (the SDK/NDK) is cached, never the
   in-repo build tree, and the workflows `rm -rf .buildozer` before building.
+- **`... .whl is not a supported wheel on this platform`** — a transitive dependency started
+  shipping compiled Android wheels. p4a picks one using `--platform` but installs it without,
+  so plain pip rejects it. Fix: add that package to `requirements` in `buildozer.spec`, pinned
+  to a version that is pure Python (no binary wheels on PyPI). `charset-normalizer==2.1.1` is
+  already pinned for exactly this reason.
 - **`ubuntu-22.04` runner unavailable** — GitHub retires runner images over time. Change
   `runs-on:` to `ubuntu-latest` in both workflow files.
 - **"The .aab came out unsigned"** — one of the four secrets is missing or misspelt. The names
