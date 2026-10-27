@@ -64,13 +64,19 @@ jobs:
       - name: Download the face model (YuNet)
         run: python scripts/download_models.py
 
-      - name: Cache Buildozer + Android SDK
+      # Cache ONLY the downloaded Android SDK/NDK (~/.buildozer). The in-repo .buildozer
+      # holds the build tree, including venvs that p4a creates. Caching that tree lets a
+      # half-finished venv survive into the next run: `python -m venv` re-seeds an OLD pip
+      # over a NEWER one's files, leaving pip 26.2's build_env/ package beside pip 25's
+      # exceptions.py -> "ImportError: cannot import name 'BuildDependencyInstallError'".
+      - name: Cache the Android SDK and NDK
         uses: actions/cache@v4
         with:
-          path: |
-            .buildozer
-            ~/.buildozer
-          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          path: ~/.buildozer
+          key: android-sdk-ndk-${{ hashFiles('buildozer.spec') }}
+
+      - name: Start from a clean build tree
+        run: rm -rf .buildozer
 
       - name: Build signed AAB
         env:

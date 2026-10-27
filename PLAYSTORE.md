@@ -152,6 +152,11 @@ Then run the release workflow again. Tagging a commit `v0.1.1` also triggers it.
   correct in this repo — this note is here in case someone reintroduces either pin.
 - **A build that used to work suddenly fails** — check `p4a.branch` is still pinned in
   `buildozer.spec`. Without it buildozer tracks python-for-android's `master`, which moves.
+- **`ImportError: cannot import name 'BuildDependencyInstallError'`** — two pip versions layered
+  in one venv inside the build tree. Only `~/.buildozer` (the downloaded SDK/NDK) may be cached;
+  the in-repo `.buildozer` build tree must be rebuilt each run, which the workflows now enforce
+  with a `rm -rf .buildozer` step. If it recurs, clear the Actions caches under
+  **Actions → Caches** and run again.
 - **`ubuntu-22.04` runner unavailable** — GitHub retires runner images over time. Change
   `runs-on:` to `ubuntu-latest` in both workflow files.
 - **"The .aab came out unsigned"** — one of the four secrets is missing or misspelt. The names
