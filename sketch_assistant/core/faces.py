@@ -81,12 +81,20 @@ def detect_faces(img):
 
 
 def crop_info(img, face, margin=MARGIN):
-    """Crop a face with room for hair/chin/ears -> (crop, landmarks relative to the crop)."""
+    """Crop a face with room for hair/chin/ears.
+
+    Returns (crop, landmarks relative to the crop, face box relative to the crop).
+    The box is returned explicitly rather than assumed to be centred, because the crop
+    is clipped at the image edges when the face sits near one.
+    """
     H, W = img.shape[:2]
     mx, my = int(face.w * margin), int(face.h * margin)
     x0, y0 = max(0, face.x - mx), max(0, face.y - my)
     x1, y1 = min(W, face.x + face.w + mx), min(H, face.y + face.h + my)
-    return img[y0:y1, x0:x1].copy(), tuple((px - x0, py - y0) for px, py in face.landmarks)
+    box = (face.x - x0, face.y - y0, face.w, face.h)
+    return (img[y0:y1, x0:x1].copy(),
+            tuple((px - x0, py - y0) for px, py in face.landmarks),
+            box)
 
 
 def crop_face(img, face, margin=MARGIN):

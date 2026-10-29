@@ -1,16 +1,17 @@
 [app]
 title = Sketch Assistant
-package.name = sketchassistant
-# Change this to a domain you control before publishing; it becomes the Play Store app ID
-# (org.sketchassistant.sketchassistant) and can never be changed after the first upload.
-package.domain = org.sketchassistant
+# The Play Store application ID is package.domain + "." + package.name, so these two
+# together must spell golemapps.sketchassistant.app -- the ID registered in the Play
+# Console. It can never be changed after the first upload.
+package.name = app
+package.domain = golemapps.sketchassistant
 
 source.dir = .
 source.include_exts = py,png,jpg,kv,xml,onnx
 source.exclude_dirs = tests,scripts,bin,.buildozer,venv,.venv,.github,.idea,shots
 
 # versionName shown in the Play listing
-version = 0.1.0
+version = 1.0.0
 # versionCode: MUST increase on every upload to the Play Console
 android.numeric_version = 1
 

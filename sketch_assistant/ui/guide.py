@@ -1,4 +1,5 @@
 """Second page: medium-sized sketch with guide lines, then pencil tips and steps."""
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.uix.anchorlayout import AnchorLayout
@@ -9,11 +10,14 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 
 from ..core.guides import draw_guides
+from ..core.steps import build_stages
 from ..core.styles import render, styles_for
 from ..data.tips import tips_markup
 from ..platform_utils import reveal, save_png
 from . import theme
 from kivy.uix.popup import Popup
+from kivy.uix.progressbar import ProgressBar
+import threading
 from .materials import MaterialGuide
 from .widgets import Card, DetailSlider, RoundButton, TitleBar, segmented, to_texture
 
@@ -56,7 +60,11 @@ class GuideScreen(Screen):
         self.guide_btn = RoundButton(text="Guides: ON", active=True, radii=[dp(25)] * 4, on_release=lambda *_: self.toggle())
         row.add_widget(self.guide_btn)
         row.add_widget(RoundButton(text="Save PNG", radii=[dp(25)] * 4, on_release=lambda *_: self.save()))
-        root.add_widget(scroll); root.add_widget(row)
+        gen = RoundButton(text="Generate drawing steps", bold=True, active=True, size_hint_y=None,
+                          height=dp(52), radii=[dp(26)] * 4, on_release=lambda *_: self.generate())
+        gen_row = BoxLayout(size_hint_y=None, height=dp(62), padding=(dp(14), 0, dp(14), dp(4)))
+        gen_row.add_widget(gen)
+        root.add_widget(scroll); root.add_widget(gen_row); root.add_widget(row)
         self.add_widget(root)
 
     # swipe right from the left edge to go back (like most social apps)
@@ -114,13 +122,47 @@ class GuideScreen(Screen):
 
     def refresh(self):
         a = self.app_ref
-        self._shown = draw_guides(a.sketch, a.style_key, a.landmarks, a.crop_shape) if self.show_guides else a.sketch
+        self._shown = draw_guides(a.sketch, a.style_key, a.landmarks, a.crop_shape, a.crop_box) if self.show_guides else a.sketch
         h, w = self._shown.shape[:2]
         self.image.texture = to_texture(self._shown)
         iw = Window.width * IMG_WIDTH
         iw = min(iw, Window.height * IMG_MAX_H * w / h)  # keep tall portraits from getting too big
         self.img_card.size = (iw + dp(16), iw * h / w + dp(16))
         self.holder.height = self.img_card.height
+
+    def generate(self):
+        """Render the full step-by-step sequence off the UI thread, with a progress popup."""
+        a = self.app_ref
+        box = BoxLayout(orientation="vertical", spacing=dp(12), padding=dp(16))
+        msg = Label(text="Working out the steps...", color=theme.TEXT, font_size=sp(14))
+        bar = ProgressBar(max=1, value=0, size_hint_y=None, height=dp(14))
+        box.add_widget(msg); box.add_widget(bar)
+        pop = Popup(title="Drawing steps", content=box, size_hint=(0.82, 0.3), separator_height=0,
+                    auto_dismiss=False, background="", background_color=theme.BG, title_color=theme.TEXT)
+        pop.open()
+
+        def on_progress(i, n):
+            Clock.schedule_once(lambda dt: setattr(bar, "value", i / max(n, 1)))
+
+        def work():
+            try:
+                stages = build_stages(a.mode, a.source_img, a.style_key, a.get_detail(a.style_key),
+                                      a.landmarks, a.crop_shape, a.crop_box, progress=on_progress)
+                err = None
+            except Exception as exc:                 # never leave the popup stuck open
+                stages, err = None, exc
+
+            def done(dt):
+                pop.dismiss()
+                if err is not None:
+                    self.text.text = f"[b]Could not build the steps:[/b] {err}"
+                    return
+                a.stages = stages
+                self.manager.transition.direction = "left"
+                self.manager.current = "steps"
+            Clock.schedule_once(done)
+
+        threading.Thread(target=work, daemon=True).start()
 
     def save(self):
         name = f"sketch_{self.app_ref.style_key}{'_guides' if self.show_guides else ''}.png"

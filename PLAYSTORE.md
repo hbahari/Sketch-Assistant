@@ -88,7 +88,7 @@ because OpenCV is compiled from source; later runs reuse the cache and are much 
 
 When it finishes, download the `sketch-assistant-release` artifact. It contains:
 
-- `sketchassistant-0.1.0-arm64-v8a_armeabi-v7a-release.aab` → upload this
+- `app-1.0.0-arm64-v8a-release.aab` → upload this
 - `sketch-assistant-universal.apk` → install this on a phone to check the release build
 
 The workflow fails loudly if the bundle comes out unsigned, so a green run means it is ready.
@@ -97,9 +97,10 @@ The workflow fails loudly if the bundle comes out unsigned, so a green run means
 
 1. **Create a developer account** at <https://play.google.com/console> — a one-off $25 fee.
 2. **Create the app**, then check the application ID before your first upload.
-   It comes from `buildozer.spec` and is currently **`org.sketchassistant.sketchassistant`**.
-   This can never be changed after the first upload, so if you own a domain, set
-   `package.domain` to it now (reversed, e.g. `com.yourname`).
+   Buildozer builds it as `package.domain` + `.` + `package.name`, which are set so the ID
+   is **`golemapps.sketchassistant.app`** -- matching the app registered in the Play Console.
+   If the console rejects an upload with "needs to have the package name X", split X across
+   those two keys so they join to exactly X. It can never be changed after the first upload.
 3. **Upload to Internal testing first**, not production. It is instant, has no review wait,
    and lets you install from the Play Store on your own device.
 4. Work through everything under **Policy → App content**:
@@ -131,8 +132,8 @@ accounts are exempt. Plan for this — it is the slowest part of a first release
 Every upload needs a higher version code. In `buildozer.spec`:
 
 ```ini
-version = 0.1.1              # the version name users see
-android.numeric_version = 2  # must increase on EVERY upload
+version = 1.0.1              # the version name users see
+android.numeric_version = 2  # must increase on EVERY upload (1.0.0 shipped as 1)
 ```
 
 Then run the release workflow again. Tagging a commit `v0.1.1` also triggers it.

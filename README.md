@@ -40,6 +40,19 @@ Privacy policy to publish: **[PRIVACY_POLICY.md](PRIVACY_POLICY.md)**.
 
 Local alternative (Ubuntu / WSL2): `scripts/package_android.sh`.
 
+## Drawing steps
+"Generate drawing steps" on the guide page builds the sketch stage by stage - construction
+lines, then one facial feature at a time, then the outline, values and finish. Each stage
+carries its own pencil grade, technique and instruction.
+
+- `core/steps.py` composes the stages from the existing renderers; no new image processing.
+  Portrait stages reveal features through soft masks on the YuNet landmarks; object stages are
+  masked to the GrabCut silhouette so the background stays out of the early passes.
+- A stage that would add almost no new ink (ears hidden by hair) is dropped automatically.
+- `data/steps_text.py` holds the per-stage text, keyed by stage id so words and pictures match.
+- Generation runs off the UI thread behind a progress popup. "Save sheet" writes all stages
+  as one printable image.
+
 ## Modes, detail slider, face model
 - **Portrait**: 5 styles on a selected face. **Object**: 5 styles on the whole photo (Contour, Basic Shapes, Value, Cross-Hatch, Realistic).
 - **Detail slider** (main page + guide page): per-style, applied when you lift your finger; each style keeps its own value.

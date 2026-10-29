@@ -113,7 +113,7 @@ class HomeScreen(Screen):
         a = self.app_ref
         if a.mode == "object":  # whole image is used, no detection
             self.selector.set_photo(a.photo, [])
-            a.source_img, a.landmarks, a.crop_shape = a.photo, (), None
+            a.source_img, a.landmarks, a.crop_shape, a.crop_box = a.photo, (), None, None
             for key in styles_for("object"):
                 self.tiles[key].disabled = False
             self.status.text = "Pick a style (best with one object)"
@@ -153,7 +153,7 @@ class HomeScreen(Screen):
     # face + style
     def on_face(self, idx, face):
         a = self.app_ref
-        a.source_img, a.landmarks = crop_info(a.photo, face)
+        a.source_img, a.landmarks, a.crop_box = crop_info(a.photo, face)
         a.crop_shape = a.source_img.shape[:2]
         for key in styles_for("portrait"):
             self.tiles[key].disabled = False

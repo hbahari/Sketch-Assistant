@@ -43,6 +43,12 @@ OBJECT MODE
 The same idea for still life. Contour, Basic Shapes, Value Study, Cross-Hatch and
 Photorealism, applied to the whole photo.
 
+STEP BY STEP
+Tap "Generate drawing steps" and the app rebuilds the sketch the way you would actually draw
+it: construction lines first, then the eyes, nose, mouth and ears one at a time, then the
+outline, the values and the finish. Every step tells you which pencil to pick up, the
+technique to use, and what to put on the paper. Save the whole sequence as one sheet to print.
+
 THE DRAWING GUIDE
 Tap through to the guide and you get the sketch enlarged, with optional proportion lines
 over it — eye line, nose line, mouth line, centre axis and a rule-of-thirds grid — plus:
