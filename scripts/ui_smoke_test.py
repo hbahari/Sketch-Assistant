@@ -1,4 +1,10 @@
-"""Drive the real UI headlessly:  PYTHONPATH=. xvfb-run python scripts/ui_smoke_test.py photo.jpg [object]  -> ./shots"""
+"""Drive the real UI headlessly.
+
+    PYTHONPATH=. xvfb-run python scripts/ui_smoke_test.py photo.jpg [portrait|object|hands]
+
+Screenshots land in ./shots. Portrait taps a detected face; the other modes use the whole
+frame, so they skip that step.
+"""
 import os, sys
 os.environ.setdefault("KIVY_NO_ARGS", "1")
 from pathlib import Path
@@ -8,7 +14,9 @@ from kivy.clock import Clock
 from kivy.core.window import Window
 from sketch_assistant.app import SketchApp
 
-PHOTO, OBJECT = sys.argv[1], len(sys.argv) > 2 and sys.argv[2] == "object"
+PHOTO = sys.argv[1]
+MODE = sys.argv[2] if len(sys.argv) > 2 else "portrait"
+OBJECT = MODE != "portrait"          # non-portrait modes use the whole frame, no tapping
 OUT = Path("shots"); OUT.mkdir(exist_ok=True)
 app = SketchApp()
 shot = lambda name: Window.screenshot(name=str(OUT / f"{name}.png"))
@@ -23,7 +31,7 @@ class T:  # minimal touch stand-in
 def start(dt):
     home = app.root.get_screen("home")
     if OBJECT:
-        home.set_mode("object")
+        home.set_mode(MODE)
     home._load(PHOTO)
     later(lambda: after_load(home))
 
@@ -32,7 +40,10 @@ def after_load(home):
     if not OBJECT:
         f = home.selector.faces[0]; sc, ox, oy = home.selector._scale_origin()
         print("tap handled:", home.selector.on_touch_down(T(ox + (f.x + f.w / 2) * sc, oy + (home.selector._size[1] - f.y - f.h / 2) * sc)))
-    later(lambda: (shot("1_main"), home.on_style("obj_shapes" if OBJECT else "crosshatch"), later(lambda: step3(home))))
+    from sketch_assistant.core.modes import mode_of
+    styles = list(mode_of(MODE).styles)
+    later(lambda: (shot("1_main"), home.on_style(styles[1] if OBJECT else "crosshatch"),
+                   later(lambda: step3(home))))
 
 
 def step3(home):
@@ -41,7 +52,8 @@ def step3(home):
 
 def step4():
     g = app.root.get_screen("guide")
-    g.select("obj_contour" if OBJECT else "line_art")
+    from sketch_assistant.core.modes import mode_of
+    g.select(mode_of(MODE).default_style)
     g.on_detail(0.15)  # what the slider does when released
     later(lambda: (shot("3_guide"), app.stop()), 1.0)
 

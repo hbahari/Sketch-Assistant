@@ -35,7 +35,7 @@ jobs:
           # needs (kivy <=3.0.12, pyjnius <3.2). Forcing Cython 0.29 here makes it
           # emit pre-3.12 private C API calls that Python 3.14 rejects.
 
-      - name: Download the face model (YuNet)
+      - name: Download the ONNX models (faces + hands, ~5.5 MB)
         run: python scripts/download_models.py
 
       # Cache ONLY the downloaded Android SDK/NDK (~/.buildozer). The in-repo .buildozer

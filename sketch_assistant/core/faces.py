@@ -99,3 +99,26 @@ def crop_info(img, face, margin=MARGIN):
 
 def crop_face(img, face, margin=MARGIN):
     return crop_info(img, face, margin)[0]
+
+
+BOX_MARGIN = 0.12
+
+
+def crop_to_box(img, box, margin=BOX_MARGIN):
+    """Crop to a user-drawn region, with a little room around it.
+
+    The object counterpart of `crop_info`. Cropping is what makes a drawn selection work
+    without threading it through every renderer: segmentation seeds itself from the middle
+    of whatever image it is handed, so once the image *is* the selection, the seed is the
+    selection. The margin leaves the object's own edge inside the frame rather than flush
+    against it -- measured at 5%, 12% and 25%, all three isolate the object and 12% sits
+    in the middle.
+    """
+    H, W = img.shape[:2]
+    x, y, w, h = box
+    mx, my = w * margin, h * margin
+    x0, y0 = int(max(0, x - mx)), int(max(0, y - my))
+    x1, y1 = int(min(W, x + w + mx)), int(min(H, y + h + my))
+    if x1 - x0 < 8 or y1 - y0 < 8:            # degenerate selection: use the whole frame
+        return img
+    return img[y0:y1, x0:x1].copy()

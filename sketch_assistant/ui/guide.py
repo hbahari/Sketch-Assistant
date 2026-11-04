@@ -10,8 +10,8 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 
 from ..core.guides import draw_guides
-from ..core.steps import build_stages
-from ..core.styles import render, styles_for
+from ..core.modes import build_stages, mode_of
+from ..core.styles import render
 from ..data.tips import tips_markup
 from ..platform_utils import reveal, save_png
 from . import theme
@@ -81,13 +81,13 @@ class GuideScreen(Screen):
         return super().on_touch_up(touch)
 
     def on_pre_enter(self, *_):
-        a = self.app_ref
+        m = mode_of(self.app_ref.mode)
         self.tabs_holder.clear_widgets()
-        bar, self.tabs = segmented(styles_for(a.mode), self.select)
+        bar, self.tabs = segmented(m.styles, self.select)
         self.tabs_holder.add_widget(bar)
-        if a.mode == "object" and self.material_guide.parent is None:
+        if m.materials and self.material_guide.parent is None:
             self.col.add_widget(self.material_guide)
-        elif a.mode != "object" and self.material_guide.parent is not None:
+        elif not m.materials and self.material_guide.parent is not None:
             self.col.remove_widget(self.material_guide)
         self.update_all()
 
@@ -122,7 +122,8 @@ class GuideScreen(Screen):
 
     def refresh(self):
         a = self.app_ref
-        self._shown = draw_guides(a.sketch, a.style_key, a.landmarks, a.crop_shape, a.crop_box) if self.show_guides else a.sketch
+        self._shown = (draw_guides(a.sketch, a.mode, a.style_key, a.landmarks, a.crop_shape,
+                                   a.crop_box, a.source_img) if self.show_guides else a.sketch)
         h, w = self._shown.shape[:2]
         self.image.texture = to_texture(self._shown)
         iw = Window.width * IMG_WIDTH

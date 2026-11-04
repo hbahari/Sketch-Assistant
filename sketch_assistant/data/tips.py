@@ -1,4 +1,15 @@
-"""Pencil tips and step-by-step guides per style."""
+"""Pencil tips and step-by-step guides, per style.
+
+A style with no entry of its own falls back to its family's (see core/styles.Style), so a
+new subject mode only needs text where the advice genuinely differs. Hands, for instance,
+need their own words for the line and construction styles -- the structure is nothing like
+a face -- but the advice for building tone, hatching and blending is the same whatever you
+are drawing, so those three fall back.
+"""
+
+# Which style's entry stands in for each family when a style has none of its own.
+FAMILY_FALLBACK = {"line": "line_art", "construct": "technical", "value": "value_study",
+                   "hatch": "crosshatch", "real": "photoreal"}
 
 TIPS = {
     "line_art": {
@@ -121,11 +132,45 @@ TIPS = {
             "Refine details last: lashes, brows, hair strands, skin texture.",
         ],
     },
+    # ---- hands: the structure is unlike a face or an object, so these need their own
+    # words. The value, hatch and realistic styles fall back to the family entries above.
+    "hand_contour": {
+        "pencils": "2H for the block-in, HB for the structure, 2B for the final outline.",
+        "pressure": "Barely-there for the palm slab and the finger axes; confident and even for "
+                    "the outline once the structure is right.",
+        "steps": [
+            "Block the palm in as a flat four-sided slab and note which way it tilts.",
+            "Draw the wrist axis out of the bottom of the palm.",
+            "Curve the knuckle arc across the top of the palm -- it is never a straight row.",
+            "Draw one axis line down each finger, out from the knuckle arc.",
+            "Mark two joints per finger: longest segment nearest the palm, shortest at the tip.",
+            "Add the thumb separately: two segments, and it joins the palm far lower down.",
+            "Trace the real outline over the construction, letting the webbing rise up between "
+            "the fingers, then erase the guides.",
+        ],
+    },
+    "hand_construct": {
+        "pencils": "2H for guides, HB for the boxes, 2B for joint creases. A ruler is fine here.",
+        "pressure": "Light throughout -- this style is a working diagram, not a finished drawing.",
+        "steps": [
+            "Draw the bounding box and compare the hand's full length against the palm alone; "
+            "on most hands they are close to equal.",
+            "Block in the palm slab, wider at the knuckles than at the wrist.",
+            "Draw the knuckle arc, then one axis per finger off it.",
+            "Mark the joints at roughly 47% and 74% along each finger.",
+            "Turn each segment into a box or short cylinder, tapering toward the tip.",
+            "Where fingers overlap, draw the near one whole and stop the far one behind it.",
+            "Darken the joint creases last; leave the axes showing.",
+        ],
+    },
 }
 
 
 def tips_markup(style_key):
-    t = TIPS[style_key]
+    t = TIPS.get(style_key)
+    if t is None:                           # fall back to this style's family
+        from ..core.styles import ALL
+        t = TIPS[FAMILY_FALLBACK[ALL[style_key].family]]
     steps = "\n".join(f"  {i}. {s}" for i, s in enumerate(t["steps"], 1))
     h = lambda x: f"[b][color=a66a00]{x}[/color][/b]"
     text = f"{h('Pencils & grades')}\n{t['pencils']}\n\n{h('Pressure')}\n{t['pressure']}\n\n{h('Steps')}\n{steps}"

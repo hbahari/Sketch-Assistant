@@ -1,0 +1,58 @@
+name: Tests
+
+# The image pipeline and the Kivy UI are both easy to break silently: a renderer that
+# raises only on one style, or a widget binding that loops and hangs the clock, will not
+# show up until someone installs the APK. This runs the whole suite on every push, in a
+# couple of minutes, with no Android toolchain involved.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: System packages for headless Kivy
+        # xvfb gives Kivy a display; without one the UI tests cannot create a window.
+        # The SDL2 and mtdev packages are what the Kivy wheels link against.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libsdl2-2.0-0 libsdl2-image-2.0-0 libsdl2-mixer-2.0-0 \
+            libsdl2-ttf-2.0-0 libmtdev1 libgl1 libgles2
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install "opencv-python-headless<5" "numpy<3" kivy pytest
+
+      - name: Cache the ONNX models
+        # Restored before the download, which skips any file already present.
+        uses: actions/cache@v4
+        with:
+          path: sketch_assistant/assets/models
+          key: onnx-models-${{ hashFiles('scripts/download_models.py') }}
+
+      - name: Download the ONNX models
+        # Hands mode runs on MediaPipe landmark models. Without them the hand tests skip
+        # rather than fail, so fetch them here or the path that matters goes untested.
+        run: python scripts/download_models.py
+
+      - name: Run tests
+        env:
+          KIVY_NO_ARGS: "1"
+          KIVY_NO_CONSOLELOG: "1"
+        # A hung Kivy clock shows up as a job that never ends, so cap it rather than
+        # burning a runner for six hours.
+        timeout-minutes: 10
+        run: PYTHONPATH=. xvfb-run -a python -m pytest tests/ -q

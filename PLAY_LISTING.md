@@ -40,14 +40,24 @@ and pick a style:
 • Photorealism — smooth graphite shading with real pencil texture
 
 OBJECT MODE
-The same idea for still life. Contour, Basic Shapes, Value Study, Cross-Hatch and
-Photorealism, applied to the whole photo.
+The same idea for still life. Drag a box round the object you want to draw -- useful when
+there is more than one thing in the shot -- and pick from Contour, Basic Shapes, Value
+Study, Cross-Hatch and Photorealism.
+
+HANDS MODE
+Hands are the thing most people give up on, so they get their own mode. The app finds the
+hand in your photo and works out its structure -- the palm block, the curve of the knuckles,
+and every joint of every finger, even the ones that are curled or half hidden. The guides
+are built from that, the way a figure-drawing class would teach it, and the Construction
+style shows the block-in on its own. All of it runs on your phone.
 
 STEP BY STEP
 Tap "Generate drawing steps" and the app rebuilds the sketch the way you would actually draw
-it: construction lines first, then the eyes, nose, mouth and ears one at a time, then the
-outline, the values and the finish. Every step tells you which pencil to pick up, the
-technique to use, and what to put on the paper. Save the whole sequence as one sheet to print.
+it. For a portrait: construction lines first, then the eyes, nose, mouth and ears one at a
+time, then the outline, the values and the finish. For a hand: the palm block and axes, then
+the knuckles and joints, then the finger volumes, then the real outline. Every step tells you
+which pencil to pick up, the technique to use, and what to put on the paper. Save the whole
+sequence as one sheet to print.
 
 THE DRAWING GUIDE
 Tap through to the guide and you get the sketch enlarged, with optional proportion lines
@@ -132,6 +142,8 @@ pre-rounded asset gets double-rounded and transparent corners show the Play UI t
 2. The drawing guide page with the proportion lines on
 3. The style tiles, to show the range
 4. Object mode with the material guide open
+5. Hands mode showing the Construction style, which is the clearest demonstration of
+   what the app does that a still image can carry
 
 ---
 

@@ -88,7 +88,7 @@ because OpenCV is compiled from source; later runs reuse the cache and are much 
 
 When it finishes, download the `sketch-assistant-release` artifact. It contains:
 
-- `app-1.0.0-arm64-v8a-release.aab` → upload this
+- `app-1.1.0-arm64-v8a-release.aab` → upload this
 - `sketch-assistant-universal.apk` → install this on a phone to check the release build
 
 The workflow fails loudly if the bundle comes out unsigned, so a green run means it is ready.
@@ -132,9 +132,12 @@ accounts are exempt. Plan for this — it is the slowest part of a first release
 Every upload needs a higher version code. In `buildozer.spec`:
 
 ```ini
-version = 1.0.1              # the version name users see
+version = 1.1.0              # the version name users see
 android.numeric_version = 2  # must increase on EVERY upload (1.0.0 shipped as 1)
 ```
+
+Both are already set to the values above for the Hands release. For the one after it,
+raise `android.numeric_version` to 3.
 
 Then run the release workflow again. Tagging a commit `v0.1.1` also triggers it.
 
@@ -175,6 +178,17 @@ Then run the release workflow again. Tagging a commit `v0.1.1` also triggers it.
 ## Known risks on a real device
 
 These are the parts I could not test without an Android phone:
+
+- **Hands the models cannot read.** About one photo in twenty: typically a hand mostly
+  outside the frame, or gripping something that hides most of it. The app falls back to
+  reading the silhouette, so the guides get cruder rather than disappearing.
+- **Hand landmark speed on a phone.** The two ONNX models take about 70 ms per photo on a
+  desktop CPU. On a mid-range phone expect several times that. It runs once when a photo is
+  loaded, not per frame, so it should be unnoticeable -- but it is untimed on real hardware.
+- **Model size.** The APK grows by about 5.2 MB for the two hand models.
+- **`cv2.dnn` on Android.** The models load through `cv2.dnn.readNet`, which needs
+  `libopencv_dnn.so`. python-for-android's OpenCV recipe ships it, and YuNet already used
+  the same path in 1.0.0, so this is low risk -- but these are larger models.
 
 - **The OpenCV build.** It is the one step most likely to fail outright.
 - **Taking a photo.** The camera goes through a MediaStore entry and the system camera app.

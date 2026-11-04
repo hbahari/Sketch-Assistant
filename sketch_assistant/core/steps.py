@@ -20,8 +20,14 @@ import numpy as np
 from .guides import OVAL_H, OVAL_RISE, OVAL_W, draw_guides
 from .styles import ALL, _silhouette, render
 
-NO_SHADING = {"line_art", "technical", "obj_contour", "obj_shapes"}
+# Families whose finished drawing carries no tone, so a "block in the values" stage
+# would show nothing. Keyed by family rather than by style so a new mode inherits it.
+NO_SHADING_FAMILIES = {"line", "construct"}
 MIN_INK_DENSITY = 0.010      # a stage is dropped only if its region is near-empty
+
+
+def _shades(style_key):
+    return ALL[style_key].family not in NO_SHADING_FAMILIES
 
 
 @dataclass
@@ -29,6 +35,20 @@ class Stage:
     key: str                 # stable id; the step text is keyed off this
     title: str
     image: np.ndarray
+
+
+@dataclass
+class Job:
+    """One request for a drawing sequence. Every stage builder takes exactly this, so
+    `core/modes.py` can hold a reference to the right builder and call it blind."""
+    source_img: np.ndarray
+    style_key: str
+    detail: float
+    landmarks: tuple = ()
+    crop_shape: tuple = None
+    box: tuple = None
+    progress: object = None
+    mode: str = ""
 
 
 def _ink(img):
@@ -101,14 +121,20 @@ def _estimate_landmarks(box):
     oax, oay = bw * OVAL_W / 2, bh * OVAL_H / 2
     top, hh = ocy - oay, 2 * oay
     ex, mx = oax * 0.47, oax * 0.33
-    eye_y, nose_y, mouth_y = top + hh * 0.45, top + hh * 0.68, top + hh * 0.80
+    # same measured proportions as guides._proportional_guides; see the note there
+    eye_y, nose_y, mouth_y = top + hh * 0.43, top + hh * 0.64, top + hh * 0.78
     return [(cx - ex, eye_y), (cx + ex, eye_y), (cx, nose_y), (cx - mx, mouth_y), (cx + mx, mouth_y)]
 
 
-def portrait_stages(crop, style_key, detail, lm, crop_shape, box, progress=None):
+def portrait_stages(job):
     """Reveal one feature at a time. Real landmarks are used when the detector supplies
     them; otherwise they are estimated from the face box so the sequence still works."""
-    step = _progress(progress, 8)
+    crop, style_key, detail = job.source_img, job.style_key, job.detail
+    lm, crop_shape, box = job.landmarks, job.crop_shape, job.box
+    if crop_shape is None or box is None:                    # shouldn't happen; be safe
+        h, w = crop.shape[:2]
+        crop_shape, box = (h, w), (w * 0.2, h * 0.2, w * 0.6, h * 0.6)
+    step = _progress(job.progress, 8)
     has_lm = len(lm) == 5
     art = render("line_art", crop, max(detail, 0.45))        # the outline used for the reveals
     step()
@@ -117,7 +143,7 @@ def portrait_stages(crop, style_key, detail, lm, crop_shape, box, progress=None)
     lm_s = [(p[0] * sx, p[1] * sy) for p in lm] if has_lm else None
     box_s = (box[0] * sx, box[1] * sy, box[2] * sx, box[3] * sy)
 
-    guides = draw_guides(np.full_like(art, 255), "line_art", lm, crop_shape, box)
+    guides = draw_guides(np.full_like(art, 255), "portrait", "line_art", lm, crop_shape, box, crop)
     stages = [Stage("construction", "Construction", guides)]
     step()
 
@@ -142,7 +168,7 @@ def portrait_stages(crop, style_key, detail, lm, crop_shape, box, progress=None)
     stages.append(Stage("outline", "Complete the outline", _under(_fade(guides, .20), art)))
     step()
     final = render(style_key, crop, detail)
-    if style_key not in NO_SHADING:
+    if _shades(style_key):
         stages.append(Stage("values", "Block in the values",
                             _under(_fade(art, .45), render("value_study", crop, 0.1))))
         step()
@@ -152,8 +178,9 @@ def portrait_stages(crop, style_key, detail, lm, crop_shape, box, progress=None)
 
 
 # --------------------------------------------------------------------------- objects
-def object_stages(img, style_key, detail, progress=None):
-    step = _progress(progress, 6)
+def object_stages(job):
+    img, style_key, detail = job.source_img, job.style_key, job.detail
+    step = _progress(job.progress, 6)
     art = render("obj_contour", img, max(detail, 0.45))
     step()
     H, W = art.shape[:2]
@@ -170,10 +197,45 @@ def object_stages(img, style_key, detail, progress=None):
     step()
     stages.append(Stage("contours", "Inner contours", _apply(art, soft)))
     step()
-    if style_key not in NO_SHADING:
+    if _shades(style_key):
         stages.append(Stage("values", "Light and shadow",
                             _under(_fade(_apply(art, soft), .45),
                                    _apply(render("obj_value", img, 0.1), soft))))
+        step()
+    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", render(style_key, img, detail)))
+    step()
+    return stages
+
+
+# --------------------------------------------------------------------------- hands
+# A hand is taught structure-first: the palm block and the axes, then the volume on those
+# axes, and only then the real outline. Each level is one more pass of the Construction
+# renderer, which already knows how to draw them (see styles.construction).
+HAND_LEVELS = ((0.10, "hand_block", "Palm block and axes"),
+               (0.45, "hand_joints", "Knuckles and joints"),
+               (0.85, "hand_volumes", "Finger volumes"))
+
+
+def hand_stages(job):
+    """Palm block, then joints, then volumes, then the outline over the construction."""
+    img, style_key, detail = job.source_img, job.style_key, job.detail
+    step = _progress(job.progress, len(HAND_LEVELS) + 4)
+    stages = []
+    for d, key, title in HAND_LEVELS:
+        stages.append(Stage(key, title, render("hand_construct", img, d)))
+        step()
+    scaffold = stages[-1].image
+    # the hand styles are masked to the hand, so the outline and the tones come back
+    # without the table or the wall in them -- the same separation the step text asks for
+    art = render("hand_contour", img, max(detail, 0.45))
+    step()
+    if art.shape[:2] != scaffold.shape[:2]:                   # renderers agree, but don't assume
+        scaffold = cv2.resize(scaffold, (art.shape[1], art.shape[0]))
+    stages.append(Stage("hand_outline", "Draw the real outline", _under(_fade(scaffold, .25), art)))
+    step()
+    if _shades(style_key):
+        stages.append(Stage("values", "Light and shadow",
+                            _under(_fade(art, .45), render("hand_value", img, 0.1))))
         step()
     stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", render(style_key, img, detail)))
     step()
@@ -188,16 +250,6 @@ def _progress(cb, n):
         if cb:
             cb(min(state["i"], n), n)
     return tick
-
-
-def build_stages(mode, source_img, style_key, detail, lm=(), crop_shape=None, box=None, progress=None):
-    """Entry point used by the UI. Returns a list of Stage, longest side ~800px."""
-    if mode == "object":
-        return object_stages(source_img, style_key, detail, progress)
-    if crop_shape is None or box is None:                     # shouldn't happen; be safe
-        h, w = source_img.shape[:2]
-        crop_shape, box = (h, w), (w * 0.2, h * 0.2, w * 0.6, h * 0.6)
-    return portrait_stages(source_img, style_key, detail, lm, crop_shape, box, progress)
 
 
 def contact_sheet(stages, cell=420, cols=3):

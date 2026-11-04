@@ -1,8 +1,13 @@
 """Per-stage instructions: which pencil, which technique, what to actually do.
 
 Keyed by the stage ids produced in core/steps.py, so the words and the picture can never
-drift apart. `finish` is the one stage whose advice depends on the chosen style, so it has
-its own table.
+drift apart.
+
+`finish` is the one stage whose advice depends on the chosen style rather than the stage.
+It is keyed by style *family* (see core/styles.Style), so Line Art in Portrait and Contour
+in Hands share one entry, with FINISH_OVERRIDE holding the cases where a subject really
+does need different words. That way a new subject mode needs new text only where the
+advice actually changes.
 """
 
 STEPS = {
@@ -98,11 +103,55 @@ STEPS = {
                 "and the openings. Keep ellipses symmetrical. A lopsided rim is the fastest way "
                 "to make a cup look broken.",
     },
+
+    # ---- hands ----------------------------------------------------------------------
+    "hand_block": {
+        "pencil": "2H, or an HB held almost flat",
+        "technique": "Draw the palm as one flat slab, not as an outline with fingers stuck on. "
+                     "Everything else hangs off this shape, so get its tilt right before "
+                     "anything else.",
+        "text": "Block the palm in as a four-sided shape, slightly wider across the knuckles "
+                "than at the wrist. Mark the circle inside it -- that is the fleshy mass of the "
+                "palm and it tells you the scale of everything else. Draw the wrist axis out of "
+                "the bottom. Then put one straight line down the middle of each finger, from the "
+                "knuckle arc outwards. Lines only at this stage: no outlines, no nails.",
+    },
+    "hand_joints": {
+        "pencil": "HB, still light",
+        "technique": "The knuckles do not sit on a straight line. They arc, and the arc flattens "
+                     "or deepens as the hand turns -- which is most of what tells the viewer "
+                     "what angle they are looking from.",
+        "text": "Draw the knuckle arc across the finger bases, following the curve in the guide "
+                "rather than a straight row. Then mark the two joints on each finger. They are "
+                "not evenly spaced: the segment nearest the palm is the longest, the middle one "
+                "about two thirds of it, the tip segment shortest. The thumb is the exception "
+                "with only two segments, and it joins the palm much lower down than the fingers.",
+    },
+    "hand_volumes": {
+        "pencil": "HB",
+        "technique": "Think of each segment as a box or a short cylinder, not a flat strip. "
+                     "Fingers taper: each segment is narrower than the one before it.",
+        "text": "Give every segment width, working out from the axis you drew. Keep the far side "
+                "of each joint slightly narrower than the near side. Where one finger passes in "
+                "front of another, draw the near one complete and let the far one disappear "
+                "behind it -- that overlap is what creates depth in a hand.",
+    },
+    "hand_outline": {
+        "pencil": "2B for the outline, HB for the creases",
+        "technique": "Follow the construction rather than the photo. If the outline and the "
+                     "block-in disagree, the block-in is usually right and your eye is being "
+                     "fooled by foreshortening.",
+        "text": "Draw the real edge over your construction, rounding the knuckles and letting "
+                "the webbing between the fingers rise about a third of the way up the first "
+                "segment -- fingers do not separate at the knuckle. Add the creases at each "
+                "joint as short, light lines. Then erase the construction. Nails sit on the top "
+                "plane of the last segment and are flatter than they look.",
+    },
 }
 
-# `finish` depends on the style you chose, so it gets its own table
+# `finish` depends on the style family you chose, so it gets its own table
 FINISH = {
-    "line_art": {
+    "line": {
         "pencil": "2B, kept sharp",
         "technique": "One confident stroke beats four tentative ones. Draw from the shoulder for "
                      "long lines, from the fingers only for short detail.",
@@ -110,7 +159,7 @@ FINISH = {
                 "There is no shading in this style, so the line itself has to carry the form: "
                 "vary its thickness instead of adding tone.",
     },
-    "technical": {
+    "construct": {
         "pencil": "2H for guides, HB for structure, 2B for accents; a ruler helps",
         "technique": "Keep hatching in one consistent direction per surface, and keep the spacing "
                      "even. Irregular spacing reads as texture, not shadow.",
@@ -118,7 +167,7 @@ FINISH = {
                 "into the shadow areas only. Darken the key edges last and erase any guides you "
                 "no longer need.",
     },
-    "value_study": {
+    "value": {
         "pencil": "HB, 2B, 4B and 6B; a blending stump is optional",
         "technique": "Keep each tone flat and distinct. If two neighbouring tones look the same, "
                      "the study has failed at its one job.",
@@ -126,7 +175,7 @@ FINISH = {
                 "paper. Hold the edges between tones crisp: this style is about seeing the big "
                 "shapes of light, not about smooth gradients.",
     },
-    "crosshatch": {
+    "hatch": {
         "pencil": "A sharp HB or 2B, or a fine liner; re-sharpen often",
         "technique": "Build darkness with more layers, never more pressure. Each new layer crosses "
                      "the one beneath at roughly 30 to 45 degrees.",
@@ -134,7 +183,7 @@ FINISH = {
                 "crossing layer only where it is darker, a third darker still. On curved surfaces "
                 "let the strokes follow the curve. Leave the highlights as untouched paper.",
     },
-    "photoreal": {
+    "real": {
         "pencil": "2H through 6B, with a blending stump and a kneaded eraser",
         "technique": "Build tone in thin layers using small overlapping circles. Press hard only "
                      "in the very darkest accents, and blend along the form rather than across it.",
@@ -143,18 +192,40 @@ FINISH = {
                 "them. Add texture and the sharpest details last.",
     },
 }
-FINISH["obj_contour"] = FINISH["line_art"]
-FINISH["obj_shapes"] = FINISH["technical"]
-FINISH["obj_value"] = FINISH["value_study"]
-FINISH["obj_hatch"] = FINISH["crosshatch"]
-FINISH["obj_realistic"] = FINISH["photoreal"]
+
+# Where one subject's finishing advice genuinely differs from its family's.
+FINISH_OVERRIDE = {
+    "hand_construct": {
+        "pencil": "2H for the block-in, HB for structure, 2B for the joint creases",
+        "technique": "Keep the construction visible and readable. A construction drawing is for "
+                     "working out the hand's angle and proportion, so clarity beats prettiness.",
+        "text": "Firm up the palm slab and the finger boxes into clean edges, and mark each joint "
+                "clearly. Compare the length of the whole hand against the palm alone -- they are "
+                "close to equal on most hands, and that single check catches most of the errors "
+                "beginners make. Leave the axes in; they are the point of this style.",
+    },
+    "hand_realistic": {
+        "pencil": "2H through 6B, blending stump, kneaded eraser",
+        "technique": "Skin over bone: the knuckles and the back of the hand have hard forms just "
+                     "under the surface, while the palm and the finger pads are soft. Blend the "
+                     "soft parts, keep the bony ones crisp.",
+        "text": "Lay the mid-tones and blend along the length of each finger, never across it. "
+                "Deepen the shadow between the fingers and under the palm, which are the darkest "
+                "notes in the whole drawing. Lift highlights off the knuckles and the nail plates "
+                "last. Draw skin creases as tone, not line.",
+    },
+}
 
 ACCENT = "a66a00"
 
 
 def step_markup(stage_key, style_key):
     """Kivy markup for one stage: pencil, technique, then what to do."""
-    d = FINISH.get(style_key, FINISH["photoreal"]) if stage_key == "finish" else STEPS.get(stage_key)
+    if stage_key == "finish":
+        from ..core.styles import ALL
+        d = FINISH_OVERRIDE.get(style_key) or FINISH.get(ALL[style_key].family) or FINISH["real"]
+    else:
+        d = STEPS.get(stage_key)
     if d is None:
         return ""
     h = lambda t: f"[b][color={ACCENT}]{t}[/color][/b]"

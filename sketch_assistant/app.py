@@ -2,6 +2,7 @@ from kivy.app import App
 from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, SlideTransition
 
+from .core.modes import DEFAULT as DEFAULT_MODE
 from .core.styles import ALL
 from .ui import theme
 from .ui.guide import GuideScreen
@@ -18,7 +19,7 @@ class Screens(ScreenManager):
 class SketchApp(App):
     title = "Sketch Assistant"
     icon = str(__import__("pathlib").Path(__file__).resolve().parent / "assets" / "brand" / "icon.png")
-    mode = "portrait"                         # "portrait" | "object"
+    mode = DEFAULT_MODE                       # a key of core.modes.MODES
     photo = source_img = sketch = style_key = crop_shape = crop_box = None
     stages = ()   # shared state between screens
     landmarks = ()

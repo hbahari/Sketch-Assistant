@@ -1,4 +1,8 @@
-"""Main page: header, Portrait/Object modes, photo + preview side by side, style tiles. (The detail slider lives on the guide page.)"""
+"""Main page: header, the subject bar, photo + preview side by side, style tiles.
+
+Everything that varies by subject comes from core/modes.py, so adding a subject needs no
+change here. (The detail slider lives on the guide page.)
+"""
 from pathlib import Path
 from kivy.clock import Clock
 from kivy.metrics import dp, sp
@@ -8,11 +12,13 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 
-from ..core.faces import crop_info, detect_faces, load_image
-from ..core.styles import render, styles_for
+from ..core.faces import crop_info, crop_to_box, load_image
+from ..core.modes import MODES, mode_of
+from ..core.styles import render
 from ..platform_utils import pick_from_gallery, take_photo
 from . import theme
-from .widgets import Card, FaceSelector, LogoBar, RoundButton, UploadCard, to_texture
+from .widgets import (BoxSelector, Card, FaceSelector, LogoBar, ModeBar, RoundButton,
+                      UploadCard, to_texture)
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "assets" / "examples"
 
@@ -20,32 +26,31 @@ EXAMPLES = Path(__file__).resolve().parent.parent / "assets" / "examples"
 class HomeScreen(Screen):
     def __init__(self, app, **kw):
         super().__init__(**kw)
-        self.app_ref, r = app, theme.radius()
-        self.photo_loaded, self.faces, self.tiles = False, None, {}
+        self.app_ref = app
+        self.photo_loaded, self.regions, self.tiles = False, None, {}
         root = BoxLayout(orientation="vertical", spacing=dp(6))
         root.add_widget(LogoBar())
-        body = BoxLayout(orientation="vertical", spacing=dp(8), padding=(dp(14), 0, dp(14), dp(14)))
+        body = BoxLayout(orientation="vertical", spacing=dp(8), padding=(0, 0, 0, dp(14)))
 
-        bar = BoxLayout(size_hint_y=None, height=dp(46), spacing=0)  # attached segmented control
-        self.mode_btns = {
-            "portrait": RoundButton(text="Portrait", radii=[r, 0, 0, r], active=True, bold=True, on_release=lambda *_: self.set_mode("portrait")),
-            "object": RoundButton(text="Object", radii=[0, r, r, 0], bold=True, on_release=lambda *_: self.set_mode("object"))}
-        for b in self.mode_btns.values():
-            bar.add_widget(b)
-        body.add_widget(bar)
+        # the subject bar spans the full width so it can scroll under the page margins
+        self.mode_bar = ModeBar([(m.key, m.label) for m in MODES.values()], self.set_mode)
+        self.mode_bar.select(app.mode)
+        body.add_widget(self.mode_bar)
 
+        inner = BoxLayout(orientation="vertical", spacing=dp(8), padding=(dp(14), 0))
         row = BoxLayout(spacing=dp(10))  # photo (left) and sketch preview (right)
         self.box = BoxLayout()  # upload card <-> photo card
         self.upload_btn = UploadCard(text="[b]Add a photo[/b]\n[size=12sp]Take one or upload from gallery[/size]", markup=True,
                                      font_size=sp(16), radii=[dp(24)] * 4, on_release=lambda *_: self.choose_source())
         self.selector = FaceSelector(on_select=self.on_face)
+        self.box_picker = BoxSelector(on_select=self.on_box)
         self.photo_card = Card(padding=dp(6)); self.photo_card.add_widget(self.selector)
         self.box.add_widget(self.upload_btn)
         self.preview = Image(fit_mode="contain")
         self.placeholder = Label(text="Your sketch\nwill appear here", color=theme.MUTED, halign="center", font_size=sp(13))
         self.preview_card = Card(padding=dp(6)); self.preview_card.add_widget(self.placeholder)
         row.add_widget(self.box); row.add_widget(self.preview_card)
-        body.add_widget(row)
+        inner.add_widget(row)
 
         # status line + "New photo" button (appears once a photo is loaded)
         status_row = BoxLayout(size_hint_y=None, height=dp(34), spacing=dp(8))
@@ -55,17 +60,18 @@ class HomeScreen(Screen):
                                          radii=[dp(17)] * 4, fill=theme.AMBER, on_release=lambda *_: self.choose_source())
         status_row.add_widget(self.status)
         self.status_row = status_row
-        body.add_widget(status_row)
+        inner.add_widget(status_row)
 
-        self.rows = {m: self._make_row(styles_for(m)) for m in ("portrait", "object")}
+        self.rows = {k: self._make_row(m.styles) for k, m in MODES.items()}
         self.style_holder = BoxLayout(size_hint_y=None, height=dp(100))
-        self.style_holder.add_widget(self.rows["portrait"])
-        body.add_widget(self.style_holder)
+        self.style_holder.add_widget(self.rows[app.mode])
+        inner.add_widget(self.style_holder)
 
         self.guide_btn = RoundButton(text="Enlarge & drawing guide", bold=True, size_hint_y=None, height=dp(54),
                                      disabled=True, active=True, radii=[dp(27)] * 4,
                                      on_release=lambda *_: self.manager.switch_to_guide())
-        body.add_widget(self.guide_btn)
+        inner.add_widget(self.guide_btn)
+        body.add_widget(inner)
         root.add_widget(body)
         self.add_widget(root)
 
@@ -95,14 +101,13 @@ class HomeScreen(Screen):
         self._set_preview(None)
 
     # modes
-    def set_mode(self, mode):
+    def set_mode(self, key):
         a = self.app_ref
-        if mode == a.mode:
+        if key == a.mode:
             return
-        a.mode = mode
-        for k, b in self.mode_btns.items():
-            b.active = k == mode
-        self.style_holder.clear_widgets(); self.style_holder.add_widget(self.rows[mode])
+        a.mode = key
+        self.mode_bar.select(key)
+        self.style_holder.clear_widgets(); self.style_holder.add_widget(self.rows[key])
         self._reset_results()
         if self.photo_loaded:
             self._prepare_photo()
@@ -110,20 +115,46 @@ class HomeScreen(Screen):
             self.status.text = "Add a photo to begin"
 
     def _prepare_photo(self):
-        a = self.app_ref
-        if a.mode == "object":  # whole image is used, no detection
+        """Set the photo card up for this mode: a detector's boxes, a drawn box, or neither."""
+        a, m = self.app_ref, mode_of(self.app_ref.mode)
+        self._show_picker(self.box_picker if m.pick_box else self.selector)
+        if m.pick_box:                             # the user draws the region
+            self.box_picker.set_photo(a.photo)
+            self._enable_styles(m)
+            self.status.text = m.hint
+            self.on_box(self.box_picker.box)       # render the default box straight away
+            return
+        if m.detect is None:                       # whole image is used, no detection
             self.selector.set_photo(a.photo, [])
             a.source_img, a.landmarks, a.crop_shape, a.crop_box = a.photo, (), None, None
-            for key in styles_for("object"):
-                self.tiles[key].disabled = False
-            self.status.text = "Pick a style (best with one object)"
-            self.on_style("obj_contour")
-        else:
-            if self.faces is None:
-                self.faces = detect_faces(a.photo)
-            self.selector.set_photo(a.photo, self.faces)
-            n = len(self.faces)
-            self.status.text = f"{n} face(s) found - tap a box" if n else "No faces found - use New photo to try another"
+            self._enable_styles(m)
+            self.status.text = m.hint
+            self.on_style(m.default_style)
+            return
+        if self.regions is None:
+            self.regions = m.detect(a.photo)
+        self.selector.set_photo(a.photo, self.regions)
+        n = len(self.regions)
+        self.status.text = m.found_fmt.format(n=n) if n else m.none_fmt
+
+    def _show_picker(self, widget):
+        """Swap the photo card's contents between the tap-a-box and draw-a-box pickers."""
+        if widget.parent is self.photo_card:
+            return
+        self.photo_card.clear_widgets()
+        self.photo_card.add_widget(widget)
+
+    def on_box(self, box):
+        """A region was drawn (or defaulted): crop to it and re-render the current style."""
+        a = self.app_ref
+        a.source_img = crop_to_box(a.photo, box)
+        a.landmarks, a.crop_box = (), None
+        a.crop_shape = a.source_img.shape[:2]
+        self.on_style(a.style_key or mode_of(a.mode).default_style)
+
+    def _enable_styles(self, m):
+        for key in m.styles:
+            self.tiles[key].disabled = False
 
     # photo input
     def choose_source(self):
@@ -143,22 +174,22 @@ class HomeScreen(Screen):
         except ValueError as e:
             self.status.text = str(e)
             return
-        self.app_ref.photo, self.faces, self.photo_loaded = img, None, True
+        self.app_ref.photo, self.regions, self.photo_loaded = img, None, True
         if self.new_photo_btn.parent is None:
             self.status_row.add_widget(self.new_photo_btn)
         self.box.clear_widgets(); self.box.add_widget(self.photo_card)
         self._reset_results()
         self._prepare_photo()
 
-    # face + style
+    # detected region + style
     def on_face(self, idx, face):
-        a = self.app_ref
+        """A detected box was tapped: crop to it and offer this mode's styles."""
+        a, m = self.app_ref, mode_of(self.app_ref.mode)
         a.source_img, a.landmarks, a.crop_box = crop_info(a.photo, face)
         a.crop_shape = a.source_img.shape[:2]
-        for key in styles_for("portrait"):
-            self.tiles[key].disabled = False
-        self.status.text = "Pick a sketch style"
-        self.on_style("line_art")
+        self._enable_styles(m)
+        self.status.text = m.hint
+        self.on_style(m.default_style)
 
     def on_style(self, key):
         a = self.app_ref

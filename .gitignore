@@ -11,3 +11,7 @@ shots/
 *.keystore
 *.jks
 key.properties
+
+# ONNX models: downloaded by scripts/download_models.py, not committed (~5.5 MB).
+# The workflows fetch them before building.
+sketch_assistant/assets/models/*.onnx

@@ -182,34 +182,169 @@ def shapes(img, d=0.5):
     return out
 
 
+# Construction (hands): the block-in a figure-drawing book would start with.
+# Fallback joint positions along a finger, used only when the landmark models are missing.
+# The proximal phalanx is the longest, then the middle, then the distal -- roughly
+# 2 : 1.2 : 1, which puts the joints at these fractions of the finger's length.
+JOINTS = (0.465, 0.744)
+SEG_WIDTH = (0.30, 0.25, 0.20)      # how wide each segment is drawn, in palm radii
+
+
+def _chain(hand, base, tip):
+    """A finger as the points along it, knuckle to tip.
+
+    With the landmark models this is the real chain of joints. Without them the joints
+    are placed at average proportions along the straight axis, which is the best a
+    silhouette supports.
+    """
+    b, t = np.array(base, float), np.array(tip, float)
+    return [b] + [b + (t - b) * f for f in JOINTS] + [t]
+
+
+def construction(img, d=0.5):
+    """Palm block, knuckle arc, finger axes and joints -- the structure under a hand.
+
+    Falls back to the generic object block-in when no hand can be read, so the style
+    always renders something useful.
+    """
+    from .hands import analyze                 # imported here: hands.py needs _silhouette
+    img = _prep(img)
+    h, w = img.shape[:2]
+    hand = analyze(img)
+    if hand is None:
+        return shapes(img, d)
+
+    out, blue, ink = np.full((h, w, 3), 255, np.uint8), (200, 120, 40), (60, 60, 60)
+    if hand.contour is not None:
+        cv2.drawContours(out, [hand.contour], -1, (238, 238, 238), -1)   # the hand's mass
+    pr = hand.palm_r
+    thick = max(2, int(pr * 0.05))
+
+    # the palm block, and the knuckle arc across the top of it
+    quad = hand.palm_quad
+    if len(quad) >= 3:
+        cv2.polylines(out, [np.array(quad, np.int32)], True, ink, thick, cv2.LINE_AA)
+    kn = hand.knuckles
+    if len(kn) >= 2:
+        cv2.polylines(out, [np.array(kn, np.int32)], False, blue, thick, cv2.LINE_AA)
+
+    cv2.circle(out, (int(hand.palm[0]), int(hand.palm[1])), int(pr), blue, 1, cv2.LINE_AA)
+    dashed(out, hand.wrist, hand.palm, blue, 1)
+
+    chains = hand.joints or [_chain(hand, b, t) for b, t in hand.fingers]
+    for chain in chains:
+        pts = [np.array(p, float) for p in chain]
+        cv2.polylines(out, [np.array(pts, np.int32)], False, ink, max(2, int(pr * 0.045)), cv2.LINE_AA)
+        cv2.circle(out, tuple(pts[0].astype(int)), max(3, int(pr * 0.09)), blue, -1, cv2.LINE_AA)
+        if d > 0.25:                                     # joints appear with detail
+            for p in pts[1:]:
+                cv2.circle(out, tuple(p.astype(int)), max(2, int(pr * 0.07)), blue, -1, cv2.LINE_AA)
+        if d > 0.6:                                      # ...then the volume on each segment
+            for (p0, p1), wf in zip(zip(pts, pts[1:]), SEG_WIDTH):
+                v = p1 - p0
+                n = np.array([-v[1], v[0]])
+                n = n / (np.linalg.norm(n) + 1e-6) * pr * wf * 0.6
+                cv2.polylines(out, [np.array([p0 - n, p1 - n, p1 + n, p0 + n], np.int32)],
+                              True, (150, 150, 150), 1, cv2.LINE_AA)
+
+    ref = hand.contour if hand.contour is not None else np.array(
+        [[[int(p[0]), int(p[1])]] for p in np.vstack([hand.landmarks])], np.int32)
+    x, y, bw, bh = cv2.boundingRect(ref)
+    for p, q in (((x, y), (x + bw, y)), ((x + bw, y), (x + bw, y + bh)),
+                 ((x + bw, y + bh), (x, y + bh)), ((x, y + bh), (x, y)),
+                 ((x + bw / 2, y), (x + bw / 2, y + bh)), ((x, y + bh / 2), (x + bw, y + bh / 2))):
+        dashed(out, p, q, blue, 1)
+    cv2.putText(out, f"palm : hand = 1 : {bh / max(2 * pr, 1):.2f}", (max(x, 6), max(20, y - 8)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, blue, 1, cv2.LINE_AA)
+    return out
+
+
+def on_hand(render_fn, outline=False):
+    """Run a renderer, then drop everything outside the hand.
+
+    Without this a hand photographed on a wooden table comes back with the table hatched
+    and toned exactly as heavily as the hand: the two stop reading as separate things, and
+    there is nothing in the picture to tell a learner where the hand ends. Shading the
+    subject and leaving the ground as paper is also what the drawing advice tells them to
+    do, so the reference should match.
+
+    The hand is left untouched when it cannot be found, which is better than masking with
+    a wrong shape.
+    """
+    def wrapped(img, d=0.5):
+        from .hands import analyze, hand_mask
+        img = _prep(img)
+        art = render_fn(img, d)
+        hand = analyze(img)
+        if hand is None:
+            return art
+        m = hand_mask(img, hand)
+        if m is None:
+            return art
+        if m.shape[:2] != art.shape[:2]:
+            m = cv2.resize(m, (art.shape[1], art.shape[0]))
+        a = (m.astype(np.float32) / 255)[..., None]
+        out = (255 - (255 - art.astype(np.float32)) * a).astype(np.uint8)
+        if outline:
+            # Draw the silhouette explicitly. Difference-of-Gaussians finds edges by
+            # contrast, and the edge of a hand against a pale table or a grey wall often
+            # has very little, so the one line that matters most to someone drawing came
+            # back broken or missing while every knuckle crease came through strongly.
+            h2, w2 = out.shape[:2]
+            hard = (m > 128).astype(np.uint8) * 255
+            cnts, _ = cv2.findContours(hard, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cv2.drawContours(out, cnts, -1, (0, 0, 0),
+                             max(2, int(min(h2, w2) * 0.005)), cv2.LINE_AA)
+        return out
+    wrapped.__name__ = f"on_hand_{getattr(render_fn, '__name__', 'style')}"
+    return wrapped
+
+
 @dataclass(frozen=True)
 class Style:
+    """One renderer, as offered in one mode.
+
+    `family` groups the same transform across modes: Line Art in Portrait, Contour in
+    Object and Contour in Hands are all the `line` family. The pencil-tip and step tables
+    are keyed by family with per-style overrides, so adding a mode needs new text only
+    where the advice genuinely differs -- not five fresh entries every time.
+    """
     key: str
     label: str
     render: Callable
     short: str = ""        # compact label for tabs/tiles
     default: float = 0.5   # default detail
+    family: str = ""       # line | construct | value | hatch | real
 
 
 STYLES = {s.key: s for s in (           # portrait mode
-    Style("line_art", "Line Art", line_art, "Line Art"),
-    Style("technical", "Technical", technical, "Technical"),
-    Style("value_study", "Value Study", value_study, "Value", 0.3),
-    Style("crosshatch", "Cross-Hatch", crosshatch, "Hatch"),
-    Style("photoreal", "Photorealism", photorealistic, "Realistic"),
+    Style("line_art", "Line Art", line_art, "Line Art", family="line"),
+    Style("technical", "Technical", technical, "Technical", family="construct"),
+    Style("value_study", "Value Study", value_study, "Value", 0.3, family="value"),
+    Style("crosshatch", "Cross-Hatch", crosshatch, "Hatch", family="hatch"),
+    Style("photoreal", "Photorealism", photorealistic, "Realistic", family="real"),
 )}
 OBJECT_STYLES = {s.key: s for s in (    # object mode: whole image, no detection
-    Style("obj_contour", "Contour", line_art, "Contour"),
-    Style("obj_shapes", "Basic Shapes", shapes, "Shapes"),
-    Style("obj_value", "Value Study", value_study, "Value", 0.3),
-    Style("obj_hatch", "Cross-Hatch", crosshatch, "Hatch"),
-    Style("obj_realistic", "Photorealism", photorealistic, "Realistic"),
+    Style("obj_contour", "Contour", line_art, "Contour", family="line"),
+    Style("obj_shapes", "Basic Shapes", shapes, "Shapes", family="construct"),
+    Style("obj_value", "Value Study", value_study, "Value", 0.3, family="value"),
+    Style("obj_hatch", "Cross-Hatch", crosshatch, "Hatch", family="hatch"),
+    Style("obj_realistic", "Photorealism", photorealistic, "Realistic", family="real"),
 )}
-ALL = {**STYLES, **OBJECT_STYLES}
+HAND_STYLES = {s.key: s for s in (      # hands mode: every style is masked to the hand
+    # a lower default than the other modes: skin creases, knuckle folds and hair all read
+    # as edges, so a hand at the usual 0.5 comes back as a thicket of interior lines
+    Style("hand_contour", "Contour", on_hand(line_art, outline=True), "Contour", 0.3, "line"),
+    Style("hand_construct", "Construction", construction, "Construct", family="construct"),
+    Style("hand_value", "Value Study", on_hand(value_study), "Value", 0.3, family="value"),
+    Style("hand_hatch", "Cross-Hatch", on_hand(crosshatch), "Hatch", family="hatch"),
+    Style("hand_realistic", "Photorealism", on_hand(photorealistic), "Realistic", family="real"),
+)}
+ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES}
 
 
-def styles_for(mode):
-    return OBJECT_STYLES if mode == "object" else STYLES
+def family_of(style_key):
+    return ALL[style_key].family
 
 
 def render(style_key, img, detail=None):
