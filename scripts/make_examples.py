@@ -1,11 +1,16 @@
 """Regenerate the style-button thumbnails.
 
-    python scripts/make_examples.py portrait.jpg object.jpg [hand.jpg]
+    python scripts/make_examples.py portrait.jpg object.jpg [hand.jpg] [body.jpg]
 
 Every style in every mode gets one 360x360 tile. The hand reference is optional: without
 it a shaded synthetic hand stands in, so the tiles are never blank. Replace it with a real
 photo of a hand on a plain background whenever one is to hand -- the tiles are the first
 thing anyone sees of a style.
+
+The committed Posture tiles were made from `tests/fixtures/bodies/kneeling.jpg` cropped to
+`union_box(detect(...), margin=0.08)`. Recorded because the reference photos for the other
+modes do not live in the repo, so a single stale tile is otherwise impossible to redo
+without reframing the whole set.
 """
 import sys
 from pathlib import Path
@@ -59,12 +64,27 @@ def synthetic_hand(size=560):
     return cv2.cvtColor(np.clip(g, 0, 255).astype(np.uint8), cv2.COLOR_GRAY2BGR)
 
 
-def tile(src, key):
+def tile(src, key, fit=False):
+    """Render one style and save a 360x360 thumbnail.
+
+    `fit` letterboxes instead of cropping to a centre square. A standing figure is far
+    taller than it is wide, so a centre crop of one shows a midriff and nothing else --
+    the tile has to show the whole pose to mean anything.
+    """
     sk = render(key, src)
     h, w = sk.shape[:2]
-    s = min(h, w)
-    sq = sk[(h - s) // 2:(h + s) // 2, (w - s) // 2:(w + s) // 2]
-    cv2.imwrite(str(OUT / f"{key}.png"), cv2.resize(sq, (360, 360), interpolation=cv2.INTER_AREA))
+    if fit:
+        scale = 360 / max(h, w)
+        small = cv2.resize(sk, (max(1, int(w * scale)), max(1, int(h * scale))),
+                           interpolation=cv2.INTER_AREA)
+        sq = np.full((360, 360, 3), 255, np.uint8)
+        y0, x0 = (360 - small.shape[0]) // 2, (360 - small.shape[1]) // 2
+        sq[y0:y0 + small.shape[0], x0:x0 + small.shape[1]] = small
+    else:
+        s = min(h, w)
+        crop = sk[(h - s) // 2:(h + s) // 2, (w - s) // 2:(w + s) // 2]
+        sq = cv2.resize(crop, (360, 360), interpolation=cv2.INTER_AREA)
+    cv2.imwrite(str(OUT / f"{key}.png"), sq)
 
 
 def main():
@@ -78,16 +98,19 @@ def main():
         "portrait": crop_face(full, faces[0]),
         "object": load_image(sys.argv[2]),
         "hands": load_image(sys.argv[3]) if len(sys.argv) > 3 else synthetic_hand(),
+        "body": load_image(sys.argv[4]) if len(sys.argv) > 4 else None,
     }
     if len(sys.argv) <= 3:
         print("note: no hand photo given, using the synthetic stand-in for the Hands tiles")
+    if len(sys.argv) <= 4:
+        print("note: no figure photo given, so the Posture tiles were skipped")
     for mode, m in MODES.items():
         src = sources.get(mode)
         if src is None:
             print(f"warning: no reference image for mode '{mode}', its tiles were skipped")
             continue
         for key in m.styles:
-            tile(src, key)
+            tile(src, key, fit=(mode == "body"))
             print(f"  {key}")
     print("wrote", len(list(OUT.glob('*.png'))), "thumbnails to", OUT)
 

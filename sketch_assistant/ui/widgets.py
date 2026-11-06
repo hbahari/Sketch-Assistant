@@ -24,15 +24,21 @@ def to_texture(arr):
 
 
 class FaceSelector(Image):
-    """Shows a photo with boxes around detected faces; tapping a box selects it."""
+    """A photo with boxes round what was detected; tapping one picks it.
 
-    def __init__(self, on_select=None, **kw):
+    With `multi` set, tapping toggles and several can be chosen at once. Posture mode
+    wants that: two people interacting are one composition, not two drawings, so the
+    caller takes the region spanning every chosen figure and the space between them.
+    """
+
+    def __init__(self, on_select=None, multi=False, **kw):
         super().__init__(fit_mode="contain", **kw)
         self.on_select, self.faces, self.selected, self._size = on_select, [], -1, (1, 1)
+        self.multi, self.chosen = multi, []
         self.bind(pos=self._redraw, size=self._redraw, texture_size=self._redraw)
 
     def set_photo(self, img_bgr, faces):
-        self.faces, self.selected = faces, -1
+        self.faces, self.selected, self.chosen = faces, -1, []
         self._size = (img_bgr.shape[1], img_bgr.shape[0])
         self.texture = to_texture(img_bgr)
         self._redraw()
@@ -48,20 +54,37 @@ class FaceSelector(Image):
         s, ox, oy = self._scale_origin()
         with self.canvas.after:
             for i, f in enumerate(self.faces):
-                Color(*(theme.AMBER if i == self.selected else theme.WHITE))
-                Line(rounded_rectangle=(ox + f.x * s, oy + (self._size[1] - f.y - f.h) * s, f.w * s, f.h * s, dp(8)), width=dp(2.2))
+                on = (i in self.chosen) if self.multi else (i == self.selected)
+                Color(*(theme.AMBER if on else theme.WHITE))
+                Line(rounded_rectangle=(ox + f.x * s, oy + (self._size[1] - f.y - f.h) * s,
+                                        f.w * s, f.h * s, dp(8)),
+                     width=dp(3.0) if on else dp(2.2))
 
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos) and self.faces:
             s, ox, oy = self._scale_origin()
             px, py = (touch.x - ox) / s, self._size[1] - (touch.y - oy) / s
-            for i, f in enumerate(self.faces):
-                if f.contains(px, py):
+            # smallest box containing the touch, so a figure in front of a larger one
+            # can still be picked where they overlap
+            hits = [i for i, f in enumerate(self.faces) if f.contains(px, py)]
+            if hits:
+                i = min(hits, key=lambda j: self.faces[j].w * self.faces[j].h)
+                if self.multi:
+                    if i in self.chosen:
+                        if len(self.chosen) > 1:      # never deselect the last one
+                            self.chosen.remove(i)
+                    else:
+                        self.chosen.append(i)
                     self.selected = i
                     self._redraw()
                     if self.on_select:
-                        self.on_select(i, f)
+                        self.on_select(list(self.chosen), [self.faces[j] for j in self.chosen])
                     return True
+                self.selected = i
+                self._redraw()
+                if self.on_select:
+                    self.on_select(i, self.faces[i])
+                return True
         return super().on_touch_down(touch)
 
 

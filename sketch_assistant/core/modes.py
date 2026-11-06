@@ -20,7 +20,14 @@ from typing import Callable, Optional
 from . import guides as _guides
 from . import steps as _steps
 from .faces import detect_faces
-from .styles import HAND_STYLES, OBJECT_STYLES, STYLES
+
+
+def _detect_people(img):
+    """Figures, as tappable boxes. Imported lazily so the pose models are only loaded
+    when Posture mode is actually used."""
+    from .bodies import detect
+    return detect(img)
+from .styles import BODY_STYLES, HAND_STYLES, OBJECT_STYLES, STYLES
 
 
 @dataclass(frozen=True)
@@ -33,6 +40,7 @@ class Mode:
     detect: Optional[Callable] = None        # img -> list of Face-like boxes to tap
     materials: bool = False          # show the material guide on the drawing-guide page
     pick_box: bool = False           # the user draws the region instead of tapping a found one
+    multi: bool = False              # several detections can be chosen at once
     hint: str = ""                   # status line once a photo is loaded
     found_fmt: str = ""              # status line after a successful detection ({n} boxes)
     none_fmt: str = ""               # ...and after an unsuccessful one
@@ -71,6 +79,18 @@ MODES = {m.key: m for m in (
         guide=_guides.hand_guides,
         stages=_steps.hand_stages,
         hint="Pick a style (one hand, plain background)",
+    ),
+    Mode(
+        key="body",
+        label="Posture",
+        styles=BODY_STYLES,
+        detect=_detect_people,
+        guide=_guides.body_guides,
+        stages=_steps.body_stages,
+        multi=True,
+        hint="Pick a style",
+        found_fmt="{n} figure(s) found - tap one, or several",
+        none_fmt="No figure found - use New photo to try another",
     ),
 )}
 

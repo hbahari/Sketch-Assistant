@@ -87,6 +87,7 @@ Measured against the photographs in `tests/fixtures/` (see `CREDITS.md` for sour
 | **Hands** | Strongest. Landmark models read 19 of 20 test photos, including a fist head-on, fingers round a mug and extreme foreshortening. The one miss falls back rather than guessing. |
 | **Portrait** | Solid. A face was found in all 27 test portraits, 26 with landmarks, and every one produces the full nine-stage sequence. The guide oval encloses the features on 24 of 26. |
 | **Object** | The user draws a box round the object they want; see below for why. |
+| **Posture** | Figures found by MediaPipe Pose. Tap one, or several -- two people interacting are one composition, so choosing both gives a region spanning them and the gap. |
 
 ### How object mode picks the object
 
@@ -104,6 +105,48 @@ cropping to a tapped face.
 
 The default selection covers 85% of the photo, so a photo that already worked still works
 untouched and dragging is purely an improvement rather than a new thing to get right.
+
+### Posture, specifically
+
+Abstract first, and not as a compromise: gesture and mannequin work *are* figure drawing,
+and full rendering is a later and separate skill. So the mode leads with Gesture (the line
+of action in one stroke) and Mannequin (ribcage and pelvis masses, limbs as tapering
+volumes, a heads-tall ruler), then Contour, Value, Cross-Contour and Realistic.
+
+**Cross-Contour** is this mode's Cross-Hatch: the bridge between a flat value study and a
+finished drawing. Hatching that runs straight across a limb flattens it; hatching that
+curves *around* it describes a cylinder. The strokes are iso-lines of two scalar fields
+built from the pose landmarks -- distance along the nearest limb axis, and signed distance
+across it -- so they wrap arms, legs and torso the way a life drawing does, and build
+darkness by crossing layers rather than pressing harder. The step ladder has a matching
+stage between the value blocks and the finish, because showing the tone appear without
+showing how the pencil got there teaches nothing.
+
+Every hatch in the app shares one rhythm (`_hatch_ink`): the same stroke spacing, the same
+weight, four layers, and the same tone at which each layer starts. Only the direction
+fields differ -- four planes at 45/135/0/90 where there is no structure to follow, the two
+axis fields and their diagonals where there is. The first attempt gave Posture its own
+spacing and weight, and the result read as a different style rather than the same
+technique applied to a figure; `test_every_hatch_uses_the_same_stroke_rhythm` measures
+stroke width off the render and pins it.
+
+Hands and faces are deliberately left as a wedge and an egg. At full-body scale a hand is
+a few dozen pixels, detailing it there is wrong, and the app has dedicated modes for both
+-- the step text says so.
+
+Two things the 33 landmarks buy that matter more than the skeleton:
+
+- **Contrapposto.** The shoulder and hip bars tilt in opposite directions in any weighted
+  standing pose. Seeing that is the biggest single step from a stiff figure to a live one.
+- **Proportion in heads.** The head is inferred from the torso, not from the span across
+  the ears or shoulders: those are measured across the body and collapse as soon as the
+  figure turns. Shoulder-midpoint to hip-midpoint is measured along the body and spans
+  about 2.2 heads. Across twenty-two figures the across-the-body estimate was plausible
+  eight times and once claimed a figure was 68 heads tall; the along-the-body one was
+  plausible on all twenty-two.
+
+The pose model also returns a body segmentation mask, so figure masking is free and knows
+what a person is -- no GrabCut, and a patterned floor does not end up shaded as anatomy.
 
 ## Adding a subject
 

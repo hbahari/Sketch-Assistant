@@ -79,19 +79,48 @@ def value_study(img, d=0.3):
     return _to_bgr(cv2.medianBlur(q, int(lerp(15, 7, d)) | 1))
 
 
+# One rhythm for every hatch in the app. Only the direction of the strokes changes per mode:
+# a flat grid where there is no structure to follow, curves round the form where there is.
+# Spacing, stroke weight, how many layers and the tone each layer starts at are shared, so
+# the shading reads as the same pencil held the same way whichever subject you are drawing.
+HATCH_CUTS = (40, 60, 78, 90)  # percentile of darkness at which each successive layer starts
+
+
+def _hatch_rhythm(w, d):
+    """Stroke spacing and weight at this detail. Weight tracks spacing so ink stays constant."""
+    sp = max(5.0, w / lerp(65, 125, d))
+    return sp, max(1.6, sp * 0.2)
+
+
+def _hatch_ink(dark, fields, d, inside=None):
+    """Lay the layers down: a stroke wherever a field crosses a period and the tone is dark enough.
+
+    `fields` are scalar fields with unit gradient, one per layer, lightest first. Iso-lines of
+    a field are the strokes, so a plane gives straight hatching and a distance-from-axis field
+    gives strokes that wrap. Darkness comes from layers crossing, never from pressing harder —
+    which is the thing a beginner has to be shown rather than told.
+    """
+    h, w = dark.shape[:2]
+    sp, width = _hatch_rhythm(w, d)
+    where = dark if inside is None else dark[inside]
+    cuts = np.percentile(where, np.clip(np.array(HATCH_CUTS) + (0.5 - d) * 20, 20, 98))
+    ink = np.zeros((h, w), bool)
+    for i, (field, cut) in enumerate(zip(fields, cuts)):
+        # stagger each layer so strokes interleave instead of landing on top of each other
+        band = np.abs(((field + i * sp / len(fields)) % sp) - sp / 2) < width / 2
+        ink |= band & (dark >= cut)
+    return ink if inside is None else (ink & inside)
+
+
 # Cross-hatching: darker = more hatch layers. Detail = line density, ink coverage, contour lines.
 def crosshatch(img, d=0.5):
     img = _prep(img)
     h, w = img.shape[:2]
     g = _gray(img)
     dark = 255 - cv2.GaussianBlur(g, (0, 0), 2.5)
-    cuts = np.percentile(dark, np.clip(np.array([40, 60, 78, 90]) + (0.5 - d) * 20, 20, 98))
-    sp = max(5, int(w / lerp(65, 125, d)))
     ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
-    ink = np.zeros((h, w), bool)
-    for cut, ang in zip(cuts, (45, 135, 0, 90)):
-        a = np.deg2rad(ang)
-        ink |= ((xs * np.cos(a) + ys * np.sin(a)) % sp < 1.6) & (dark >= cut)
+    planes = [xs * np.cos(np.deg2rad(a)) + ys * np.sin(np.deg2rad(a)) for a in (45, 135, 0, 90)]
+    ink = _hatch_ink(dark, planes, d)
     ink |= _line_mask(g, int(lerp(250, 60, d)), 1.6, 3.6, 3.0).astype(bool)
     return _to_bgr(cv2.GaussianBlur(np.where(ink, 50, 255).astype(np.uint8), (0, 0), 0.6))
 
@@ -259,6 +288,277 @@ def construction(img, d=0.5):
     return out
 
 
+# --------------------------------------------------------------------------- figures
+# Classical proportion, in head heights from the crown. Used for the measuring ruler.
+HEAD_MARKS = ((1.0, "chin"), (1.4, "shoulders"), (3.0, "navel"), (3.6, "hips"),
+              (5.5, "knees"), (7.5, "feet"))
+
+
+def _smooth(points, n=24):
+    """A flowing curve through a few points, for the line of action.
+
+    Drawn as a quadratic through the midpoints rather than straight segments: a gesture
+    line that visibly bends at each joint is not a gesture line.
+    """
+    p = np.asarray(points, np.float32)
+    if len(p) < 3:
+        return p
+    out = []
+    for i in range(len(p) - 1):
+        a = p[i - 1] if i else p[0]
+        b, c = p[i], p[i + 1]
+        m0, m1 = (a + b) / 2, (b + c) / 2
+        for t in np.linspace(0, 1, n, endpoint=False):
+            out.append((1 - t) ** 2 * m0 + 2 * (1 - t) * t * b + t ** 2 * m1)
+    out.append(p[-1])
+    return np.asarray(out, np.float32)
+
+
+def gesture(img, d=0.5):
+    """The thirty-second drawing: line of action, and the limbs as single strokes.
+
+    Deliberately almost empty. Gesture is about the whole pose's rhythm and weight, and
+    detail is what stops a beginner seeing it, so even at full detail this adds only the
+    shoulder and hip bars.
+    """
+    from .bodies import detect
+    img = _prep(img)
+    h, w = img.shape[:2]
+    bodies = detect(img)
+    out = np.full((h, w, 3), 255, np.uint8)
+    if not bodies:
+        return line_art(img, d)
+    ink, accent = (60, 60, 60), (200, 120, 40)
+    unit = max(2, int(min(h, w) * 0.006))
+    for b in bodies:
+        curve = _smooth(b.line_of_action)
+        if len(curve) > 1:
+            cv2.polylines(out, [curve.astype(np.int32)], False, ink, unit * 3, cv2.LINE_AA)
+        for pts in b.limb_chains().values():
+            cv2.polylines(out, [_smooth(pts).astype(np.int32)], False, ink,
+                          max(1, int(unit * 1.6)), cv2.LINE_AA)
+        hh = b.head_height
+        cx, cy = b.p(0)
+        cv2.circle(out, (int(cx), int(cy)), int(hh * 0.42), ink, unit, cv2.LINE_AA)
+        if d > 0.35:                                     # the two bars, and nothing more
+            for a, c in (b.shoulders, b.hips):
+                cv2.line(out, (int(a[0]), int(a[1])), (int(c[0]), int(c[1])),
+                         accent, unit * 2, cv2.LINE_AA)
+    return out
+
+
+def _tapered(out, pts, w0, w1, colour, th):
+    """A limb segment drawn as a tapering box, wide at the joint and narrow at the end."""
+    a, b = np.asarray(pts[0], float), np.asarray(pts[1], float)
+    v = b - a
+    n = np.array([-v[1], v[0]])
+    ln = np.linalg.norm(n)
+    if ln < 1e-6:
+        return
+    n /= ln
+    quad = np.array([a - n * w0, b - n * w1, b + n * w1, a + n * w0], np.int32)
+    cv2.polylines(out, [quad], True, colour, th, cv2.LINE_AA)
+
+
+def mannequin(img, d=0.5):
+    """The block-in: head oval, ribcage and pelvis masses, limbs as tapering volumes.
+
+    This is the structural drawing a figure course spends weeks on. Falls back to the
+    plain line art when no figure can be read, so the style always produces something.
+    """
+    from .bodies import detect, L_HIP, L_SHOULDER, R_HIP, R_SHOULDER
+    img = _prep(img)
+    h, w = img.shape[:2]
+    bodies = detect(img)
+    if not bodies:
+        return line_art(img, d)
+    out = np.full((h, w, 3), 255, np.uint8)
+    ink, accent, soft = (60, 60, 60), (200, 120, 40), (170, 170, 170)
+
+    for b in bodies:
+        hh = b.head_height
+        unit = max(2, int(hh * 0.07))
+        lm = b.landmarks
+        ls, rs = lm[L_SHOULDER], lm[R_SHOULDER]
+        lh, rh = lm[L_HIP], lm[R_HIP]
+        # ribcage and pelvis as the two masses everything else hangs between
+        for quad in ((ls, rs, rs + (rh - rs) * 0.62, ls + (lh - ls) * 0.62),
+                     (lh + (ls - lh) * 0.25, rh + (rs - rh) * 0.25, rh, lh)):
+            cv2.polylines(out, [np.asarray(quad, np.int32)], True, ink, unit, cv2.LINE_AA)
+        cv2.line(out, tuple(((ls + rs) / 2).astype(int)), tuple(((lh + rh) / 2).astype(int)),
+                 soft, max(1, unit // 2), cv2.LINE_AA)
+
+        cx, cy = b.p(0)
+        cv2.ellipse(out, (int(cx), int(cy)), (int(hh * 0.37), int(hh * 0.5)),
+                    0, 0, 360, ink, unit, cv2.LINE_AA)
+
+        for pts in b.limb_chains().values():
+            widths = (hh * 0.21, hh * 0.15, hh * 0.11)
+            for i, (p0, p1) in enumerate(zip(pts, pts[1:])):
+                cv2.line(out, (int(p0[0]), int(p0[1])), (int(p1[0]), int(p1[1])),
+                         ink, max(1, unit), cv2.LINE_AA)
+                if d > 0.55:
+                    _tapered(out, (p0, p1), widths[min(i, 2)], widths[min(i + 1, 2)],
+                             soft, max(1, unit // 2))
+            if d > 0.25:
+                for q in pts:
+                    cv2.circle(out, (int(q[0]), int(q[1])), max(2, int(hh * 0.075)),
+                               accent, -1, cv2.LINE_AA)
+
+        for a, c in (b.shoulders, b.hips):               # the two bars: contrapposto
+            cv2.line(out, (int(a[0]), int(a[1])), (int(c[0]), int(c[1])),
+                     accent, max(2, unit), cv2.LINE_AA)
+
+    if d > 0.4:                                          # the heads-tall ruler
+        b = bodies[0]
+        hh, bx, by, bh = b.head_height, b.box[0], b.box[1], b.box[3]
+        x = int(max(8, bx - hh * 0.55))
+        for k in range(int(bh / hh) + 1):
+            y = int(by + k * hh)
+            if y > h - 4:
+                break
+            dashed(out, (x - hh * 0.22, y), (x + hh * 0.22, y), accent, 1)
+            cv2.putText(out, str(k), (int(x + hh * 0.28), y + int(hh * 0.12)),
+                        cv2.FONT_HERSHEY_SIMPLEX, max(0.35, hh / 160), accent, 1, cv2.LINE_AA)
+        cv2.putText(out, f"{b.heads_tall:.1f} heads", (int(max(6, bx)), max(16, int(by - hh * 0.18))),
+                    cv2.FONT_HERSHEY_SIMPLEX, max(0.45, hh / 130), accent, 1, cv2.LINE_AA)
+    return out
+
+
+def _body_axes(bodies):
+    """The figure as a set of axis segments: torso, limbs, head.
+
+    Hatching that follows these wraps around the form instead of lying flat across it,
+    which is the whole point of cross-contour shading.
+    """
+    from .bodies import L_HIP, L_SHOULDER, NOSE, R_HIP, R_SHOULDER
+    segs = []
+    for b in bodies:
+        lm, vis = b.landmarks, b.visible
+        if vis[L_SHOULDER] and vis[R_SHOULDER] and vis[L_HIP] and vis[R_HIP]:
+            chest = (lm[L_SHOULDER] + lm[R_SHOULDER]) / 2
+            pelvis = (lm[L_HIP] + lm[R_HIP]) / 2
+            segs.append((chest, pelvis))
+            if vis[NOSE]:
+                segs.append((lm[NOSE], chest))
+        for pts in b.limb_chains().values():
+            for a, c in zip(pts, pts[1:]):
+                segs.append((np.asarray(a, np.float32), np.asarray(c, np.float32)))
+    return [(np.asarray(a, np.float32), np.asarray(c, np.float32))
+            for a, c in segs if np.hypot(*(np.asarray(c) - np.asarray(a))) > 4]
+
+
+def _axis_field(shape, segs):
+    """For every pixel: distance along the nearest axis, and signed distance out from it.
+
+    Iso-lines of the first wrap round the limb; iso-lines of the second run along it. One
+    gives cross-contour strokes, the other the second hatching layer.
+
+    Which segment owns a pixel is decided by distance to the segment, but both fields are
+    measured against that segment's infinite line. Measuring them to the clamped endpoint
+    instead makes them radial past the end of a limb, which draws bullseye rings at the hips
+    and crown and flat blobs where `along` goes constant. Running them on past the joint
+    keeps the strokes straight, which is also what a person drawing the figure would do.
+    """
+    h, w = shape[:2]
+    ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
+    best_d = np.full((h, w), 1e9, np.float32)
+    along = np.zeros((h, w), np.float32)
+    across = np.zeros((h, w), np.float32)
+    offset = 0.0
+    for p0, p1 in segs:
+        v = p1 - p0
+        L2 = float(v[0] ** 2 + v[1] ** 2) or 1.0
+        L = float(np.sqrt(L2))
+        t = ((xs - p0[0]) * v[0] + (ys - p0[1]) * v[1]) / L2
+        tc = np.clip(t, 0.0, 1.0)
+        cx, cy = p0[0] + tc * v[0], p0[1] + tc * v[1]
+        d = np.hypot(xs - cx, ys - cy)
+        take = d < best_d
+        if take.any():
+            best_d = np.where(take, d, best_d)
+            along = np.where(take, offset + t * L, along)
+            # signed perpendicular distance to the limb's line, so the two sides of a limb
+            # hatch in opposite directions and the field keeps a unit gradient everywhere
+            perp = ((xs - p0[0]) * v[1] - (ys - p0[1]) * v[0]) / L
+            across = np.where(take, perp, across)
+        offset += L
+    return along, across, best_d
+
+
+def form_hatch(img, d=0.5):
+    """Cross-contour shading: strokes that wrap the form, layered up where it is dark.
+
+    The step between a flat value study and a finished drawing is not more tone, it is
+    knowing which way to pull the pencil. Hatching that runs straight across a limb
+    flattens it; hatching that curves around it describes a cylinder. These strokes follow
+    the axes between the pose landmarks, so they wrap arms, legs and torso the way a life
+    drawing does, and build darkness by crossing rather than by pressing harder.
+
+    Falls back to the ordinary cross-hatch when there is no figure to follow.
+    """
+    from .bodies import combined_mask, detect
+    img = _prep(img)
+    h, w = img.shape[:2]
+    bodies = detect(img)
+    segs = _body_axes(bodies) if bodies else []
+    if not segs:
+        return crosshatch(img, d)
+    mask = combined_mask(bodies, img.shape)
+    inside = (mask > 100) if mask is not None else np.ones((h, w), bool)
+
+    along, across, _dist = _axis_field((h, w), segs)
+    g = cv2.GaussianBlur(_gray(img), (0, 0), 2.0)
+    dark = 255 - g
+    # The same four layers, the same spacing and the same tone cuts as every other Cross-Hatch
+    # in the app; only the direction differs. The wrapping layer goes down first because it is
+    # the one that describes the form. Diagonals are divided by root two: `across` and `along`
+    # are locally perpendicular unit-gradient fields, so their sum climbs root-two times as
+    # fast and would otherwise hatch tighter than the layers it crosses.
+    r2 = float(np.sqrt(2.0))
+    fields = [across, along, (across + along) / r2, (across - along) / r2]
+    ink = _hatch_ink(dark, fields, d, inside)
+    ink |= _line_mask(g, int(lerp(250, 60, d)), 1.6, 3.6, 3.0).astype(bool) & inside
+    out = np.where(ink, 50, 255).astype(np.uint8)
+    out = cv2.GaussianBlur(out, (0, 0), 0.6)
+    # the silhouette, so the figure reads even where it is light
+    edge = (mask > 100).astype(np.uint8) * 255 if mask is not None else None
+    bgr = _to_bgr(out)
+    if edge is not None:
+        cnts, _ = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(bgr, cnts, -1, (60, 60, 60), max(2, int(min(h, w) * 0.004)), cv2.LINE_AA)
+    return bgr
+
+
+def on_body(render_fn):
+    """Run a renderer, then keep only the figures.
+
+    The pose model returns a body segmentation mask of its own, which is both free and far
+    better than the GrabCut silhouette the other modes fall back on -- it knows what a
+    person is, so a patterned floor or a second figure in the background does not confuse
+    it.
+    """
+    def wrapped(img, d=0.5):
+        from .bodies import combined_mask, detect
+        img = _prep(img)
+        art = render_fn(img, d)
+        bodies = detect(img)
+        if not bodies:
+            return art
+        m = combined_mask(bodies, img.shape)
+        if m is None:
+            return art
+        grow = max(3, int(min(img.shape[:2]) * 0.012)) | 1
+        m = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (grow, grow)))
+        m = cv2.GaussianBlur(m, (0, 0), max(1.5, min(img.shape[:2]) * 0.006))
+        if m.shape[:2] != art.shape[:2]:
+            m = cv2.resize(m, (art.shape[1], art.shape[0]))
+        a = (m.astype(np.float32) / 255)[..., None]
+        return (255 - (255 - art.astype(np.float32)) * a).astype(np.uint8)
+    wrapped.__name__ = f"on_body_{getattr(render_fn, '__name__', 'style')}"
+    return wrapped
+
+
 def on_hand(render_fn, outline=False):
     """Run a renderer, then drop everything outside the hand.
 
@@ -340,7 +640,15 @@ HAND_STYLES = {s.key: s for s in (      # hands mode: every style is masked to t
     Style("hand_hatch", "Cross-Hatch", on_hand(crosshatch), "Hatch", family="hatch"),
     Style("hand_realistic", "Photorealism", on_hand(photorealistic), "Realistic", family="real"),
 )}
-ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES}
+BODY_STYLES = {s.key: s for s in (      # posture mode: abstract first, rendered after
+    Style("body_gesture", "Gesture", gesture, "Gesture", 0.5, "gesture"),
+    Style("body_mannequin", "Mannequin", mannequin, "Mannequin", 0.5, "construct"),
+    Style("body_contour", "Contour", on_body(line_art), "Contour", 0.3, "line"),
+    Style("body_value", "Value Study", on_body(value_study), "Value", 0.3, "value"),
+    Style("body_formhatch", "Cross-Contour", form_hatch, "Hatch", 0.5, "hatch"),
+    Style("body_realistic", "Photorealism", on_body(photorealistic), "Realistic", 0.5, "real"),
+)}
+ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES, **BODY_STYLES}
 
 
 def family_of(style_key):

@@ -164,7 +164,53 @@ def hand_guides(ov, w, h, th, ctx):
     return labels
 
 
-GUIDES = {"portrait": face_guides, "object": frame_guides, "hands": hand_guides}
+def body_guides(ov, w, h, th, ctx):
+    """Figures: line of action, the shoulder and hip bars, and the heads-tall ruler.
+
+    These are the three things a figure-drawing class checks first, and they are all a
+    beginner needs over the top of a reference. Deliberately no skeleton -- tracing joints
+    is what the Mannequin style is for; the guides are for seeing the pose.
+    """
+    from .bodies import detect                 # local: bodies.py pulls in styles.py
+    src = ctx.source_img
+    if src is None:
+        return frame_guides(ov, w, h, th, ctx)
+    bodies = detect(src)
+    if not bodies:
+        return frame_guides(ov, w, h, th, ctx)
+
+    sx, sy = w / src.shape[1], h / src.shape[0]
+    P = lambda p: (p[0] * sx, p[1] * sy)
+    labels = []
+    for b in bodies:
+        pts = [P(p) for p in b.line_of_action]
+        for a, c in zip(pts, pts[1:]):
+            dashed(ov, a, c, LINE, max(1, th + 1))
+        for (p1, p2), name in (((b.shoulders), "shoulders"), ((b.hips), "hips")):
+            a, c = P(p1), P(p2)
+            cv2.line(ov, (int(a[0]), int(a[1])), (int(c[0]), int(c[1])), LINE,
+                     max(1, th + 1), cv2.LINE_AA)
+            labels.append((name, min(a[0], c[0]), (a[1] + c[1]) / 2))
+        # a plumb line from the chest: where the weight falls, and whether it is over a foot
+        chest = np.mean([np.array(b.shoulders[0]), np.array(b.shoulders[1])], axis=0)
+        cx = P(tuple(chest))[0]
+        dashed(ov, (cx, P(b.box[:2])[1]), (cx, h), SOFT, th)
+
+    b = bodies[0]
+    hh = b.head_height * (sx + sy) / 2
+    bx, by, _bw, bh = b.box
+    x = max(6.0, P((bx, by))[0] - hh * 0.5)
+    for k in range(int((bh * sy) / max(hh, 1)) + 1):
+        y = P((bx, by))[1] + k * hh
+        if y > h - 3:
+            break
+        dashed(ov, (x - hh * 0.2, y), (x + hh * 0.2, y), SOFT, th)
+    labels.append((f"{b.heads_tall:.1f} heads", x, max(14.0, P((bx, by))[1] - hh * 0.2)))
+    return labels
+
+
+GUIDES = {"portrait": face_guides, "object": frame_guides, "hands": hand_guides,
+          "body": body_guides}
 
 
 def draw_guides(sketch, mode, style_key=None, landmarks=(), crop_shape=None, box=None, source_img=None):

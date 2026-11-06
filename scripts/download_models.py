@@ -2,7 +2,7 @@
 
     python scripts/download_models.py
 
-About 5.5 MB in total. They are not committed to the repository; the release workflow runs
+About 23 MB in total. They are not committed to the repository; the release workflow runs
 this before building, and the app degrades gracefully if any of them is missing.
 
 All three come from OpenCV Zoo and are Apache 2.0 licensed. Note the host: the models are
@@ -27,6 +27,12 @@ MODELS = [
     # The detector only has to find a rough box, so int8 is fine there.
     (f"{ZOO}/handpose_estimation_mediapipe/handpose_estimation_mediapipe_2023feb.onnx",
      "handpose_estimation_mediapipe_2023feb.onnx", 3_000_000, "21 hand landmarks"),
+    # Posture needs a detector of its own: several people can be in one photo and the
+    # user chooses between them, which the pose model alone cannot do.
+    (f"{ZOO}/person_detection_mediapipe/person_detection_mediapipe_2023mar.onnx",
+     "person_detection_mediapipe_2023mar.onnx", 8_000_000, "finds people"),
+    (f"{ZOO}/pose_estimation_mediapipe/pose_estimation_mediapipe_2023mar.onnx",
+     "pose_estimation_mediapipe_2023mar.onnx", 4_000_000, "33 body landmarks + body mask"),
 ]
 
 

@@ -2,7 +2,7 @@
 
 The hand photographs were supplied by the project owner.
 
-The portraits in `portraits/` and the still lifes in `objects/` are from
+The portraits in `portraits/`, the still lifes in `objects/` and the figures in `bodies/` are from
 [Pexels](https://www.pexels.com/), used under the
 [Pexels licence](https://www.pexels.com/license/), which permits free use and modification
 without attribution. They are credited anyway, and have been downscaled to 900px on the
@@ -24,6 +24,12 @@ Photographers, by the original filename:
 | `objects/small_in_frame.jpg` | deniiqbal |
 | `objects/pale_on_pale.jpg` | Marina Zasorina |
 | `objects/multi_object_warm.jpg` | Kechno Studio |
+| `bodies/two_people.jpg` | Yan Krukau |
+| `bodies/kneeling.jpg` | Vlada Karpovich |
+| `bodies/standing.jpg` | Krivitskiy |
+| `bodies/seated_twist.jpg` | Sasha Kim |
+| `bodies/crouched.jpg` | aksioart |
+| `bodies/bent_over.jpg` | MART PRODUCTION |
 
-The portraits show identifiable people. Pexels models release their images for this kind
+The portraits and figures show identifiable people. Pexels models release their images for this kind
 of use, which is why these were chosen over photographing anyone for the purpose.

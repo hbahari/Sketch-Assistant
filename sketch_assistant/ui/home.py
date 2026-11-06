@@ -43,6 +43,7 @@ class HomeScreen(Screen):
         self.upload_btn = UploadCard(text="[b]Add a photo[/b]\n[size=12sp]Take one or upload from gallery[/size]", markup=True,
                                      font_size=sp(16), radii=[dp(24)] * 4, on_release=lambda *_: self.choose_source())
         self.selector = FaceSelector(on_select=self.on_face)
+        self.multi_selector = FaceSelector(on_select=self.on_people, multi=True)
         self.box_picker = BoxSelector(on_select=self.on_box)
         self.photo_card = Card(padding=dp(6)); self.photo_card.add_widget(self.selector)
         self.box.add_widget(self.upload_btn)
@@ -117,7 +118,8 @@ class HomeScreen(Screen):
     def _prepare_photo(self):
         """Set the photo card up for this mode: a detector's boxes, a drawn box, or neither."""
         a, m = self.app_ref, mode_of(self.app_ref.mode)
-        self._show_picker(self.box_picker if m.pick_box else self.selector)
+        picker = self.box_picker if m.pick_box else (self.multi_selector if m.multi else self.selector)
+        self._show_picker(picker)
         if m.pick_box:                             # the user draws the region
             self.box_picker.set_photo(a.photo)
             self._enable_styles(m)
@@ -133,9 +135,13 @@ class HomeScreen(Screen):
             return
         if self.regions is None:
             self.regions = m.detect(a.photo)
-        self.selector.set_photo(a.photo, self.regions)
+        picker.set_photo(a.photo, self.regions)
         n = len(self.regions)
         self.status.text = m.found_fmt.format(n=n) if n else m.none_fmt
+        if m.multi and n:
+            picker.chosen = [0]              # start on the first figure so something renders
+            picker._redraw()
+            self.on_people([0], [self.regions[0]])
 
     def _show_picker(self, widget):
         """Swap the photo card's contents between the tap-a-box and draw-a-box pickers."""
@@ -190,6 +196,19 @@ class HomeScreen(Screen):
         self._enable_styles(m)
         self.status.text = m.hint
         self.on_style(m.default_style)
+
+    def on_people(self, idx, chosen):
+        """One or more figures were tapped: crop to all of them and the space between."""
+        from ..core.bodies import union_box
+        a, m = self.app_ref, mode_of(self.app_ref.mode)
+        box = union_box(chosen, a.photo.shape)
+        a.source_img = crop_to_box(a.photo, box, margin=0.0) if box else a.photo
+        a.landmarks, a.crop_box = (), None
+        a.crop_shape = a.source_img.shape[:2]
+        self._enable_styles(m)
+        n = len(chosen)
+        self.status.text = m.hint if n == 1 else f"{n} figures - tap to add or remove"
+        self.on_style(a.style_key or m.default_style)
 
     def on_style(self, key):
         a = self.app_ref

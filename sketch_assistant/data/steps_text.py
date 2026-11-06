@@ -147,6 +147,74 @@ STEPS = {
                 "joint as short, light lines. Then erase the construction. Nails sit on the top "
                 "plane of the last segment and are flatter than they look.",
     },
+
+    # ---- figures ---------------------------------------------------------------------
+    "body_hatch": {
+        "pencil": "A sharp 2B",
+        "technique": "Now turn the flat tones into strokes. Pick a direction for each part "
+                     "of the body before you start: around the form, not across it.",
+        "text": "Take the value blocks you just laid in and build them from hatching that "
+                "curves around each limb. One layer in the mid-tones, two where it is "
+                "darker, three or four in the deepest shadow -- same spacing and weight "
+                "as the hatching in the other modes, just following the body. This is the "
+                "step most people skip, and it is the one that makes the difference "
+                "between tone that sits flat on the paper and tone that describes a body.",
+    },
+    "body_action": {
+        "pencil": "2B held loosely, or a stick of charcoal on its side",
+        "technique": "Draw from the shoulder, not the wrist, and do it in one pass. Give "
+                     "yourself thirty seconds and no eraser: the point is to catch the "
+                     "rhythm of the pose before your eye starts negotiating with it.",
+        "text": "One long curve, from the head down through the chest and pelvis and on "
+                "toward whichever foot carries the weight. Follow the bend of the whole "
+                "figure rather than its outline. If the line is straight you have almost "
+                "certainly missed the pose -- almost nobody stands symmetrically, and that "
+                "slight curve is the difference between a figure and a mannequin.",
+    },
+    "body_tilts": {
+        "pencil": "2B, still light",
+        "technique": "Two bars, one across the shoulders and one across the hips. Compare "
+                     "their angles against each other, not against the edge of the paper.",
+        "text": "In any pose with the weight on one leg those two bars tilt in opposite "
+                "directions: the hip of the weighted leg rides up, and the shoulder above "
+                "it drops. That opposition is contrapposto, and getting it is the single "
+                "biggest step from a stiff drawing to a living one. Mark the plumb line "
+                "down from the chest too -- it should land near the supporting foot.",
+    },
+    "body_masses": {
+        "pencil": "HB for the boxes, 2B for the head",
+        "technique": "Two solid masses on a flexible spine: the ribcage and the pelvis. "
+                     "Everything else hangs off them, and the torso's whole movement is "
+                     "those two blocks tilting and twisting against each other.",
+        "text": "Block the ribcage in as a rounded box sitting on the shoulder bar, and "
+                "the pelvis as a smaller box on the hip bar. Add the head as an egg, "
+                "tilted with the neck rather than sitting straight on it. Check the whole "
+                "figure against the head: an adult standing upright runs about seven and a "
+                "half heads, and the ruler on the guide shows what this pose measures.",
+    },
+    "body_limbs": {
+        "pencil": "HB",
+        "technique": "Limbs are tapering cylinders, not tubes. Each segment narrows toward "
+                     "the joint below, and foreshortening shortens a limb pointing toward "
+                     "you without making it any thinner.",
+        "text": "Run a line down each limb through its joints, then give the segments "
+                "width. Upper arm into forearm, thigh into calf, each a little narrower "
+                "than the last. Where a limb crosses in front of the body, draw the near "
+                "one complete and let the far one disappear behind it. Hands and feet stay "
+                "as simple wedges at this scale -- they have their own modes in this app, "
+                "and detailing them here only pulls attention off the pose.",
+    },
+    "body_outline": {
+        "pencil": "2B for the contour, HB inside",
+        "technique": "Follow the construction rather than the photograph. Where the two "
+                     "disagree it is usually the construction that is right and your eye "
+                     "that is being fooled by a fold of clothing.",
+        "text": "Draw the real edge over the block-in, letting the line swell where the "
+                "form turns toward you and thin where it turns away. Keep the drapery "
+                "subordinate to the body underneath -- clothing follows the figure, and a "
+                "fold drawn without knowing what is beneath it reads as a crease in paper. "
+                "Then erase the scaffolding.",
+    },
 }
 
 # `finish` depends on the style family you chose, so it gets its own table
@@ -195,6 +263,41 @@ FINISH = {
 
 # Where one subject's finishing advice genuinely differs from its family's.
 FINISH_OVERRIDE = {
+    "body_formhatch": {
+        "pencil": "A sharp 2B or a fine liner",
+        "technique": "Strokes that wrap the form. A line drawn straight across an arm "
+                     "flattens it; the same line curved around it makes a cylinder. That "
+                     "is the whole trick, and it is the step between a flat value study "
+                     "and a drawing that looks solid.",
+        "text": "Work limb by limb, laying bands of strokes around each one as though you "
+                "were wrapping it. Cross them with a second layer running along the limb "
+                "where it is darker, then a diagonal third, and a fourth only in the "
+                "deepest shadow -- the same four layers as the Cross-Hatch in the other "
+                "modes, just curved to the body instead of straight. Keep the strokes "
+                "visible: this style is a record of how the tone was built, and a "
+                "beginner learns more from being able to count the layers than from a "
+                "smooth finish.",
+    },
+    "body_gesture": {
+        "pencil": "2B or charcoal, held loosely",
+        "technique": "Speed is the method, not a shortcut. A gesture drawing is finished "
+                     "when the pose reads, which is usually well before it looks like a "
+                     "picture.",
+        "text": "Strengthen the line of action and let everything else stay as it fell. "
+                "Resist tidying: the value of this drawing is that it records what you saw "
+                "in the first few seconds. If you want twenty of these rather than one "
+                "careful drawing, you are using it correctly.",
+    },
+    "body_mannequin": {
+        "pencil": "2H for the scaffolding, HB for the masses, 2B for the bars",
+        "technique": "Keep it readable as construction. This is a working diagram of how "
+                     "the figure is put together, so clarity beats finish.",
+        "text": "Firm up the ribcage and pelvis, the head egg and the limb volumes, and "
+                "leave the shoulder and hip bars showing. Check the proportion in heads one "
+                "last time, and check that the plumb line from the chest still lands near "
+                "the supporting foot -- if it does not, the figure will look like it is "
+                "falling over, however well the parts are drawn.",
+    },
     "hand_construct": {
         "pencil": "2H for the block-in, HB for structure, 2B for the joint creases",
         "technique": "Keep the construction visible and readable. A construction drawing is for "

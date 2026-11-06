@@ -51,6 +51,16 @@ and every joint of every finger, even the ones that are curled or half hidden. T
 are built from that, the way a figure-drawing class would teach it, and the Construction
 style shows the block-in on its own. All of it runs on your phone.
 
+POSTURE MODE
+Figure drawing, taught the way a life class teaches it. The app finds the people in your
+photo -- tap one, or tap several if they belong together -- and starts you with the line of
+action, the thirty-second drawing that catches the whole pose. Then the shoulder and hip
+bars whose opposing tilt makes a figure look alive, then the ribcage and pelvis as solid
+masses, then the limbs as volumes, and only then the real outline. It measures the figure
+in head heights as you go, and shows you how to build the shading in strokes that curve
+around the body rather than lying flat across it. Hands and faces stay as simple shapes here on purpose; they have
+modes of their own.
+
 STEP BY STEP
 Tap "Generate drawing steps" and the app rebuilds the sketch the way you would actually draw
 it. For a portrait: construction lines first, then the eyes, nose, mouth and ears one at a

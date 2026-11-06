@@ -242,6 +242,47 @@ def hand_stages(job):
     return stages
 
 
+# --------------------------------------------------------------------------- figures
+# Each level is one more pass of a renderer that already knows how to draw it, the same
+# way the hand ladder works.
+BODY_LEVELS = (("body_gesture", 0.10, "body_action", "Line of action"),
+               ("body_gesture", 0.60, "body_tilts", "Shoulders and hips"),
+               ("body_mannequin", 0.35, "body_masses", "Ribcage and pelvis"),
+               ("body_mannequin", 0.80, "body_limbs", "Limbs as volumes"))
+
+
+def body_stages(job):
+    """Gesture first, then structure, then the real outline -- the order a figure class
+    teaches, and the reason Posture mode exists in an abstract form at all."""
+    img, style_key, detail = job.source_img, job.style_key, job.detail
+    step = _progress(job.progress, len(BODY_LEVELS) + 4)
+    stages = []
+    for style, d, key, title in BODY_LEVELS:
+        stages.append(Stage(key, title, render(style, img, d)))
+        step()
+    art = render("body_contour", img, max(detail, 0.35))
+    step()
+    scaffold = stages[-1].image
+    if scaffold.shape[:2] != art.shape[:2]:
+        scaffold = cv2.resize(scaffold, (art.shape[1], art.shape[0]))
+    stages.append(Stage("body_outline", "Draw the real outline",
+                        _under(_fade(scaffold, .22), art)))
+    step()
+    if _shades(style_key):
+        stages.append(Stage("values", "Light and shadow",
+                            _under(_fade(art, .45), render("body_value", img, 0.1))))
+        step()
+        # Flat tone to finished rendering is too big a jump to show as one step: the
+        # learner can see the result but not how the pencil got there. The hatching stage
+        # is the missing middle -- the same tones, built from strokes they can copy.
+        stages.append(Stage("body_hatch", "Build the tone in strokes",
+                            render("body_formhatch", img, 0.45)))
+        step()
+    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", render(style_key, img, detail)))
+    step()
+    return stages
+
+
 def _progress(cb, n):
     state = {"i": 0}
 

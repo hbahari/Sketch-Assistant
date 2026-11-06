@@ -9,7 +9,7 @@ are drawing, so those three fall back.
 
 # Which style's entry stands in for each family when a style has none of its own.
 FAMILY_FALLBACK = {"line": "line_art", "construct": "technical", "value": "value_study",
-                   "hatch": "crosshatch", "real": "photoreal"}
+                   "hatch": "crosshatch", "real": "photoreal", "gesture": "body_gesture"}
 
 TIPS = {
     "line_art": {
@@ -161,6 +161,53 @@ TIPS = {
             "Turn each segment into a box or short cylinder, tapering toward the tip.",
             "Where fingers overlap, draw the near one whole and stop the far one behind it.",
             "Darken the joint creases last; leave the axes showing.",
+        ],
+    },
+
+    # ---- figures: gesture has no counterpart in the other modes, so it needs its own
+    "body_gesture": {
+        "pencils": "2B or a stick of charcoal. Nothing harder -- you want to be able to "
+                   "move fast and dark.",
+        "pressure": "Loose and light for the search, then one firmer pass on the line that "
+                    "turned out to be right.",
+        "steps": [
+            "Look at the whole figure for a few seconds before touching the paper.",
+            "Draw one curve from the head through the chest and pelvis toward the "
+            "weighted foot -- the line of action.",
+            "Mark the shoulder bar and the hip bar; check they tilt opposite ways.",
+            "Drop a plumb line from the chest and see which foot it lands near.",
+            "Sweep one stroke down each limb, following its bend, not its outline.",
+            "Put an egg on the neck for the head and stop. No features, no hands.",
+            "Start another one. Twenty quick gestures teach more than one careful figure.",
+        ],
+    },
+    "body_formhatch": {
+        "pencils": "A sharp 2B, or a fine liner. Re-sharpen often -- the strokes have to "
+                   "stay separate to read as strokes.",
+        "pressure": "Even and light. Darkness comes from crossing more layers, never from "
+                    "pressing harder; pressing harder just makes a shiny grey patch.",
+        "steps": [
+            "Decide where the light is coming from before you make a mark.",
+            "Lay the first layer of strokes curving *around* the form, not across it: "
+            "around the arm like a bracelet, around the thigh like a band.",
+            "Keep the spacing even and let the strokes follow the bend of each limb.",
+            "Add a second layer running along the limb wherever it is darker.",
+            "Add a third, crossing the first two, only in the darkest areas.",
+            "Leave the lit side as bare paper -- the white is doing as much work as the ink.",
+            "Check at arm's length: the strokes should make the limbs feel round.",
+        ],
+    },
+    "body_mannequin": {
+        "pencils": "2H for scaffolding, HB for the masses, 2B for the shoulder and hip bars.",
+        "pressure": "Light all the way through; this is a diagram you will draw over.",
+        "steps": [
+            "Lay in the line of action first -- the structure hangs on it.",
+            "Draw the shoulder bar and the hip bar at their real angles.",
+            "Block the ribcage as a rounded box above, the pelvis as a smaller box below.",
+            "Join them with a spine line so the two masses read as connected.",
+            "Add the head as a tilted egg, then measure the figure in head heights.",
+            "Run an axis down each limb through its joints, then give each segment width.",
+            "Mark the joints as circles; keep hands and feet as wedges.",
         ],
     },
 }
