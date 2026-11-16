@@ -13,7 +13,7 @@ source.exclude_dirs = tests,scripts,bin,.buildozer,venv,.venv,.github,.idea,shot
 # versionName shown in the Play listing
 version = 1.2.0
 # versionCode: MUST increase on every upload to the Play Console
-android.numeric_version = 3
+android.numeric_version = 4
 
 # Versions come from the pinned python-for-android below, which ships a tested set:
 # Python 3.14.2, Kivy 2.3.1, numpy 2.3.0, OpenCV 4.12.0, pyjnius 1.7.0.
