@@ -2,6 +2,9 @@
 
 Offline photo -> pencil-sketch helper for drawing learners. Python + Kivy + OpenCV; no cloud calls.
 
+Everything reported against the app since v1.0.0, in the tester's own words, is in
+[`TESTER_COMMENTS.md`](TESTER_COMMENTS.md).
+
 ## Run
     pip install -r requirements.txt
     python scripts/download_models.py        # ONNX models for faces and hands (~5.5 MB)
@@ -61,6 +64,13 @@ carries its own pencil grade, technique and instruction.
 - **Detail slider** (main page + guide page): per-style, applied when you lift your finger; each style keeps its own value.
 - **Face detection**: YuNet (ONNX, with eye/nose/mouth landmarks that tilt the guide lines) when the model file is present and OpenCV supports it, otherwise the Haar cascade.
   Get the model once with `python scripts/download_models.py` (the GitHub workflow does this automatically).
+
+## Guide fractions
+Every guide that runs straight across or straight down the sketch is labelled with where it
+sits, from 0 (top or left edge) to 1 (bottom or right): `eyes 0.43`, `centre 0.50`,
+`shoulders 0.39`, `plumb 0.50`. The thirds grid is numbered in every mode. Tilted lines --
+the eye line on a turned head, a shoulder bar -- are measured at their midpoint. Guides that
+are not lines (the palm circle, finger joints) carry no number. See `guides.at`.
 
 ## Saving, Basic Shapes, material guide
 - **Save PNG** writes to `Pictures/SketchAssistant` (Windows/macOS/Linux and Android) and shows where, with an "Open folder" button on desktop.
@@ -129,6 +139,15 @@ axis fields and their diagonals where there is. The first attempt gave Posture i
 spacing and weight, and the result read as a different style rather than the same
 technique applied to a figure; `test_every_hatch_uses_the_same_stroke_rhythm` measures
 stroke width off the render and pins it.
+
+**The crop is built around the body, not the detector's box.** A person's outline runs
+well outside the box the detector returns -- hair, loose clothing, a raised arm -- so a
+margin taken off that box cut into the figure on four of the six test photographs.
+`bodies.union_box` now grows the box to contain the figures' own segmentation and takes a
+12% margin off that. A bigger flat margin was the obvious fix and was measured first: 25%
+still clipped two of six, 30% one, and 35% cleared them only by padding every side for the
+sake of the worst one. Fitting leaves nothing cut and the figure slightly larger in frame
+(29.7% of the crop against 28.3%).
 
 Hands and faces are deliberately left as a wedge and an egg. At full-body scale a hand is
 a few dozen pixels, detailing it there is wrong, and the app has dedicated modes for both

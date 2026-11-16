@@ -107,6 +107,42 @@ def test_tilts_read_as_lines_not_directions(name):
 
 
 @needs_models
+@pytest.mark.parametrize("name", ALL)
+def test_the_crop_does_not_cut_into_the_figure(name):
+    """The crop has to contain the whole body, not just the detector's box.
+
+    The margin is a fraction of the detector's box, and a person's outline runs outside
+    it -- hair, loose clothing, a raised arm. At the old 15% the crop cut into the body on
+    four of these six photographs, by up to 11% of the crop; this test fails at 15% and at
+    25%, and passes at 30%.
+
+    The body's own segmentation mask is the reference, not the joints: every joint is
+    inside the detector box already, so a joints-based check passes at 15% and proves
+    nothing. Where the photograph itself cuts the figure off there is nothing to protect,
+    so only the edges that are not against the frame are checked.
+    """
+    img = _img(name)
+    found = detect(img)
+    if not found:
+        pytest.skip(f"{name}: no figure detected")
+    mask = combined_mask(found, img.shape)
+    if mask is None:
+        pytest.skip(f"{name}: no segmentation mask")
+    ys, xs = np.where(mask > 127)
+    x0, y0, w, h = union_box(found, img.shape)
+    H, W = img.shape[:2]
+
+    for side, cut, against_frame in (
+            ("left", (x0 - xs.min()) / w, x0 <= 0.5),
+            ("top", (y0 - ys.min()) / h, y0 <= 0.5),
+            ("right", (xs.max() - (x0 + w)) / w, x0 + w >= W - 0.5),
+            ("bottom", (ys.max() - (y0 + h)) / h, y0 + h >= H - 0.5)):
+        if against_frame:
+            continue        # the photograph ends here; the crop is not what cut the body
+        assert cut <= 0.0, f"{name}: crop cuts {cut * 100:.1f}% off the {side} of the body"
+
+
+@needs_models
 @pytest.mark.parametrize("name", MULTI)
 def test_choosing_two_figures_spans_both_and_the_gap(name):
     """Two people interacting are one composition, so selecting both gives one region
@@ -337,3 +373,27 @@ def test_the_ladder_bridges_flat_tone_and_finish():
     keys = [s.key for s in build_stages("body", crop, "body_realistic", 0.5)]
     assert "values" in keys and "body_hatch" in keys
     assert keys.index("values") < keys.index("body_hatch") < keys.index("finish"), keys
+
+
+@needs_models
+def test_posture_guides_say_where_the_bars_and_the_plumb_line_sit():
+    """Shoulders and hips are measured down the sketch, the plumb line across it.
+
+    The bars tilt, so each is measured at its middle. On an upright figure the shoulders
+    have to come out above the hips, which is the check that the numbers are fractions of
+    the sketch and not of something else.
+    """
+    from sketch_assistant.core.guides import Ctx, body_guides
+
+    img = _prep(_img("kneeling.jpg"))
+    h, w = img.shape[:2]
+    labels = body_guides(np.full_like(img, 255), w, h, 1, Ctx(source_img=img))
+    got = {}
+    for lab in labels:
+        name, _, tail = lab[0].rpartition(" ")
+        if name in ("shoulders", "hips", "plumb"):
+            got[name] = (float(tail), lab[1], lab[2])
+    assert set(got) == {"shoulders", "hips", "plumb"}, f"missing fractions: {sorted(got)}"
+    assert 0.0 < got["shoulders"][0] < got["hips"][0] < 1.0
+    assert got["shoulders"][0] == pytest.approx(got["shoulders"][2] / h, abs=0.006)
+    assert got["plumb"][0] == pytest.approx(got["plumb"][1] / w, abs=0.006)

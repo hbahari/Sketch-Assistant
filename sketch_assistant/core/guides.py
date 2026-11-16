@@ -3,10 +3,18 @@
 One function per subject, all with the same signature so `core/modes.py` can simply hold
 a reference to the right one:
 
-    guide(overlay, w, h, th, ctx) -> [(label, x, y), ...]
+    guide(overlay, w, h, th, ctx) -> [(label, x, y), ...]  or [(label, x, y, colour), ...]
 
 `ctx` carries whatever the subject needs -- the detector's box and landmarks for a face,
 the source photo for a hand -- so adding a subject never changes this module's callers.
+
+Every guide that runs straight across or straight down the sketch is labelled with where
+it sits as a fraction of the whole: 0 is the top or left edge, 1 the bottom or right.
+`at()` builds those labels. A line that is tilted, such as the eye line on a turned head
+or the shoulder bar of a twisted figure, is measured at its midpoint -- it is still the
+eye line, and a reader marking it out on paper wants to know how far down the page it
+goes. Guides that are not lines at all (the palm circle, the finger joints) carry no
+fraction; the thirds grid is numbered in every mode, so no mode is left without any.
 """
 from dataclasses import dataclass, field
 
@@ -17,6 +25,36 @@ from .faces import MARGIN
 
 LINE = (230, 120, 40)   # BGR amber
 SOFT = (235, 170, 110)
+
+
+def text_metrics(w):
+    """Line thickness and font scale for a sketch this wide. One definition, so the label
+    rows below and the text that lands in them cannot drift apart."""
+    return max(1, w // 450), max(0.45, w / 1100)
+
+
+def label_rows(w):
+    """Where along the top edge the two rows of vertical-line labels sit.
+
+    Vertical lines have to be labelled along the top, so they share one strip. The thirds
+    grid takes the first row and a mode's own vertical guides the second: a third and a
+    half of the width are only about 60px apart, and "centre 0.50" is wider than that, so
+    on a single row they collide. Measured from the font rather than fixed, because the
+    font scales with the sketch and a fixed row clips the digits on a large one.
+    """
+    th, fs = text_metrics(w)
+    (_, hh), _ = cv2.getTextSize("0.00", cv2.FONT_HERSHEY_SIMPLEX, fs, th)
+    return hh + 10.0, hh * 2 + 20.0
+
+
+def at(name, value, total):
+    """Label a guide with where it sits, 0 to 1 across the sketch: `at("eyes", y, h)`.
+
+    Two decimals. Three is false precision on a line a person is about to draw freehand,
+    and one cannot tell 0.43 from 0.47 -- which is the difference between the eye line
+    being right and being visibly wrong.
+    """
+    return f"{name} {np.clip(value / max(total, 1e-6), 0.0, 1.0):.2f}"
 
 
 def dashed(img, p1, p2, color, th, dash=14):
@@ -54,7 +92,7 @@ def _oval(ov, box, angle, th, grow=1.0):
     return cx, cy, ax1, ax2
 
 
-def _landmark_guides(ov, lm, sc, th, box):
+def _landmark_guides(ov, lm, sc, th, box, w, h):
     """Tilt-aware face guides: features from YuNet's landmarks, skull oval from the box."""
     re, le, nose, mr, ml = [np.array(p, float) * sc for p in lm]
     eye, mouth = (re + le) / 2, (mr + ml) / 2
@@ -66,14 +104,16 @@ def _landmark_guides(ov, lm, sc, th, box):
     top, chin = centre - down * ax2, centre + down * ax2
     dashed(ov, top - down * ax2 * 0.12, chin + down * ax2 * 0.12, LINE, th)   # centre axis
     labels, half = [], np.linalg.norm(mouth - eye) * 2.6
+    labels.append((at("centre", cx, w), cx, top[1] - ax2 * 0.16))
     for name, pt in (("top of head", top), ("eyes", eye), ("nose", nose), ("mouth", mouth), ("chin", chin)):
         a = pt - e * half
         dashed(ov, a, pt + e * half, LINE, th)
-        labels.append((name, a[0], a[1]))
+        # the line is tilted on a turned head, so it is measured where the feature is
+        labels.append((at(name, pt[1], h), a[0], a[1]))
     return labels
 
 
-def _proportional_guides(ov, th, box):
+def _proportional_guides(ov, th, box, w, h):
     """Fallback when the detector gives no landmarks: average proportions inside the box."""
     bx, by, bw, bh = box
     cx, cy, _, ax2 = _oval(ov, box, 0.0, th, grow=1.12)
@@ -86,10 +126,11 @@ def _proportional_guides(ov, th, box):
     # figures that used to be here (0.47 / 0.72 / 0.84) are for the whole skull including
     # the hair, which is not what the detector box spans, and they put the nose and mouth
     # lines down on the neck whenever this fallback ran.
+    labels.append((at("centre", cx, w), cx, top - ax2 * 0.16))
     for name, f in (("top of head", 0.0), ("eyes", 0.43), ("nose", 0.64), ("mouth", 0.78), ("chin", 1.0)):
         y = top + (chin - top) * f
         dashed(ov, (cx - half, y), (cx + half, y), LINE, th)
-        labels.append((name, cx - half, y))
+        labels.append((at(name, y, h), cx - half, y))
     return labels
 
 
@@ -104,8 +145,8 @@ def face_guides(ov, w, h, th, ctx):
         bx, by, bw, bh = ctx.box
         box = (bx * sc[0], by * sc[1], bw * sc[0], bh * sc[1])
     if len(ctx.landmarks) == 5 and ctx.crop_shape:
-        return _landmark_guides(ov, ctx.landmarks, sc, th, box)
-    return _proportional_guides(ov, th, box)
+        return _landmark_guides(ov, ctx.landmarks, sc, th, box, w, h)
+    return _proportional_guides(ov, th, box, w, h)
 
 
 def frame_guides(ov, w, h, th, ctx):
@@ -114,7 +155,9 @@ def frame_guides(ov, w, h, th, ctx):
     dashed(ov, (0, h / 2), (w, h / 2), LINE, th)
     dashed(ov, (0, 0), (w, h), SOFT, th)
     dashed(ov, (w, 0), (0, h), SOFT, th)
-    return []
+    # the diagonals are not measured: they cross every fraction on the way down
+    return [(at("centre", w / 2, w), w / 2, label_rows(w)[1]),
+            (at("centre", h / 2, h), 6.0, h / 2)]
 
 
 def hand_guides(ov, w, h, th, ctx):
@@ -190,11 +233,13 @@ def body_guides(ov, w, h, th, ctx):
             a, c = P(p1), P(p2)
             cv2.line(ov, (int(a[0]), int(a[1])), (int(c[0]), int(c[1])), LINE,
                      max(1, th + 1), cv2.LINE_AA)
-            labels.append((name, min(a[0], c[0]), (a[1] + c[1]) / 2))
+            mid = (a[1] + c[1]) / 2       # the bar tilts, so it is measured at its middle
+            labels.append((at(name, mid, h), min(a[0], c[0]), mid))
         # a plumb line from the chest: where the weight falls, and whether it is over a foot
         chest = np.mean([np.array(b.shoulders[0]), np.array(b.shoulders[1])], axis=0)
         cx = P(tuple(chest))[0]
         dashed(ov, (cx, P(b.box[:2])[1]), (cx, h), SOFT, th)
+        labels.append((at("plumb", cx, w), cx, h - 12.0))
 
     b = bodies[0]
     hh = b.head_height * (sx + sy) / 2
@@ -222,11 +267,16 @@ def draw_guides(sketch, mode, style_key=None, landmarks=(), crop_shape=None, box
     """
     out = sketch.copy()
     h, w = out.shape[:2]
-    th, fs = max(1, w // 450), max(0.45, w / 1100)
+    th, fs = text_metrics(w)
+    grid_row = label_rows(w)[0]
     ov, labels = out.copy(), []
     for i in (1, 2):
         dashed(ov, (w * i / 3, 0), (w * i / 3, h), SOFT, th)
         dashed(ov, (0, h * i / 3), (w, h * i / 3), SOFT, th)
+        # numbered in every mode, including the ones whose own guides are not straight
+        # lines, so no mode is left with nothing to measure against
+        labels.append((f"{i / 3:.2f}", w * i / 3 + 4, grid_row, SOFT))
+        labels.append((f"{i / 3:.2f}", 6.0, h * i / 3, SOFT))
 
     own_construction = False
     if style_key is not None:
@@ -235,10 +285,16 @@ def draw_guides(sketch, mode, style_key=None, landmarks=(), crop_shape=None, box
     if not own_construction:
         sc = (w / crop_shape[1], h / crop_shape[0]) if crop_shape else (1.0, 1.0)
         ctx = Ctx(source_img, tuple(landmarks), crop_shape, box, sc)
-        labels = GUIDES.get(mode, frame_guides)(ov, w, h, th, ctx)
+        labels += GUIDES.get(mode, frame_guides)(ov, w, h, th, ctx)
 
     out = cv2.addWeighted(ov, 0.8, out, 0.2, 0)
-    for name, x, y in labels:
-        cv2.putText(out, name, (int(np.clip(x, 6, w - 90)), int(np.clip(y, 14, h - 4)) - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, fs, LINE, th, cv2.LINE_AA)
+    for label in labels:
+        name, x, y = label[:3]
+        colour = label[3] if len(label) > 3 else LINE
+        # measured rather than a fixed 90px allowance: the labels carry a fraction now, so
+        # a fixed allowance either lets "top of head 0.00" run off the edge or wastes room
+        (tw, _), _ = cv2.getTextSize(name, cv2.FONT_HERSHEY_SIMPLEX, fs, th)
+        cv2.putText(out, name, (int(np.clip(x, 6, max(6, w - tw - 4))),
+                                int(np.clip(y, 14, h - 4)) - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, fs, colour, th, cv2.LINE_AA)
     return out

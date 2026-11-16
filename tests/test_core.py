@@ -48,6 +48,57 @@ def test_guides_with_and_without_landmarks(photo):
     assert draw_guides(sk, "hands", "hand_contour", source_img=photo).shape == sk.shape
 
 
+def _fraction(label):
+    """The number off the end of a guide label: 'eyes 0.43' -> 0.43, 'palm' -> None."""
+    tail = label.rsplit(" ", 1)[-1]
+    try:
+        return float(tail)
+    except ValueError:
+        return None
+
+
+def test_guide_labels_report_the_fraction_the_line_is_drawn_at():
+    """Each straight guide says where it sits, 0 at the top or left edge and 1 at the
+    other, so a reader can mark it out on paper without measuring off the screen.
+
+    The label is checked against the position the same call reports drawing it at, which
+    is what catches the mistake worth catching: dividing a y by the width, or a fraction
+    of the detector's box passed off as a fraction of the whole sketch.
+    """
+    import numpy as np
+    from sketch_assistant.core.guides import _proportional_guides
+
+    h, w = 400, 300
+    ov = np.full((h, w, 3), 255, np.uint8)
+    labels = _proportional_guides(ov, 1, (60.0, 80.0, 180.0, 220.0), w, h)
+    named = {lab.rsplit(" ", 1)[0]: (lab, x, y) for lab, x, y in labels}
+
+    assert {"top of head", "eyes", "nose", "mouth", "chin", "centre"} <= set(named)
+    for name in ("top of head", "eyes", "nose", "mouth", "chin"):
+        lab, _x, y = named[name]
+        assert _fraction(lab) == pytest.approx(y / h, abs=0.005), f"{lab} is drawn at y={y:.1f}"
+    # the centre axis is vertical, so it is a fraction of the width, not the height
+    lab, x, _y = named["centre"]
+    assert _fraction(lab) == pytest.approx(x / w, abs=0.005), lab
+    assert all(0.0 <= _fraction(lab) <= 1.0 for lab, _x, _y in labels)
+
+
+@pytest.mark.parametrize("width", [240, 400, 800, 1600])
+def test_the_numbers_along_the_top_edge_are_not_clipped(width):
+    """Vertical guides are labelled in two rows along the top edge, and the font scales
+    with the sketch -- so fixed row positions cut the digits off on a large one, which is
+    exactly what the first attempt did. The rows are derived from the measured text."""
+    import cv2
+    from sketch_assistant.core.guides import label_rows, text_metrics
+
+    th, fs = text_metrics(width)
+    (_, hh), _ = cv2.getTextSize("0.00", cv2.FONT_HERSHEY_SIMPLEX, fs, th)
+    grid, guide = label_rows(width)
+    # draw_guides puts the baseline 5px above the row it is given
+    assert grid - 5 >= hh, f"grid numbers clipped at the top ({grid - 5:.0f} < {hh})"
+    assert guide - 5 >= grid, "the two rows overlap"
+
+
 @pytest.mark.parametrize("mode", list(MODES))
 def test_every_mode_renders_guides_for_every_style(mode, photo):
     """Every mode x every style must draw guides without raising, since the guide page

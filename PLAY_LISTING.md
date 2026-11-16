@@ -71,7 +71,8 @@ sequence as one sheet to print.
 
 THE DRAWING GUIDE
 Tap through to the guide and you get the sketch enlarged, with optional proportion lines
-over it — eye line, nose line, mouth line, centre axis and a rule-of-thirds grid — plus:
+over it — eye line, nose line, mouth line, centre axis and a rule-of-thirds grid, each
+marked with how far down or across the page it sits so you can measure it out on paper — plus:
 
 • which pencils to reach for, from 2H through 6B
 • how hard to press, and when to build up layers instead
