@@ -335,3 +335,16 @@ def test_the_default_box_keeps_the_whole_photo():
             f"default crop {crop} is much smaller than the photo {ph}"
     finally:
         EventLoop.window.remove_widget(home)
+
+
+def test_eyes_mode_frames_the_eye_with_the_box_picker():
+    """Eye references are mostly close-ups with no face in them, so Eyes mode asks for
+    the eye to be framed the same way Object mode does, and renders from the default box
+    straight away -- a macro shot works without touching anything."""
+    app, home = _loaded_home("eyes", _fixture("eyes", "blue_macro.jpg"))
+    try:
+        assert home.box_picker.parent is home.photo_card, "box picker not shown"
+        assert app.source_img is not None and app.style_key == "eye_contour"
+        assert all(not home.tiles[k].disabled for k in MODES["eyes"].styles)
+    finally:
+        EventLoop.window.remove_widget(home)

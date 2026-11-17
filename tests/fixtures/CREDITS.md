@@ -2,7 +2,8 @@
 
 The hand photographs were supplied by the project owner.
 
-The portraits in `portraits/`, the still lifes in `objects/` and the figures in `bodies/` are from
+The portraits in `portraits/`, the still lifes in `objects/`, the figures in `bodies/` and the
+eyes in `eyes/` are from
 [Pexels](https://www.pexels.com/), used under the
 [Pexels licence](https://www.pexels.com/license/), which permits free use and modification
 without attribution. They are credited anyway, and have been downscaled to 900px on the
@@ -24,6 +25,15 @@ Photographers, by the original filename:
 | `objects/small_in_frame.jpg` | deniiqbal |
 | `objects/pale_on_pale.jpg` | Marina Zasorina |
 | `objects/multi_object_warm.jpg` | Kechno Studio |
+| `eyes/blue_macro.jpg` | victorfreitas |
+| `eyes/brown_macro.jpg` | danish-ramlee |
+| `eyes/amber_reflection.jpg` | aws-tfd |
+| `eyes/brown_with_brow.jpg` | alef-morais |
+| `eyes/green_fills_frame.jpg` | wendelmoretti |
+| `eyes/small_in_face.jpg` | almadastudio |
+| `eyes/highlight_in_pupil.jpg` | md-mamun |
+| `eyes/mono_shadowed_sclera.jpg` | enfantnocta |
+| `eyes/brown_side_light.jpg` | phael |
 | `bodies/two_people.jpg` | Yan Krukau |
 | `bodies/kneeling.jpg` | Vlada Karpovich |
 | `bodies/standing.jpg` | Krivitskiy |

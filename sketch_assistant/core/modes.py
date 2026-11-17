@@ -27,7 +27,7 @@ def _detect_people(img):
     when Posture mode is actually used."""
     from .bodies import detect
     return detect(img)
-from .styles import BODY_STYLES, HAND_STYLES, OBJECT_STYLES, STYLES
+from .styles import BODY_STYLES, EYE_STYLES, HAND_STYLES, OBJECT_STYLES, STYLES
 
 
 @dataclass(frozen=True)
@@ -61,6 +61,17 @@ MODES = {m.key: m for m in (
         hint="Pick a sketch style",
         found_fmt="{n} face(s) found - tap a box",
         none_fmt="No faces found - use New photo to try another",
+    ),
+    Mode(
+        # No detector, on purpose: see core/eyes.py. Most eye references are close-ups with
+        # no face in them, and on those the face detector invents one more often than not.
+        key="eyes",
+        label="Eyes",
+        styles=EYE_STYLES,
+        guide=_guides.eye_guides,
+        stages=_steps.eye_stages,
+        pick_box=True,
+        hint="Drag a box round one eye, then pick a style",
     ),
     Mode(
         key="object",

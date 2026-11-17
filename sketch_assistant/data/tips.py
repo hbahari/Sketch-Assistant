@@ -210,6 +210,56 @@ TIPS = {
             "Mark the joints as circles; keep hands and feet as wedges.",
         ],
     },
+
+    # ---- eyes: construction and the realistic style need their own words; value and
+    # hatch are built the same way whatever the subject, so those fall back
+    "eye_contour": {
+        "pencils": "2H for the construction, HB for the lids, 2B for the upper lash line.",
+        "pressure": "Very light for the ball and the box; firm and tapering for the upper lid; "
+                    "light and broken for the lower.",
+        "steps": [
+            "Dot the two corners, the top of the upper lid and the bottom of the lower lid.",
+            "Join the corners with a line and check its tilt against the photo.",
+            "Draw the eyeball as a full circle, about two irises wide.",
+            "Lay the upper lid over the ball as an arch; the lower lid as a flatter curve.",
+            "Draw the iris as a whole circle, then erase what the upper lid covers.",
+            "Put the pupil in the centre of the whole iris, not of the visible part.",
+            "Add the tear duct at the inner corner and the lower lid's inner rim.",
+            "Place the crease and block the brow in as one tapered shape.",
+            "Go over the final lines, heaviest along the upper lid, and erase the construction.",
+        ],
+    },
+    "eye_construct": {
+        "pencils": "2H for the ball, the box and the axis; HB for the lids and the iris.",
+        "pressure": "Light throughout. This is a working diagram and it should stay readable.",
+        "steps": [
+            "Box the eye: its width, its height, and the sloping line between the corners.",
+            "Count the width in irises -- most eyes are between two and two and a half.",
+            "Draw the ball behind it all, twice the width of the iris.",
+            "Wrap the two lids over the ball. Their high and low points are not in line.",
+            "Draw the full iris circle and see how much of it each lid hides.",
+            "Mark the lower lid's thickness and the crease above the upper lid.",
+            "Outline the highlight, shade in the lid's shadow on the iris, and note the "
+            "direction the lashes fan.",
+        ],
+    },
+    "eye_realistic": {
+        "pencils": "2H to 6B, a sharp HB for fibres, stump, kneaded eraser, a white gel pen at most once.",
+        "pressure": "Light, layered and blended for skin and eyeball; full pressure only for the "
+                    "pupil and the roots of the lashes.",
+        "steps": [
+            "Build the eye in construction first: box, ball, lids, iris. Do not skip this.",
+            "Reserve the highlight, lay the flat tones, then blend each boundary from dark to light.",
+            "Fill the pupil to full dark and darken the iris's outer rim.",
+            "Draw iris fibres as short spokes from the pupil, and inward from the rim.",
+            "Keep the top of the iris in the lid's shadow; lift the far side from the highlight.",
+            "Model the lids as bands round a ball, and give the lower lid its bright wet rim.",
+            "Soften the tear duct in and deepen both corners.",
+            "Flick in the upper lashes in clumps, curving away; then the short lower ones.",
+            "Lay brow hairs over the brow shape in their direction of growth.",
+            "Re-clean the highlight, add the small one on the lower rim, and stop.",
+        ],
+    },
 }
 
 

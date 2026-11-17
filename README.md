@@ -60,6 +60,7 @@ carries its own pencil grade, technique and instruction.
   as one printable image.
 
 ## Modes, detail slider, face model
+- **Eyes**: 5 styles on one eye, framed with the box picker. Construction and a twelve-stage ladder are its own.
 - **Portrait**: 5 styles on a selected face. **Object**: 5 styles on the whole photo (Contour, Basic Shapes, Value, Cross-Hatch, Realistic). **Hands**: 5 styles on the whole photo, with guides and steps built from the hand's own structure.
 - **Detail slider** (main page + guide page): per-style, applied when you lift your finger; each style keeps its own value.
 - **Face detection**: YuNet (ONNX, with eye/nose/mouth landmarks that tilt the guide lines) when the model file is present and OpenCV supports it, otherwise the Haar cascade.
@@ -97,6 +98,7 @@ Measured against the photographs in `tests/fixtures/` (see `CREDITS.md` for sour
 | **Hands** | Strongest. Landmark models read 19 of 20 test photos, including a fist head-on, fingers round a mug and extreme foreshortening. The one miss falls back rather than guessing. |
 | **Portrait** | Solid. A face was found in all 27 test portraits, 26 with landmarks, and every one produces the full nine-stage sequence. The guide oval encloses the features on 24 of 26. |
 | **Object** | The user draws a box round the object they want; see below for why. |
+| **Eyes** | Newest and roughest. No model: the iris is found by a circle search and the lids by fitting a template. On 18 close-up test photos the iris is right on 12, in the right place but the wrong size on 3, and wrong on 3. See below. |
 | **Posture** | Figures found by MediaPipe Pose. Tap one, or several -- two people interacting are one composition, so choosing both gives a region spanning them and the gap. |
 
 ### How object mode picks the object
@@ -115,6 +117,59 @@ cropping to a tapped face.
 
 The default selection covers 85% of the photo, so a photo that already worked still works
 untouched and dragging is purely an improvement rather than a new thing to get right.
+
+### Eyes, specifically
+
+The mode with the longest ladder: four construction passes (width, height and tilt; the
+ball and the lids; iris, pupil and lid thickness; planning the light), two outline passes,
+then for the blended styles five tonal ones -- flat values, blended tone, the iris, the
+lids and corners, lashes and brow -- before the finish. Twelve stages against Portrait's
+nine, because the distance from an outline to a convincing eye is where beginners stop.
+The tonal stages are each the finished rendering with something still missing -- blurred
+everywhere, then sharp in the iris, then sharp along the lids and brow -- at whatever the
+detail slider is set to, so the sequence converges on the finish and
+`test_the_tonal_stages_only_ever_approach_the_finish` holds it to that. The blurred base
+(`styles.soft_tone`) was offered as a style of its own for one build and withdrawn: alone
+it reads as the photograph out of focus, and it only means something as a step.
+
+**Outline steps follow the detail slider, in every mode.** They used to be held to a
+minimum detail that the finish was not, so with the slider low the last outline step
+showed up to 2.6 times the ink of the finished drawing after it. When the finish is an
+outline the steps now use the slider's value exactly (`steps._outline_detail`); under a
+shaded finish the floor stays, because there the outline is scaffolding.
+
+**There is no detector.** The first design found eyes through the face detector. The first
+real test set ended that: seventeen of nineteen photographs were close-ups of one eye, and
+the face detector reported a face inside ten of them. So the user frames the eye with the
+box picker, whose default already covers a close-up untouched.
+
+**There is no landmark model either** -- OpenCV Zoo has none for the eye region -- so
+`core/eyes.py` is classical vision, built so that it cannot produce something that is not
+an eye:
+
+- *Iris*: a circle search that reads only the left and right arcs, since the lids cover
+  the top and bottom. In a pale eye the strongest dark circle is the pupil, so a second
+  pass looks outward for the limbus -- but only if the first circle is black enough to be
+  a pupil. Six cues were measured for telling a pupil from a dark iris (size ratio, edge
+  strength, evenness of the band between, whiteness outside, the top arc, tone steps);
+  blackness was the only one that separated them.
+- *Lids*: a template -- an almond with four parameters, each confined to the range real
+  eyes occupy -- scored against the image and pulled toward average proportions where the
+  image says nothing. Weak evidence gives an average eye on the iris, not a confident
+  shape round an eyebrow.
+
+Where it stands, measured on the eighteen single-eye photographs: iris right on twelve;
+right place, wrong size on three; wrong on three. The three misses are a catchlight
+covering half the pupil (so it is not black enough to be recognised), a black-and-white
+photo whose sclera is in shadow and darker than the iris, and an eye turned far to the
+side. Two of them are fixtures, pinned by `test_the_known_misses_fail_small_not_wild`.
+The lids are approximate everywhere: plausible, usually a little narrow, and level --
+tilt is penalised hard because a level eye read as tilted looks worse than the reverse.
+Which corner is the tear duct is not known, so the construction does not mark it and the
+step text describes it instead.
+
+A real fix is a landmark model (MediaPipe's face mesh has 71 points round each eye), which
+would need a source with a licence that can ship, and a face in the photo.
 
 ### Posture, specifically
 
@@ -184,7 +239,7 @@ the text it needs -- no screen, pipeline or widget has to change.
    existing renderers; the stage ladder is about ordering, not new image processing.
 4. **Text** -- add entries to `data/steps_text.py` for the new stage ids, and to
    `data/tips.py` only where the advice differs from the family's.
-5. **Tiles** -- regenerate with `python scripts/make_examples.py portrait.jpg object.jpg hand.jpg`.
+5. **Tiles** -- regenerate with `python scripts/make_examples.py portrait.jpg object.jpg hand.jpg body.jpg eye.jpg`.
    A style with no tile falls back to a plain labelled button rather than failing. Use real
    photographs: a synthetic stand-in makes tiles that look nothing like what the style does
    to a photo.

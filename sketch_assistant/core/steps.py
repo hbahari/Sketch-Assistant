@@ -30,6 +30,21 @@ def _shades(style_key):
     return ALL[style_key].family not in NO_SHADING_FAMILIES
 
 
+def _outline_detail(style_key, detail, floor):
+    """How much detail the outline stages carry.
+
+    When the finish is itself an outline, exactly what the slider says -- the outline
+    stages are then the finished drawing arriving in pieces, and they must never hold
+    more than it will. They used to be held to a floor regardless, so at low detail the
+    last outline step showed two or three times the ink of the "finished" drawing after
+    it and the sequence appeared to go backwards.
+
+    Under a shaded finish the floor stays: there the outline is scaffolding for tone,
+    and a sparse one leaves the feature-by-feature stages with nothing in them.
+    """
+    return detail if ALL[style_key].family == "line" else max(detail, floor)
+
+
 @dataclass
 class Stage:
     key: str                 # stable id; the step text is keyed off this
@@ -136,7 +151,7 @@ def portrait_stages(job):
         crop_shape, box = (h, w), (w * 0.2, h * 0.2, w * 0.6, h * 0.6)
     step = _progress(job.progress, 8)
     has_lm = len(lm) == 5
-    art = render("line_art", crop, max(detail, 0.45))        # the outline used for the reveals
+    art = render("line_art", crop, _outline_detail(style_key, detail, 0.45))        # the outline used for the reveals
     step()
     H, W = art.shape[:2]
     sx, sy = W / crop_shape[1], H / crop_shape[0]
@@ -181,7 +196,7 @@ def portrait_stages(job):
 def object_stages(job):
     img, style_key, detail = job.source_img, job.style_key, job.detail
     step = _progress(job.progress, 6)
-    art = render("obj_contour", img, max(detail, 0.45))
+    art = render("obj_contour", img, _outline_detail(style_key, detail, 0.45))
     step()
     H, W = art.shape[:2]
     sil = _silhouette(cv2.resize(img, (W, H), interpolation=cv2.INTER_AREA))
@@ -227,7 +242,7 @@ def hand_stages(job):
     scaffold = stages[-1].image
     # the hand styles are masked to the hand, so the outline and the tones come back
     # without the table or the wall in them -- the same separation the step text asks for
-    art = render("hand_contour", img, max(detail, 0.45))
+    art = render("hand_contour", img, _outline_detail(style_key, detail, 0.45))
     step()
     if art.shape[:2] != scaffold.shape[:2]:                   # renderers agree, but don't assume
         scaffold = cv2.resize(scaffold, (art.shape[1], art.shape[0]))
@@ -260,7 +275,7 @@ def body_stages(job):
     for style, d, key, title in BODY_LEVELS:
         stages.append(Stage(key, title, render(style, img, d)))
         step()
-    art = render("body_contour", img, max(detail, 0.35))
+    art = render("body_contour", img, _outline_detail(style_key, detail, 0.35))
     step()
     scaffold = stages[-1].image
     if scaffold.shape[:2] != art.shape[:2]:
@@ -277,6 +292,93 @@ def body_stages(job):
         # is the missing middle -- the same tones, built from strokes they can copy.
         stages.append(Stage("body_hatch", "Build the tone in strokes",
                             render("body_formhatch", img, 0.45)))
+        step()
+    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", render(style_key, img, detail)))
+    step()
+    return stages
+
+
+# --------------------------------------------------------------------------- eyes
+# The longest ladder in the app, deliberately. An eye is small, everyone looks straight at
+# it, and the distance from an outline to a convincing rendering is where beginners give
+# up -- so that distance is cut into steps small enough to copy one at a time.
+EYE_LEVELS = ((0.20, "eye_envelope", "Width, height and tilt"),
+              (0.45, "eye_ball", "The ball and the lids"),
+              (0.70, "eye_lids", "Iris, pupil and lid thickness"),
+              (1.00, "eye_plan", "Plan the light"))
+
+
+def _eye_masks(eye, shape):
+    """Soft masks for the parts of an eye that are drawn at different times."""
+    H, W = shape[:2]
+    r = float(eye.r)
+    opening = np.zeros((H, W), np.uint8)
+    cv2.fillPoly(opening, [eye.opening], 255)
+    ys, xs = np.mgrid[0:H, 0:W]
+    disc = (((xs - eye.iris[0]) ** 2 + (ys - eye.iris[1]) ** 2) <= r * r).astype(np.uint8) * 255
+    k = lambda f: cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * int(max(1, r * f)) + 1,) * 2)
+    near = cv2.dilate(opening, k(0.45))
+    if eye.crease is not None:
+        cv2.polylines(near, [np.round(eye.crease).astype(np.int32)], False, 255, int(max(3, r * 0.5)))
+    # lashes grow out of the lid margins; the brow is whatever lies well above the lid
+    fringe = cv2.subtract(cv2.dilate(opening, k(0.95)), cv2.erode(opening, k(0.12)))
+    brow_y = int(max(0, eye.upper[:, 1].min() - r * 1.1))
+    fringe[:brow_y] = 255
+    f = max(2.0, r * 0.08)
+    return {"near": _feather(near, f), "iris": _feather(cv2.bitwise_and(disc, opening), f * 0.6),
+            "fringe": _feather(fringe, f)}
+
+
+def _blend(base, top, mask):
+    """`top` where the mask is set, `base` elsewhere, mixing across the feathered edge."""
+    m = (mask.astype(np.float32) / 255)[..., None]
+    return (base.astype(np.float32) * (1 - m) + top.astype(np.float32) * m).astype(np.uint8)
+
+
+def eye_stages(job):
+    """Construction in four passes, the outline in two, then tone in five.
+
+    The tonal half is only shown for Photorealism. Value Study and Cross-Hatch finish in
+    flat blocks and in strokes, and walking them through three stages of blending first
+    would teach a method their own finish then contradicts.
+
+    Every tonal stage is the finished rendering with something still missing, at the
+    detail the slider is set to, so the sequence converges on the finish instead of
+    passing through pictures the finish never contained.
+    """
+    from .eyes import analyze
+    from .styles import _prep, soft_tone
+    img, style_key, detail = job.source_img, job.style_key, job.detail
+    blended = style_key == "eye_realistic"
+    step = _progress(job.progress, len(EYE_LEVELS) + (9 if blended else 5))
+    stages = []
+    for d, key, title in EYE_LEVELS:
+        stages.append(Stage(key, title, render("eye_construct", img, d)))
+        step()
+    scaffold = stages[-2].image                       # the structure, without the lash plan
+    art = render("eye_contour", img, _outline_detail(style_key, detail, 0.4))
+    step()
+    masks = _eye_masks(analyze(_prep(img)), art.shape)
+    stages.append(Stage("eye_outline", "Lids, iris and crease", _under(_fade(scaffold, .25), _apply(art, masks["near"]))))
+    stages.append(Stage("eye_surround", "Brow and the skin around", _under(_fade(scaffold, .12), art)))
+    step()
+    if _shades(style_key):
+        values = _under(_fade(art, .40), render("eye_value", img, 0.15))
+        stages.append(Stage("values", "Block in the values", values))
+        step()
+    if blended:
+        real = render(style_key, img, detail)
+        loose, tight = soft_tone(img, 0.3), soft_tone(img, 0.85)
+        step()
+        stages.append(Stage("eye_blend", "Blend the tones together", loose))
+        stages.append(Stage("eye_iris_tone", "Draw the iris", _blend(loose, real, masks["iris"])))
+        step()
+        stages.append(Stage("eye_form", "Model the lids and the corners", _blend(tight, real, masks["iris"])))
+        step()
+        # the hairs come from the finished rendering itself, let through only along the
+        # lid margins and the brow, so this stage cannot show a lash the finish lacks
+        stages.append(Stage("eye_lashes", "Lashes and brow hairs",
+                            _blend(_blend(tight, real, masks["iris"]), real, masks["fringe"])))
         step()
     stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", render(style_key, img, detail)))
     step()

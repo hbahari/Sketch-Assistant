@@ -600,6 +600,124 @@ def on_hand(render_fn, outline=False):
     return wrapped
 
 
+# --------------------------------------------------------------------------- eyes
+EYEBALL = 2.05      # radius of the eyeball in iris radii: a 24 mm globe behind an 11.7 mm iris
+
+
+def _offset_curve(curve, toward, dist):
+    """A lid line moved bodily toward a point -- the inner edge of a lid's thickness."""
+    v = np.asarray(toward, float) - curve
+    return curve + v / (np.linalg.norm(v, axis=1, keepdims=True) + 1e-6) * dist
+
+
+def eye_construction(img, d=0.5):
+    """The eye as a drawing book builds it: envelope, ball, lids, iris, then the details.
+
+    Four levels, one per quarter of the detail slider, each adding to the last -- the
+    step ladder shows them one at a time. The order is the lesson: an eye drawn outline
+    first comes out flat and almond-shaped, like a symbol of an eye; drawn as lids
+    wrapped round a ball it comes out as a form.
+    """
+    from .eyes import analyze
+    img = _prep(img)
+    h, w = img.shape[:2]
+    eye = analyze(img)
+    out = np.full((h, w, 3), 255, np.uint8)
+    blue, ink, grey = (200, 120, 40), (60, 60, 60), (175, 175, 175)
+    c, r = np.array(eye.iris, float), float(eye.r)
+    A, B = np.array(eye.left, float), np.array(eye.right, float)
+    up, lo = eye.upper.astype(np.float64), eye.lower.astype(np.float64)
+    thick = max(2, int(w * 0.004))
+    P = lambda q: (int(round(q[0])), int(round(q[1])))
+    poly = lambda pts: [np.round(pts).astype(np.int32)]
+
+    # level 1 -- the envelope: how wide, how tall, how tilted. Nothing else yet.
+    pts = np.vstack([up, lo])
+    (x0, y0), (x1, y1) = pts.min(0), pts.max(0)
+    for a, b in (((x0, y0), (x1, y0)), ((x1, y0), (x1, y1)), ((x1, y1), (x0, y1)), ((x0, y1), (x0, y0))):
+        dashed(out, a, b, blue, 1)
+    axis = (B - A) / (np.linalg.norm(B - A) + 1e-6)
+    dashed(out, A - axis * r * 0.6, B + axis * r * 0.6, blue, thick)
+    for q in (A, B, up[len(up) // 2], lo[len(lo) // 2]):
+        cv2.circle(out, P(q), max(4, thick * 2), blue, -1, cv2.LINE_AA)
+    cv2.putText(out, f"eye : iris = {eye.irises_wide:.1f} : 1", (int(max(x0, 6)), int(max(22, y0 - 10))),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, blue, 1, cv2.LINE_AA)
+    if d <= 0.25:
+        return out
+
+    # level 2 -- the ball, and the lids as two curves lying on it
+    cv2.circle(out, P(c), int(r * EYEBALL), grey, max(1, thick - 1), cv2.LINE_AA)
+    cv2.polylines(out, poly(up), False, ink, thick + 1, cv2.LINE_AA)
+    cv2.polylines(out, poly(lo), False, ink, thick, cv2.LINE_AA)
+    if d <= 0.5:
+        return out
+
+    # level 3 -- the iris and pupil, cut off by the lids; the lids' thickness; the crease
+    opening = np.zeros((h, w), np.uint8)
+    cv2.fillPoly(opening, [np.round(np.vstack([up, lo[::-1]])).astype(np.int32)], 255)
+    layer = np.full((h, w, 3), 255, np.uint8)
+    cv2.circle(layer, P(c), int(r), ink, thick, cv2.LINE_AA)
+    cv2.circle(layer, P(c), int(eye.pupil_r), ink, thick, cv2.LINE_AA)
+    ghost = np.full((h, w, 3), 255, np.uint8)                    # the part the lids hide
+    cv2.circle(ghost, P(c), int(r), (215, 215, 215), 1, cv2.LINE_AA)
+    out = np.minimum(out, ghost)
+    out = np.where((opening > 0)[..., None], np.minimum(out, layer), out)
+    cv2.polylines(out, poly(_offset_curve(lo[2:-2], c, r * 0.13)), False, grey, max(1, thick - 1), cv2.LINE_AA)
+    if eye.crease is not None:
+        cv2.polylines(out, poly(eye.crease), False, ink, max(1, thick - 1), cv2.LINE_AA)
+    if d <= 0.75:
+        return out
+
+    # level 4 -- what to plan before any shading: the highlight to keep white, the shadow
+    # the upper lid throws across the top of the iris, and which way the lashes grow
+    ys, xs = np.mgrid[0:h, 0:w]
+    iris = ((xs - c[0]) ** 2 + (ys - c[1]) ** 2 <= r * r) & (opening > 0)
+    band = np.zeros((h, w), np.uint8)
+    cv2.polylines(band, poly(up), False, 255, int(max(2, r * 0.55)))
+    shade = iris & (band > 0)
+    out[shade] = np.minimum(out[shade], 205)
+    if eye.highlight is not None:
+        cv2.circle(out, P(eye.highlight), int(max(4, r * 0.16)), blue, thick, cv2.LINE_AA)
+    n = len(up)
+    for i in range(2, n - 2, 2):                                 # upper lashes fan outward
+        v = up[i] - c
+        v = v / (np.linalg.norm(v) + 1e-6)
+        fan = (i - n / 2) / n                                    # lean toward the nearer corner
+        tip = up[i] + (v + axis * fan * 1.2) * r * 0.42
+        cv2.line(out, P(up[i]), P(tip), blue, 1, cv2.LINE_AA)
+    for i in range(4, n - 4, 4):                                 # lower: fewer and shorter
+        v = lo[i] - c
+        v = v / (np.linalg.norm(v) + 1e-6)
+        cv2.line(out, P(lo[i]), P(lo[i] + (v + axis * (i - n / 2) / n) * r * 0.2), blue, 1, cv2.LINE_AA)
+    return out
+
+
+def soft_tone(img, d=0.5):
+    """Blended graphite with nothing sharp in it. Used by the eye step ladder for the
+    stages between flat value blocks and the finished drawing: the tones are right and
+    turn smoothly into one another, but no lash, iris fibre or skin texture is drawn yet.
+    Detail = how soft.
+
+    Not offered as a style. It was, briefly, as "Soft Tone", and on its own it reads as
+    the photograph out of focus rather than as a drawing anyone would set out to make --
+    it only means something as a step on the way to Photorealism, which is where it is.
+    """
+    img = _prep(img)
+    g = _gray(img)
+    # the same tone curve as Photorealism, fed a blurred source and no grain, so the
+    # blended stages and the finished drawing are the same drawing at different stages
+    # rather than two renderings that happen to share a subject
+    soft = cv2.GaussianBlur(g, (0, 0), lerp(10.0, 3.5, d))
+    sigma = float(np.clip(max(g.shape) / 55, 4, 30))
+    tone = cv2.addWeighted(_dodge(soft, sigma), 0.65, soft, 0.35, 0)
+    tone = (255 * (tone / 255.0) ** 1.25).astype(np.float32)
+    # the same paper grain as Photorealism: without it the stage is a blurred photograph,
+    # with it the tone sits on paper
+    grain = cv2.GaussianBlur(np.random.default_rng(0).normal(0, 7, g.shape).astype(np.float32), (0, 0), 0.8)
+    tone = np.clip(tone + grain * (1 - tone / 255.0), 0, 255)
+    return np.clip(tone[..., None] * np.array([0.94, 0.96, 0.97], np.float32), 0, 255).astype(np.uint8)
+
+
 @dataclass(frozen=True)
 class Style:
     """One renderer, as offered in one mode.
@@ -648,7 +766,14 @@ BODY_STYLES = {s.key: s for s in (      # posture mode: abstract first, rendered
     Style("body_formhatch", "Cross-Contour", form_hatch, "Hatch", 0.5, "hatch"),
     Style("body_realistic", "Photorealism", on_body(photorealistic), "Realistic", 0.5, "real"),
 )}
-ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES, **BODY_STYLES}
+EYE_STYLES = {s.key: s for s in (       # eyes mode: one eye, framed by the user
+    Style("eye_contour", "Contour", line_art, "Contour", 0.4, "line"),
+    Style("eye_construct", "Construction", eye_construction, "Construct", 1.0, "construct"),
+    Style("eye_value", "Value Study", value_study, "Value", 0.4, "value"),
+    Style("eye_hatch", "Cross-Hatch", crosshatch, "Hatch", 0.5, "hatch"),
+    Style("eye_realistic", "Photorealism", photorealistic, "Realistic", 0.6, "real"),
+)}
+ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES, **BODY_STYLES, **EYE_STYLES}
 
 
 def family_of(style_key):

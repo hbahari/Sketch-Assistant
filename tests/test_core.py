@@ -270,3 +270,67 @@ def test_hand_styles_survive_a_photo_with_no_hand_in_it(photo):
         assert out.ndim == 3 and out.dtype == np.uint8, key
     st = build_stages("hands", photo, "hand_contour", 0.5)
     assert st and st[-1].key == "finish"
+
+
+# ---- the outline steps against the finish -------------------------------------------
+def _dark(img):
+    import cv2
+    return int((cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) < 128).sum())
+
+
+def _line_job(mode):
+    """(image, style, extra build_stages arguments) for this mode's outline style, on a
+    real photograph -- the synthetic fixture above has too little in it to show this."""
+    from pathlib import Path
+
+    from sketch_assistant.core.faces import crop_info, load_image
+    fx = Path(__file__).resolve().parent / "fixtures"
+    path = {"portrait": fx / "portraits" / "front_adult.jpg", "object": fx / "objects" / "single_on_plain.jpg",
+            "hands": fx / "open_palm.jpg", "body": fx / "bodies" / "kneeling.jpg",
+            "eyes": fx / "eyes" / "blue_macro.jpg"}[mode]
+    if not path.exists():
+        pytest.skip(f"no fixture for {mode}")
+    img = load_image(str(path))
+    style = next(k for k, st in MODES[mode].styles.items() if st.family == "line")
+    if mode == "portrait":
+        faces = detect_faces(img)
+        if not faces:
+            pytest.skip("no face detector available")
+        crop, lm, box = crop_info(img, faces[0])
+        return crop, style, (lm, crop.shape[:2], box)
+    return img, style, ()
+
+
+@pytest.mark.parametrize("mode", list(MODES))
+def test_no_outline_step_holds_more_than_the_finished_outline(mode):
+    """With the detail slider low, the step before the finish used to show more than the
+    finish did: the outline steps were held to a minimum detail and the finish was not,
+    so the last step appeared to rub half the drawing out. 2.6 times the ink in Eyes,
+    about 1.5 times in Object and Hands. Every mode had the same floor, so every mode is
+    checked. The small allowance is for the construction lines still faintly underneath.
+    """
+    from sketch_assistant.core.modes import build_stages
+    img, style, extra = _line_job(mode)
+    stages = build_stages(mode, img, style, 0.05, *extra)
+    finish = _dark(stages[-1].image)
+    for st in stages[:-1]:
+        if st.key in CONSTRUCTION_STEPS:
+            continue
+        assert _dark(st.image) <= finish * 1.15 + 400, \
+            f"{mode}: step '{st.key}' has {_dark(st.image)} dark pixels, the finish {finish}"
+
+
+@pytest.mark.parametrize("mode", list(MODES))
+def test_the_outline_steps_follow_the_detail_slider(mode):
+    from sketch_assistant.core.modes import build_stages
+    img, style, extra = _line_job(mode)
+    low = build_stages(mode, img, style, 0.05, *extra)
+    high = build_stages(mode, img, style, 0.9, *extra)
+    assert _dark(high[-2].image) > _dark(low[-2].image) * 1.2, \
+        f"{mode}: the last outline step is the same at both ends of the slider"
+
+
+# steps that are diagrams, not partial outlines, and are not expected to be lighter
+CONSTRUCTION_STEPS = {"construction", "proportion", "hand_block", "hand_joints", "hand_volumes",
+                      "body_action", "body_tilts", "body_masses", "body_limbs",
+                      "eye_envelope", "eye_ball", "eye_lids", "eye_plan"}

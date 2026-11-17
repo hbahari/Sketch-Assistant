@@ -39,6 +39,15 @@ and pick a style:
 • Cross-Hatch — shading built from layered pen strokes
 • Photorealism — smooth graphite shading with real pencil texture
 
+EYES MODE
+The eye is the part of a portrait everyone looks at first and most people get wrong, so it
+has a mode to itself and the longest guide in the app. Drag a box round one eye -- or load
+a close-up and leave the box where it is -- and the app takes you from an empty page to a
+finished eye in twelve steps: the width, height and tilt; the eyeball and the lids wrapped
+over it; the iris, pupil and the thickness of the lids; where the highlight and the lid's
+shadow will go; the real outline; the brow; flat values; blended tone; the iris fibres;
+the lids and corners; and only then the lashes.
+
 OBJECT MODE
 The same idea for still life. Drag a box round the object you want to draw -- useful when
 there is more than one thing in the shot -- and pick from Contour, Basic Shapes, Value
@@ -153,7 +162,8 @@ pre-rounded asset gets double-rounded and transparent corners show the Play UI t
 2. The drawing guide page with the proportion lines on
 3. The style tiles, to show the range
 4. Object mode with the material guide open
-5. Hands mode showing the Construction style, which is the clearest demonstration of
+5. Eyes mode with the step sequence open -- twelve stages on one screen sells the mode
+6. Hands mode showing the Construction style, which is the clearest demonstration of
    what the app does that a still image can carry
 
 ---

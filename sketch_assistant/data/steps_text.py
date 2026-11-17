@@ -215,6 +215,127 @@ STEPS = {
                 "fold drawn without knowing what is beneath it reads as a crease in paper. "
                 "Then erase the scaffolding.",
     },
+    # ---- eyes -----------------------------------------------------------------------
+    "eye_envelope": {
+        "pencil": "2H, barely touching the paper",
+        "technique": "Measure with the pencil: hold it at arm's length against the photo, mark "
+                     "the eye's width with your thumb, and see how many times the height goes "
+                     "into it. Then check the tilt the same way before drawing anything.",
+        "text": "Put down four dots and one line, and nothing else: a dot at each corner, one "
+                "at the highest point of the upper lid and one at the lowest point of the lower "
+                "lid, then the line from corner to corner. That line is almost never level -- "
+                "one corner sits higher than the other -- and getting its slope right now is "
+                "what stops the finished eye looking like a symbol of an eye. Notice that the "
+                "high point of the upper lid and the low point of the lower lid are not above "
+                "one another.",
+    },
+    "eye_ball": {
+        "pencil": "2H for the ball, HB for the lids",
+        "technique": "Draw through. The eyeball is a sphere sitting in a socket and the lids are "
+                     "two strips of skin wrapped over it, so draw the whole ball first, even "
+                     "though most of it will never show.",
+        "text": "Lightly draw the ball as a full circle, bigger than you expect: about twice "
+                "the width of the iris. Then lay the upper lid over it as one curve from corner "
+                "to corner through your high dot, and the lower lid through your low dot. The "
+                "upper lid is the more arched of the two; the lower is nearly flat for most of "
+                "its length. Because the lids lie on a ball, they bulge toward you in the "
+                "middle -- keep that in mind when you shade later.",
+    },
+    "eye_lids": {
+        "pencil": "HB",
+        "technique": "The iris is a full circle that the lids cut into. Draw the whole circle "
+                     "first and let the lids hide part of it, rather than drawing the visible "
+                     "piece as its own shape.",
+        "text": "Draw the iris as a complete circle, then erase what the upper lid covers -- on "
+                "a relaxed eye the lid hides the top of it, and the lower lid just touches the "
+                "bottom. An iris showing white all the way round reads as fright. Put the pupil "
+                "dead centre of the iris, not centre of the visible part. Then give the lower "
+                "lid its thickness: a second line just inside the first, which is the wet rim "
+                "the lashes grow out of. Add the crease above the upper lid if there is one, "
+                "following the lid but drifting away from it toward the middle.",
+    },
+    "eye_plan": {
+        "pencil": "HB, very lightly -- these are notes to yourself",
+        "technique": "Decide where the white is before you add any dark. Graphite cannot be "
+                     "made lighter than the paper, so the highlight has to be saved, not added.",
+        "text": "Outline the highlight in the iris and promise yourself not to shade inside it. "
+                "Mark the band of shadow the upper lid throws across the top of the iris -- it "
+                "is why the top of an iris is always darker than the bottom, and leaving it out "
+                "makes the eye look like it is staring. Finally note which way the lashes grow: "
+                "they fan outward, leaning toward whichever corner they are nearer, and the "
+                "lower ones are shorter and fewer. Do not draw any lashes yet.",
+    },
+    "eye_outline": {
+        "pencil": "HB, then 2B along the upper lid",
+        "technique": "Line weight carries the form. The upper lid line is the heaviest because "
+                     "the lashes and their shadow sit on it; the lower lid is light enough to "
+                     "almost disappear toward the inner corner.",
+        "text": "Go over the lids with their real shapes, using your construction as the guide "
+                "and the photo for the small departures from it. Thicken the upper lid line "
+                "and let it taper at both ends. Draw the lower lid broken and light. At the "
+                "inner corner draw the small pink fold of the tear duct instead of bringing the "
+                "two lids to a sharp point -- it is the detail most often left out. Firm up "
+                "the iris and the pupil, and the crease.",
+    },
+    "eye_surround": {
+        "pencil": "HB",
+        "technique": "Draw the brow as a shape first and as hairs never, at this stage. An eye "
+                     "without what surrounds it floats on the page.",
+        "text": "Place the brow, measuring its distance from the lid in iris-heights. Block it "
+                "in as one tapered shape: thickest toward the nose, thinning as it arcs over "
+                "and down past the outer corner. Add the fold below the lower lid and any "
+                "lines at the outer corner, lightly. Then erase the construction -- the ball, "
+                "the box and the axis have done their job.",
+    },
+    "eye_blend": {
+        "pencil": "2B on its side, then a blending stump or tissue",
+        "technique": "Blend from the dark into the light, never the other way, and keep the "
+                     "stump off the highlight. Blending is for joining tones, not for creating "
+                     "them: lay the right value first, then soften the edge.",
+        "text": "Turn your flat value blocks into continuous tone. Soften every boundary "
+                "between them so one value slides into the next. The white of the eye is not "
+                "white: it is a ball, so it darkens toward both corners and under the upper "
+                "lid, and only the patch nearest the light is left as bare paper. At this "
+                "stage nothing should be sharp -- no lashes, no iris pattern. If it looks like "
+                "the photo slightly out of focus, it is right.",
+    },
+    "eye_iris_tone": {
+        "pencil": "4B for the pupil and the rim, 2B and a sharp HB for the fibres, kneaded eraser",
+        "technique": "Work from the pupil outwards in short strokes, like spokes. The iris is a "
+                     "shallow bowl with a pattern in it, not a flat disc with lines on it.",
+        "text": "Fill the pupil as dark as your pencil will go, leaving the highlight clean. "
+                "Darken the outer rim of the iris -- most irises have a darker ring at the "
+                "edge. Then draw the fibres: short strokes radiating from the pupil, uneven in "
+                "length and weight, with a second set coming inward from the rim to meet them. "
+                "Keep the top of the iris darker, under the lid's shadow, and let the side "
+                "opposite the highlight glow a little lighter: light passes through the iris "
+                "and brightens the far side. Pinch the eraser to a point to lift a few pale "
+                "fibres back out.",
+    },
+    "eye_form": {
+        "pencil": "HB and 2B, stump",
+        "technique": "Shade the lids as bands wrapping a ball. The value changes along the lid "
+                     "as it turns away from the light, not just from top to bottom.",
+        "text": "Model the upper lid: darkest in the crease, lighter on the swell below it, "
+                "dark again where it meets the lashes. Give the lower lid its lit rim -- that "
+                "thin wet edge catches light and is usually the second-brightest thing in the "
+                "drawing. Deepen the two corners, shade the tear duct softly, and put the "
+                "shadow under the lower lid in. Sharpen the edges that are really sharp (lid "
+                "against eyeball) and leave the rest soft.",
+    },
+    "eye_lashes": {
+        "pencil": "A sharp 2B or 4B",
+        "technique": "Flick, do not draw. Start each lash at the lid with pressure and lift off "
+                     "as you go, so it is thick at the root and vanishes at the tip. Turn the "
+                     "paper so the stroke curves the natural way for your hand.",
+        "text": "Lashes go on last and there are fewer than you think. Draw them in clumps of "
+                "two or three whose tips touch, curving up and away, leaning toward the nearer "
+                "corner. Upper lashes are long and start from the lid's outer edge; lower ones "
+                "are short, sparse and start from the far side of the wet rim, not from the "
+                "eyeball. Let a few upper lashes cross the highlight and reflect in it. Then "
+                "the brow: short hairs laid in its direction of growth, upward near the nose "
+                "and flattening outward, over the shape you blocked in.",
+    },
 }
 
 # `finish` depends on the style family you chose, so it gets its own table
@@ -297,6 +418,29 @@ FINISH_OVERRIDE = {
                 "last time, and check that the plumb line from the chest still lands near "
                 "the supporting foot -- if it does not, the figure will look like it is "
                 "falling over, however well the parts are drawn.",
+    },
+    "eye_construct": {
+        "pencil": "2H for the ball and the box, HB for the lids and the iris",
+        "technique": "Leave the construction showing. This drawing is for understanding how "
+                     "the eye is built, and it is the page to come back to when a finished "
+                     "eye looks wrong and you cannot tell why.",
+        "text": "Firm up the lids, the iris and the pupil, and keep the ball, the corner line "
+                "and the box visible underneath. Check three things against the photo: how "
+                "many irises wide the eye is, how much of the iris the upper lid covers, and "
+                "whether the pupil really is in the centre of the iris. Most eyes that look "
+                "wrong are wrong in one of those three.",
+    },
+    "eye_realistic": {
+        "pencil": "2H through 6B, a sharp HB, stump, kneaded eraser pinched to a point",
+        "technique": "Contrast makes an eye look wet. The darkest dark and the cleanest white "
+                     "sit side by side at the highlight, and that one hard edge does more than "
+                     "any amount of detail.",
+        "text": "Bring the pupil and the upper lash line to full dark. Clean the highlight back "
+                "to bare paper and give it one crisp edge. Add the small second highlight on "
+                "the wet rim of the lower lid and in the tear duct. Put the faintest shadow of "
+                "the lashes on the eyeball below the upper lid. Then stop: over-worked lashes "
+                "and an iris with every fibre drawn are the two things that most often spoil "
+                "an eye that was right ten minutes earlier.",
     },
     "hand_construct": {
         "pencil": "2H for the block-in, HB for structure, 2B for the joint creases",

@@ -1,6 +1,6 @@
 """Regenerate the style-button thumbnails.
 
-    python scripts/make_examples.py portrait.jpg object.jpg [hand.jpg] [body.jpg]
+    python scripts/make_examples.py portrait.jpg object.jpg [hand.jpg] [body.jpg] [eye.jpg]
 
 Every style in every mode gets one 360x360 tile. The hand reference is optional: without
 it a shaded synthetic hand stands in, so the tiles are never blank. Replace it with a real
@@ -10,7 +10,8 @@ thing anyone sees of a style.
 The committed Posture tiles were made from `tests/fixtures/bodies/kneeling.jpg` cropped to
 `union_box(detect(...), margin=0.08)`. Recorded because the reference photos for the other
 modes do not live in the repo, so a single stale tile is otherwise impossible to redo
-without reframing the whole set.
+without reframing the whole set. The Eyes tiles are from `tests/fixtures/eyes/blue_macro.jpg`,
+uncropped.
 """
 import sys
 from pathlib import Path
@@ -99,6 +100,7 @@ def main():
         "object": load_image(sys.argv[2]),
         "hands": load_image(sys.argv[3]) if len(sys.argv) > 3 else synthetic_hand(),
         "body": load_image(sys.argv[4]) if len(sys.argv) > 4 else None,
+        "eyes": load_image(sys.argv[5]) if len(sys.argv) > 5 else None,
     }
     if len(sys.argv) <= 3:
         print("note: no hand photo given, using the synthetic stand-in for the Hands tiles")

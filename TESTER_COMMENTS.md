@@ -14,6 +14,68 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 10 — steps going backwards, and a style nobody could explain
+
+*Shipped in: 1.4.0 (not yet uploaded)*
+
+> "In contour mode with the detail turned down, step 7 has less in it than step 6, which
+> looks wrong. Step 6 doesn't follow the detail I set on the slider at all."
+
+**What changed.** The steps that build up the outline were quietly refusing to go below a
+certain amount of detail, while the finished drawing obeyed the slider — so at a low
+setting the last step looked like half the drawing had been rubbed out. The outline steps
+now use exactly the detail you set. This was not only in Eyes mode: Portrait, Object and
+Hands did the same thing and are fixed too.
+
+> "I don't understand what the 'Soft' style really does. It doesn't feel implemented
+> correctly and it isn't intuitive."
+
+**What changed.** It was removed as a style. It was meant to show the eye fully shaded
+before any sharp detail goes in, but on its own it just looked like the photo out of
+focus. That idea only makes sense as a step on the way to the realistic drawing, so that
+is where it lives now, and those steps were reworked so each one is visibly closer to the
+finished drawing than the last. Eyes mode has five styles, like the others.
+
+> "How accurate and reliable are the pencil grades, pressure and steps written under each
+> style?"
+
+**Not changed yet — answered.** The advice follows standard drawing-class practice and was
+written from general knowledge. It has not been checked against named sources, reviewed by
+a drawing teacher, or tried with learners, and it is the same text for every photo. See
+"Still open".
+
+---
+
+## Round 9 — a mode just for eyes
+
+*Shipped in: 1.4.0 (not yet uploaded)*
+
+> "I want a mode specifically for eyes. There are so many guides out there for drawing eyes
+> realistically, and I want this to be a lot more detailed going from the outline to the
+> realistic version."
+
+**What changed.** An Eyes mode was added. You drag a box round one eye, or load a close-up
+and leave the box alone. It has the longest step-by-step guide in the app: twelve stages
+where a portrait has nine. It starts with how wide, tall and tilted the eye is, then the
+eyeball with the lids wrapped over it, then the iris and pupil, then a planning step for
+where the highlight and the lid's shadow will go. After the outline it splits the shading
+into small steps instead of one jump: flat tones, the tones blended together, the iris on
+its own, the lids and corners, and the lashes last.
+
+**Where it falls short, as tested on 18 close-up photos.** The app has to find the coloured
+part of the eye before it can build anything round it. It gets that right on 12 of the 18,
+puts it in the right place at the wrong size on 3, and gets it wrong on 3. The eyelid
+shapes in the construction steps are an educated estimate fitted to each photo rather than
+a tracing, so they are eye-shaped and in the right place but not exact. The shaded steps
+do not depend on any of this and come out right regardless.
+
+**Left as is, deliberately.** The app does not try to find the eyes in a photo of a whole
+face for you. That was the first plan, and the test photos ended it: nearly all were
+close-ups with no face in them, and the face finder "found" a face inside more than half of
+those anyway.
+
+---
+
 ## Round 8 — figures cut off by the crop; no measurements on the guide lines
 
 *Shipped in: 1.3.0 (not yet uploaded)*
@@ -216,6 +278,16 @@ edges fade to show there's more off-screen.
 Known and not yet addressed. Worth listing in the write-up as acknowledged rather than
 missed.
 
+- **The written drawing advice has not been reviewed by anyone who teaches drawing.** The
+  pencil grades, pressure notes and steps follow common practice, but the specific figures
+  in them (an eye being about two and a half irises wide, finger joints at 47% and 74%, and
+  so on) are rules of thumb, and none of it has been tested on beginners.
+- **Eyes mode misreads about one close-up in six.** A bright reflection covering half the
+  pupil, a black-and-white photo with the white of the eye in shadow, and an eye turned far
+  to one side each throw off the construction steps (too small, or off-centre). The shaded
+  steps are unaffected.
+- **Eyes mode doesn't mark the tear duct.** It can't tell which corner is the inner one
+  from a close-up, so the instructions describe it instead of the picture showing it.
 - **One hand photo can't be read at all** — a hand mostly out of frame gripping a phone.
   It falls back to the rougher method rather than failing, but the result is poor.
 - **Dark backgrounds confuse posture mode's outline.** On one test photo of a figure

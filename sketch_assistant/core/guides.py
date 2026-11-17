@@ -254,8 +254,43 @@ def body_guides(ov, w, h, th, ctx):
     return labels
 
 
+def eye_guides(ov, w, h, th, ctx):
+    """Eyes: the corner-to-corner line, the iris, and where each sits on the page.
+
+    The measurements a drawing book gives for an eye are all relations between these: how
+    many irises wide the eye is, how far across it the pupil sits, how much of the iris
+    the upper lid covers. The lids themselves are left to the Construction style.
+    """
+    from .eyes import analyze                  # local: keeps the import graph one-way
+    src = ctx.source_img
+    if src is None:
+        return frame_guides(ov, w, h, th, ctx)
+    eye = analyze(src)
+    sx, sy = w / src.shape[1], h / src.shape[0]
+    P = lambda p: np.array([p[0] * sx, p[1] * sy])
+    c, r = P(eye.iris), eye.r * (sx + sy) / 2
+    A, B = P(eye.left), P(eye.right)
+    axis = (B - A) / (np.linalg.norm(B - A) + 1e-6)
+    dashed(ov, A - axis * r * 0.8, B + axis * r * 0.8, LINE, th)
+    cv2.circle(ov, (int(c[0]), int(c[1])), int(r), LINE, th, cv2.LINE_AA)
+    dashed(ov, (c[0], 0), (c[0], h), SOFT, th)             # plumb line through the pupil
+    dashed(ov, (0, c[1]), (w, c[1]), SOFT, th)
+    top, bot = P(eye.upper[len(eye.upper) // 2]), P(eye.lower[len(eye.lower) // 2])
+    labels = [(at("pupil", c[0], w), c[0] + 4, label_rows(w)[1]),
+              (at("pupil", c[1], h), 6.0, c[1])]
+    for name, q in (("upper lid", top), ("lower lid", bot)):
+        dashed(ov, (q[0] - r * 0.9, q[1]), (q[0] + r * 0.9, q[1]), LINE, th)
+        labels.append((at(name, q[1], h), q[0] + r * 0.95, q[1] + 8))
+    for q in (A, B):
+        cv2.circle(ov, (int(q[0]), int(q[1])), max(3, th * 2), LINE, -1, cv2.LINE_AA)
+        dashed(ov, (q[0], q[1] - r * 0.5), (q[0], q[1] + r * 0.5), LINE, th)
+        labels.append((at("corner", q[0], w), q[0] - 20, q[1] + r * 0.5 + 22))
+    labels.append((f"{eye.irises_wide:.1f} irises wide", A[0], min(A[1], B[1]) - r * 1.25))
+    return labels
+
+
 GUIDES = {"portrait": face_guides, "object": frame_guides, "hands": hand_guides,
-          "body": body_guides}
+          "body": body_guides, "eyes": eye_guides}
 
 
 def draw_guides(sketch, mode, style_key=None, landmarks=(), crop_shape=None, box=None, source_img=None):
