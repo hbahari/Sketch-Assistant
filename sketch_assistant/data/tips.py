@@ -37,6 +37,11 @@ TIPS = {
         ],
     },
     "value_study": {
+        "what": "Value means how light or dark something is, whatever its colour. This style "
+                "keeps only a few flat greys, so you can see the big shapes of light and shadow "
+                "without the detail. It is the plan every shaded drawing is built on: draw this "
+                "first and the other styles are the same picture with more added. The steps "
+                "show a key with each grey and the pencil for it.",
         "pencils": "HB for the lightest tone, then 2B, 4B and 6B for darker ones. A blending stump is optional.",
         "pressure": "Keep each tone flat and even; press harder only as the values get darker.",
         "steps": [
@@ -85,6 +90,10 @@ TIPS = {
         ],
     },
     "obj_value": {
+        "what": "Value means how light or dark something is, whatever its colour. This style "
+                "keeps only a few flat greys, so you can see where the light falls on the object "
+                "and where its shadows are, without the detail. It is the plan a shaded drawing "
+                "is built on. The steps show a key with each grey and the pencil for it.",
         "pencils": "HB to 6B. A blending stump is optional.",
         "pressure": "Keep each tone flat and even; press harder only for darker values.",
         "steps": [
@@ -271,4 +280,6 @@ def tips_markup(style_key):
     steps = "\n".join(f"  {i}. {s}" for i, s in enumerate(t["steps"], 1))
     h = lambda x: f"[b][color=a66a00]{x}[/color][/b]"
     text = f"{h('Pencils & grades')}\n{t['pencils']}\n\n{h('Pressure')}\n{t['pressure']}\n\n{h('Steps')}\n{steps}"
+    if t.get("what"):
+        text = f"{h('What this is')}\n{t['what']}\n\n" + text
     return text

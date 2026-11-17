@@ -1,5 +1,14 @@
-"""The drawing sequence: one stage at a time, with the pencil and technique for each."""
-import cv2
+"""The drawing sequence: one stage at a time, with the pencil and technique for each.
+
+The detail slider is here as well as on the guide page, so the steps can be tried at
+different levels of detail without going back. Rebuilding them takes about 0.1 to 0.6 s
+on a desktop (measured) and should be a few times that on a phone (not measured), so it
+happens off the UI thread, once per release of the slider, and the step being looked at
+stays on screen until the new one is ready.
+"""
+import threading
+
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.uix.anchorlayout import AnchorLayout
@@ -10,11 +19,13 @@ from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 
+from ..core.modes import build_stages
 from ..core.steps import contact_sheet
+from ..core.styles import render
 from ..data.steps_text import step_markup
 from ..platform_utils import reveal, save_png
 from . import theme
-from .widgets import Card, RoundButton, TitleBar, to_texture
+from .widgets import Card, DetailSlider, RoundButton, TitleBar, to_texture
 
 IMG_WIDTH, IMG_MAX_H = 0.74, 0.44
 
@@ -33,9 +44,14 @@ class StepsScreen(Screen):
     def __init__(self, app, **kw):
         super().__init__(**kw)
         self.app_ref, self.i = app, 0
+        self._lock, self._pending, self._busy = threading.Lock(), None, False
         root = BoxLayout(orientation="vertical", spacing=dp(8))
         self.bar = TitleBar("Drawing steps", self.go_back)
         root.add_widget(self.bar)
+        self.slider = DetailSlider(self.on_detail)
+        sl = BoxLayout(size_hint_y=None, height=dp(34), padding=(dp(14), 0))
+        sl.add_widget(self.slider)
+        root.add_widget(sl)
 
         col = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(12), padding=(dp(14), 0))
         col.bind(minimum_height=col.setter("height"))
@@ -82,10 +98,63 @@ class StepsScreen(Screen):
 
     # ---- navigation ------------------------------------------------------------------
     def on_pre_enter(self, *_):
+        a = self.app_ref
         self.i = 0
+        self.slider.set_value(a.get_detail(a.style_key))
+        self._fill_strip()
+        self.refresh()
+
+    def _fill_strip(self):
         self.strip.clear_widgets()
         for n, st in enumerate(self.app_ref.stages):
             self.strip.add_widget(StageThumb(st, n, self.jump))
+
+    # ---- detail slider ---------------------------------------------------------------
+    def on_detail(self, value):
+        """Rebuild the steps at the new detail, in the background.
+
+        One build at a time: a release that arrives while one is running replaces the
+        value waiting to be built, so moving the slider several times quickly costs one
+        extra build, not one per movement, and the newest setting is always the one shown.
+        """
+        a = self.app_ref
+        a.detail[a.style_key] = value
+        with self._lock:
+            self._pending = value
+            if self._busy:
+                return
+            self._busy = True
+        self.caption.text = "Updating the steps..."
+        self._worker = threading.Thread(target=self._rebuild, daemon=True)
+        self._worker.start()
+
+    def _rebuild(self):
+        a = self.app_ref
+        while True:
+            with self._lock:
+                value, self._pending = self._pending, None
+                if value is None:
+                    self._busy = False
+                    return
+            try:
+                stages = build_stages(a.mode, a.source_img, a.style_key, value,
+                                      a.landmarks, a.crop_shape, a.crop_box)
+                sketch, err = render(a.style_key, a.source_img, value), None
+            except Exception as exc:                  # keep the old steps rather than none
+                stages, sketch, err = None, None, exc
+            with self._lock:
+                newer = self._pending is not None
+            if not newer:                              # a newer value would overwrite this anyway
+                Clock.schedule_once(lambda dt, st=stages, sk=sketch, e=err: self._apply(st, sk, e))
+
+    def _apply(self, stages, sketch, err):
+        if err is not None:
+            self.caption.text = f"Could not update the steps: {err}"
+            return
+        a = self.app_ref
+        a.stages, a.sketch = stages, sketch            # the guide and main pages follow
+        self.i = min(self.i, len(stages) - 1)
+        self._fill_strip()
         self.refresh()
 
     def jump(self, index):

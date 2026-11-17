@@ -7,7 +7,7 @@ Everything reported against the app since v1.0.0, in the tester's own words, is 
 
 ## Run
     pip install -r requirements.txt
-    python scripts/download_models.py        # ONNX models for faces and hands (~5.5 MB)
+    python scripts/download_models.py        # ONNX models for faces, hands and bodies (~23 MB)
     python main.py                                  # desktop app
     python -m sketch_assistant.cli photo.jpg        # no UI: writes all styles to ./out
     pytest
@@ -60,7 +60,7 @@ carries its own pencil grade, technique and instruction.
   as one printable image.
 
 ## Modes, detail slider, face model
-- **Eyes**: 5 styles on one eye, framed with the box picker. Construction and a twelve-stage ladder are its own.
+- **Eyes**: 5 styles on one eye, framed with the box picker. Construction and a fourteen-stage ladder are its own.
 - **Portrait**: 5 styles on a selected face. **Object**: 5 styles on the whole photo (Contour, Basic Shapes, Value, Cross-Hatch, Realistic). **Hands**: 5 styles on the whole photo, with guides and steps built from the hand's own structure.
 - **Detail slider** (main page + guide page): per-style, applied when you lift your finger; each style keeps its own value.
 - **Face detection**: YuNet (ONNX, with eye/nose/mouth landmarks that tilt the guide lines) when the model file is present and OpenCV supports it, otherwise the Haar cascade.
@@ -122,15 +122,47 @@ untouched and dragging is purely an improvement rather than a new thing to get r
 
 The mode with the longest ladder: four construction passes (width, height and tilt; the
 ball and the lids; iris, pupil and lid thickness; planning the light), two outline passes,
-then for the blended styles five tonal ones -- flat values, blended tone, the iris, the
-lids and corners, lashes and brow -- before the finish. Twelve stages against Portrait's
-nine, because the distance from an outline to a convincing eye is where beginners stop.
-The tonal stages are each the finished rendering with something still missing -- blurred
-everywhere, then sharp in the iris, then sharp along the lids and brow -- at whatever the
-detail slider is set to, so the sequence converges on the finish and
-`test_the_tonal_stages_only_ever_approach_the_finish` holds it to that. The blurred base
-(`styles.soft_tone`) was offered as a style of its own for one build and withdrawn: alone
-it reads as the photograph out of focus, and it only means something as a step.
+then for Photorealism the shared bridge (below) followed by the iris, the lids and corners,
+and the lashes and brow -- fourteen stages against Portrait's twelve, because the distance
+from an outline to a convincing eye is where beginners stop. From the blend on, each stage
+is the finished rendering with something still missing, so the sequence converges on the
+finish and `test_the_tonal_stages_only_ever_approach_the_finish` holds it to that.
+
+### From hatching to a realistic finish (every mode)
+
+A tester found hatching easy and the realistic finish a leap. Every Photorealism ladder
+now goes values -> hatching -> blended hatching -> lights and darks -> finish
+(`steps._hatch_to_real`), which is a real way artists get from one to the other:
+
+- **Blend the hatching** blurs the hatching by most of a stroke spacing, then lays the
+  outline back over it, so the result is smooth tone that is still a drawing. One gamma
+  brings its average to the finish's (a 1-8 grey-level correction on the test photos).
+  Two earlier versions failed and are recorded in the code: too little blur left a
+  criss-cross; quantile-by-quantile tone matching turned the layers into stencil bands.
+- **Lift the lights, deepen the shadows** outlines the finished drawing's brightest small
+  shapes in blue (keep or lift with an eraser) and its darkest small shapes in red (press
+  to full dark), and brings those in. Taken from the finish alone: marking where finish
+  and blend differed covered up to a third of the picture. The step text names the kinds
+  of light and shadow -- highlight, light side, core shadow, reflected light, cast shadow,
+  contact shadow -- and how each is drawn.
+
+This replaces the blurred "Soft Tone" base the eye ladder used, which was withdrawn as a
+style and then as a step: on its own it read as the photograph out of focus.
+
+### The value step's key
+
+The value step, and a Value Study finish, print a key underneath: every flat grey in the
+picture and the pencil for it (`steps.VALUE_PENCILS`, greys from `styles.value_levels` so
+the two cannot drift apart). The Value styles' tips now open with what value is and what
+the study is for.
+
+### Detail slider on the steps page
+
+The steps page has the detail slider too. Rebuilding a ladder takes 0.1-0.6 s on a desktop
+(measured, warm caches) and should be several times that on a phone (not measured), so it
+runs off the UI thread once per release, one build at a time: a release during a build
+replaces the waiting value rather than queuing another build, and the step being viewed
+stays put. The new detail carries back to the guide and main pages.
 
 **Outline steps follow the detail slider, in every mode.** They used to be held to a
 minimum detail that the finish was not, so with the slider low the last outline step
@@ -167,6 +199,29 @@ The lids are approximate everywhere: plausible, usually a little narrow, and lev
 tilt is penalised hard because a level eye read as tilted looks worse than the reverse.
 Which corner is the tear duct is not known, so the construction does not mark it and the
 step text describes it instead.
+
+**Lopsided circles are re-centred on the pupil.** On a side-lit photograph a tester sent,
+the iris's shadowed limbus was too weak to win, and the search settled on a circle whose
+bright side was on the limbus and whose shadowed side was on the pupil's edge: two-thirds
+the iris's size and pushed toward the light. `_recentre_on_pupil` runs on the final
+circle: if a compact, round, black blob sits well off its centre, it re-searches round
+that blob, between one and 2/1.2 times the original radius, and takes the result only if
+its edge is at least 70% as strong. Every guard is there because a looser version broke
+something: taking the largest black patch as the pupil moved the iris on 27 of 38 photos
+(lashes and crease shadows are black too); re-centring before the pupil-to-limbus step
+spoiled `amber_reflection`; and without the size limit two crops had the circle grow onto
+the lids. Measured on 38 images (the 19 test photos, crops of them, the portrait-derived
+crops and the fixtures), the final version changes six readings, all for the better by
+eye, and leaves the rest exactly as they were. The size limit has an anatomical
+derivation (a pupil is at least a fifth of its iris) but was confirmed on that same set,
+which is all the evidence there is. The tester's photo is not a fixture, since where it
+came from is not known; `test_a_lopsided_circle_is_recentred_on_its_pupil` checks the
+mechanism on exact geometry instead.
+
+**The eye guides are laid out as a dimensioned drawing.** The eye carries only markers --
+the iris circle, a cross at the pupil, dots at the corners, ticks at the top and bottom of
+the lids -- and every number sits in the margin: across along the top edge, down along
+the left. The thirds grid is off in this mode (`guides.NO_GRID`).
 
 A real fix is a landmark model (MediaPipe's face mesh has 71 points round each eye), which
 would need a source with a licence that can ship, and a face in the photo.

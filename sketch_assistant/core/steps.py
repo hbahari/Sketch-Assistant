@@ -18,7 +18,7 @@ import cv2
 import numpy as np
 
 from .guides import OVAL_H, OVAL_RISE, OVAL_W, draw_guides
-from .styles import ALL, _silhouette, render
+from .styles import ALL, _hatch_rhythm, _silhouette, render, value_levels
 
 # Families whose finished drawing carries no tone, so a "block in the values" stage
 # would show nothing. Keyed by family rather than by style so a new mode inherits it.
@@ -122,6 +122,191 @@ def _regions(shape, lm, box):
     }
 
 
+# --------------------------------------------------------------------------- value key
+# What each grey of a Value Study is drawn with, lightest first, by how many greys there
+# are. The lightest is always paper: graphite cannot be made lighter than the page, so
+# the lightest shapes are saved, not drawn.
+VALUE_PENCILS = {3: ("Paper", "HB", "4B"),
+                 4: ("Paper", "HB", "2B", "4B-6B"),
+                 5: ("Paper", "2H", "HB", "2B", "4B-6B"),
+                 6: ("Paper", "2H", "HB", "2B", "4B", "6B"),
+                 7: ("Paper", "2H", "H", "HB", "2B", "4B", "6B")}
+
+
+def _value_key(img, d):
+    """The picture with a key underneath: each flat grey it uses, and the pencil for it.
+
+    A Value Study on its own looks like a posterised photo, and a tester asked what it
+    was for. The key is the answer in the picture itself: these are the only greys on
+    the page, here is what to draw each one with, match them shape by shape.
+    """
+    H, W = img.shape[:2]
+    levels = value_levels(d)[::-1]                        # lightest first, as the key reads
+    pencils = VALUE_PENCILS[len(levels)]
+    sh = max(70, int(W * 0.17))
+    strip = np.full((sh, W, 3), 255, np.uint8)
+    fs, th = max(0.42, W / 1300), max(1, W // 500)
+    cv2.putText(strip, "Value key: the only greys in the picture",
+                (8, int(sh * 0.26)), cv2.FONT_HERSHEY_SIMPLEX, fs, (90, 90, 90), th, cv2.LINE_AA)
+    pad, gap = 8, 6
+    sw = (W - 2 * pad - gap * (len(levels) - 1)) / len(levels)
+    y0, y1 = int(sh * 0.36), sh - 8
+    for i, (v, pen) in enumerate(zip(levels, pencils)):
+        x0 = int(pad + i * (sw + gap))
+        x1 = int(x0 + sw)
+        cv2.rectangle(strip, (x0, y0), (x1, y1), (int(v),) * 3, -1)
+        cv2.rectangle(strip, (x0, y0), (x1, y1), (150, 150, 150), 1)
+        ink = (30, 30, 30) if v > 140 else (245, 245, 245)
+        (tw, tht), _ = cv2.getTextSize(pen, cv2.FONT_HERSHEY_SIMPLEX, fs * 1.15, th)
+        cv2.putText(strip, pen, (int((x0 + x1 - tw) / 2), int((y0 + y1 + tht) / 2)),
+                    cv2.FONT_HERSHEY_SIMPLEX, fs * 1.15, ink, th, cv2.LINE_AA)
+    return np.vstack([img, strip])
+
+
+# --------------------------------------------------------------------------- hatch to realistic
+# The shaded styles are not equally hard. Hatching builds tone from separate strokes a
+# beginner can see and copy; a realistic finish is continuous tone with highlights, deep
+# accents and soft and hard edges, and shown straight after the value blocks it arrives
+# as a leap. These stages are the bridge, and the method is a real one: hatch the tones
+# in, blend the hatching smooth with a stump, then lift the lights with an eraser and
+# deepen the darks. Every stage comes from renderers the app already has, so the
+# sequence converges on the finished drawing instead of inventing pictures of its own.
+LIGHT_PCT, DARK_PCT = 98.5, 2.5       # percentiles of the finished drawing marked as accents
+BLEND_SIGMA = 0.8                     # blur of the blending stump, in stroke spacings
+LINE_KEEP = 0.7                       # how strongly the outline shows through the blend
+MARK_LIFT, MARK_DARK = (225, 140, 40), (40, 50, 200)   # BGR: blue = eraser, red = press harder
+
+
+def _blend_hatching(hatch, d, real, art=None):
+    """The hatching after a blending stump: strokes merged into tone, outline kept.
+
+    Blurred by most of a stroke spacing, so the strokes and the moire between crossing
+    layers both go -- at under half a spacing a faint criss-cross still showed. On its
+    own that much blur turns the drawing into an out-of-focus photograph, the complaint
+    that ended the Soft Tone style, so the outline is laid back over the smooth tone:
+    blending moves graphite about, it does not rub out the drawing.
+
+    Then one smooth tone curve brings its average to the finished drawing's, so the next
+    two stages change only what they are about. Measured on one photo per mode, that is
+    a correction of 1 to 8 grey levels either way; it keeps the blend within one level.
+    A single gamma rather than quantile-by-quantile matching, which was tried first and
+    stretched the hatching's few separate layers into hard bands, like a stencil.
+    """
+    g = cv2.cvtColor(hatch, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    sp, _ = _hatch_rhythm(g.shape[1], d)
+    tone = cv2.GaussianBlur(g, (0, 0), sp * BLEND_SIGMA) / 255.0
+    # where the finish leaves bare paper round the subject (Hands, Posture), so does the
+    # blend -- otherwise the blur bleeds grey past the outline and tints the whole page
+    paper = _feather(_paper(real).astype(np.uint8) * 255, max(1.5, min(g.shape) * 0.004)).astype(np.float32) / 255
+    lines = np.full(g.shape, 255.0, np.float32)
+    if art is not None:
+        if art.shape[:2] != g.shape:
+            art = cv2.resize(art, (g.shape[1], g.shape[0]), interpolation=cv2.INTER_AREA)
+        lines = cv2.cvtColor(_fade(art, LINE_KEEP), cv2.COLOR_BGR2GRAY).astype(np.float32)
+
+    def compose(gamma):
+        t = 255.0 * tone ** gamma
+        return np.minimum(t * (1 - paper) + 255.0 * paper, lines)
+
+    # matched on the finished composite, outline and paper included: matched before the
+    # outline went on, the blend came out about fifteen levels darker than the finish
+    # ...and with the warm tint of graphite on paper counted in, on the drawing but not on
+    # the bare paper round it: matched before the tint, the blend came out 4% too dark
+    tint = np.array([0.94, 0.96, 0.97], np.float32)
+    shade = float(tint @ [0.114, 0.587, 0.299]) * (1 - paper) + paper
+    target = float(cv2.cvtColor(real, cv2.COLOR_BGR2GRAY).mean())
+    lo, hi = 0.3, 6.0
+    for _ in range(25):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if float((compose(mid) * shade).mean()) > target else (lo, mid)
+    out = compose((lo + hi) / 2)
+    grain = cv2.GaussianBlur(np.random.default_rng(1).normal(0, 6, g.shape).astype(np.float32), (0, 0), 0.8)
+    out = np.clip(out + grain * (1 - out / 255.0) * (1 - paper), 0, 255)
+    colour = tint * (1 - paper)[..., None] + paper[..., None]
+    return np.clip(out[..., None] * colour, 0, 255).astype(np.uint8)
+
+
+def _paper(real):
+    """Where the finished drawing is bare paper round the subject: white areas joined to
+    the edge of the picture. White inside the subject -- a highlight -- does not count."""
+    R = cv2.cvtColor(real, cv2.COLOR_BGR2GRAY)
+    white = (R >= 253).astype(np.uint8)
+    n, lab = cv2.connectedComponents(white, connectivity=8)
+    edge = np.unique(np.r_[lab[0], lab[-1], lab[:, 0], lab[:, -1]])
+    return np.isin(lab, edge[edge > 0])
+
+
+def _accent_shapes(m, max_frac, min_frac=0.0002, keep=8):
+    """The small, separate shapes in a boolean mask: (filled uint8 mask, their contours).
+
+    Capped in size because a big dark area is a value shape, already blocked in two steps
+    earlier; an accent is the small darkest-dark or whitest-white inside it.
+    """
+    m = cv2.morphologyEx(m.astype(np.uint8) * 255, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    n, lab, st, _ = cv2.connectedComponentsWithStats(m, connectivity=8)
+    ok = [k for k in range(1, n) if min_frac * m.size <= st[k, cv2.CC_STAT_AREA] <= max_frac * m.size]
+    ok = sorted(ok, key=lambda k: -st[k, cv2.CC_STAT_AREA])[:keep]
+    out = np.isin(lab, ok).astype(np.uint8) * 255
+    out = cv2.dilate(out, np.ones((5, 5), np.uint8))   # a little room round each, to draw into
+    cnts, _ = cv2.findContours(out, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    return out, cnts
+
+
+def _lights_and_darks(blended, real):
+    """Mark the finished drawing's whitest small shapes (keep them clean or lift them
+    with an eraser) and its darkest small shapes (press to full dark), and bring both in.
+
+    Taken from the finish alone, not from how it differs from the blend. Differences
+    were tried first and marked half the picture, because any tonal drift between two
+    renderings shows up as a "difference". The brightest and darkest accents are what
+    this step of a drawing is actually about. Returns (marked image, unmarked image).
+    """
+    R = cv2.cvtColor(real, cv2.COLOR_BGR2GRAY)
+    subject = ~_paper(real)                            # not the bare paper round a masked subject
+    vals = R[subject] if subject.any() else R.ravel()
+    light = (R >= np.percentile(vals, LIGHT_PCT)) & subject
+    dark = R <= np.percentile(vals, DARK_PCT)
+    lights, lc = _accent_shapes(light, max_frac=0.015)
+    darks, dc = _accent_shapes(dark, max_frac=0.03)
+    m = _feather(cv2.max(lights, darks), max(1.5, min(R.shape) * 0.006))
+    clean = _blend(blended, real, m)
+    marked = clean.copy()
+    th = max(1, R.shape[1] // 420)
+    cv2.drawContours(marked, lc, -1, MARK_LIFT, th, cv2.LINE_AA)
+    cv2.drawContours(marked, dc, -1, MARK_DARK, th, cv2.LINE_AA)
+    return marked, clean
+
+
+def _hatch_to_real(img, hatch_key, real, detail, hatch=None, art=None):
+    """The bridge stages, ending one step short of the finish.
+
+    `hatch` is passed in where the ladder already has a hatching stage of its own (Posture
+    builds one for every shaded finish); otherwise it is rendered and shown here.
+    Returns (stages, the clean picture the last of them shows) so a ladder with more to
+    add -- Eyes does -- can carry on from it.
+    """
+    stages = []
+    d = detail
+    if hatch is None:
+        hatch = render(hatch_key, img, detail)
+        stages.append(Stage("hatch_tone", "Build the tone in hatching", hatch))
+    else:
+        d = 0.45                                       # the detail that stage was drawn at
+    if hatch.shape[:2] != real.shape[:2]:
+        hatch = cv2.resize(hatch, (real.shape[1], real.shape[0]))
+    blended = _blend_hatching(hatch, d, real, art)
+    stages.append(Stage("hatch_blend", "Blend the hatching smooth", blended))
+    marked, clean = _lights_and_darks(blended, real)
+    stages.append(Stage("lights_darks", "Lift the lights, deepen the shadows", marked))
+    return stages, clean
+
+
+def _blend(base, top, mask):
+    """`top` where the mask is set, `base` elsewhere, mixing across the feathered edge."""
+    m = (mask.astype(np.float32) / 255)[..., None]
+    return (base.astype(np.float32) * (1 - m) + top.astype(np.float32) * m).astype(np.uint8)
+
+
 def _estimate_landmarks(box):
     """Place eyes, nose and mouth from the face box using average proportions.
 
@@ -185,9 +370,12 @@ def portrait_stages(job):
     final = render(style_key, crop, detail)
     if _shades(style_key):
         stages.append(Stage("values", "Block in the values",
-                            _under(_fade(art, .45), render("value_study", crop, 0.1))))
+                            _value_key(_under(_fade(art, .45), render("value_study", crop, 0.1)), 0.1)))
         step()
-    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", final))
+    if ALL[style_key].family == "real":
+        stages += _hatch_to_real(crop, "crosshatch", final, detail, art=art)[0]
+        step()
+    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", _finish(final, style_key, detail)))
     step()
     return stages
 
@@ -212,12 +400,16 @@ def object_stages(job):
     step()
     stages.append(Stage("contours", "Inner contours", _apply(art, soft)))
     step()
+    final = render(style_key, img, detail)
     if _shades(style_key):
         stages.append(Stage("values", "Light and shadow",
-                            _under(_fade(_apply(art, soft), .45),
-                                   _apply(render("obj_value", img, 0.1), soft))))
+                            _value_key(_under(_fade(_apply(art, soft), .45),
+                                              _apply(render("obj_value", img, 0.1), soft)), 0.1)))
         step()
-    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", render(style_key, img, detail)))
+    if ALL[style_key].family == "real":
+        stages += _hatch_to_real(img, "obj_hatch", final, detail, art=_apply(art, soft))[0]
+        step()
+    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", _finish(final, style_key, detail)))
     step()
     return stages
 
@@ -248,11 +440,15 @@ def hand_stages(job):
         scaffold = cv2.resize(scaffold, (art.shape[1], art.shape[0]))
     stages.append(Stage("hand_outline", "Draw the real outline", _under(_fade(scaffold, .25), art)))
     step()
+    final = render(style_key, img, detail)
     if _shades(style_key):
         stages.append(Stage("values", "Light and shadow",
-                            _under(_fade(art, .45), render("hand_value", img, 0.1))))
+                            _value_key(_under(_fade(art, .45), render("hand_value", img, 0.1)), 0.1)))
         step()
-    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", render(style_key, img, detail)))
+    if ALL[style_key].family == "real":
+        stages += _hatch_to_real(img, "hand_hatch", final, detail, art=art)[0]
+        step()
+    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", _finish(final, style_key, detail)))
     step()
     return stages
 
@@ -283,17 +479,21 @@ def body_stages(job):
     stages.append(Stage("body_outline", "Draw the real outline",
                         _under(_fade(scaffold, .22), art)))
     step()
+    final = render(style_key, img, detail)
     if _shades(style_key):
         stages.append(Stage("values", "Light and shadow",
-                            _under(_fade(art, .45), render("body_value", img, 0.1))))
+                            _value_key(_under(_fade(art, .45), render("body_value", img, 0.1)), 0.1)))
         step()
         # Flat tone to finished rendering is too big a jump to show as one step: the
         # learner can see the result but not how the pencil got there. The hatching stage
         # is the missing middle -- the same tones, built from strokes they can copy.
-        stages.append(Stage("body_hatch", "Build the tone in strokes",
-                            render("body_formhatch", img, 0.45)))
+        hatch = render("body_formhatch", img, 0.45)
+        stages.append(Stage("body_hatch", "Build the tone in strokes", hatch))
         step()
-    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", render(style_key, img, detail)))
+        if ALL[style_key].family == "real":
+            stages += _hatch_to_real(img, "body_formhatch", final, detail, hatch=hatch, art=art)[0]
+            step()
+    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", _finish(final, style_key, detail)))
     step()
     return stages
 
@@ -329,28 +529,24 @@ def _eye_masks(eye, shape):
             "fringe": _feather(fringe, f)}
 
 
-def _blend(base, top, mask):
-    """`top` where the mask is set, `base` elsewhere, mixing across the feathered edge."""
-    m = (mask.astype(np.float32) / 255)[..., None]
-    return (base.astype(np.float32) * (1 - m) + top.astype(np.float32) * m).astype(np.uint8)
-
-
 def eye_stages(job):
-    """Construction in four passes, the outline in two, then tone in five.
+    """Construction in four passes, the outline in two, then the tone.
 
-    The tonal half is only shown for Photorealism. Value Study and Cross-Hatch finish in
-    flat blocks and in strokes, and walking them through three stages of blending first
-    would teach a method their own finish then contradicts.
+    For Photorealism the tone comes in the most steps of any ladder: flat values, the same
+    tones hatched, the hatching blended, lights lifted and darks deepened, then the iris,
+    the lids and corners, and the lashes. Value Study and Cross-Hatch stop at their own
+    kind of tone, since walking them through blending first would teach a method their
+    finish then contradicts.
 
-    Every tonal stage is the finished rendering with something still missing, at the
-    detail the slider is set to, so the sequence converges on the finish instead of
-    passing through pictures the finish never contained.
+    Every tonal stage from the blend on is the finished rendering with something still
+    missing, so the sequence converges on the finish instead of passing through pictures
+    the finish never contained.
     """
     from .eyes import analyze
-    from .styles import _prep, soft_tone
+    from .styles import _prep
     img, style_key, detail = job.source_img, job.style_key, job.detail
-    blended = style_key == "eye_realistic"
-    step = _progress(job.progress, len(EYE_LEVELS) + (9 if blended else 5))
+    realistic = ALL[style_key].family == "real"
+    step = _progress(job.progress, len(EYE_LEVELS) + (9 if realistic else 5))
     stages = []
     for d, key, title in EYE_LEVELS:
         stages.append(Stage(key, title, render("eye_construct", img, d)))
@@ -362,27 +558,33 @@ def eye_stages(job):
     stages.append(Stage("eye_outline", "Lids, iris and crease", _under(_fade(scaffold, .25), _apply(art, masks["near"]))))
     stages.append(Stage("eye_surround", "Brow and the skin around", _under(_fade(scaffold, .12), art)))
     step()
+    final = render(style_key, img, detail)
     if _shades(style_key):
         values = _under(_fade(art, .40), render("eye_value", img, 0.15))
-        stages.append(Stage("values", "Block in the values", values))
+        stages.append(Stage("values", "Block in the values", _value_key(values, 0.15)))
         step()
-    if blended:
-        real = render(style_key, img, detail)
-        loose, tight = soft_tone(img, 0.3), soft_tone(img, 0.85)
+    if realistic:
+        bridge, base = _hatch_to_real(img, "eye_hatch", final, detail, art=art)
+        stages += bridge
         step()
-        stages.append(Stage("eye_blend", "Blend the tones together", loose))
-        stages.append(Stage("eye_iris_tone", "Draw the iris", _blend(loose, real, masks["iris"])))
+        with_iris = _blend(base, final, masks["iris"])
+        stages.append(Stage("eye_iris_tone", "Draw the iris", with_iris))
         step()
-        stages.append(Stage("eye_form", "Model the lids and the corners", _blend(tight, real, masks["iris"])))
+        with_lids = _blend(with_iris, final, masks["near"])
+        stages.append(Stage("eye_form", "Model the lids and the corners", with_lids))
         step()
         # the hairs come from the finished rendering itself, let through only along the
         # lid margins and the brow, so this stage cannot show a lash the finish lacks
-        stages.append(Stage("eye_lashes", "Lashes and brow hairs",
-                            _blend(_blend(tight, real, masks["iris"]), real, masks["fringe"])))
+        stages.append(Stage("eye_lashes", "Lashes and brow hairs", _blend(with_lids, final, masks["fringe"])))
         step()
-    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", render(style_key, img, detail)))
+    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", _finish(final, style_key, detail)))
     step()
     return stages
+
+
+def _finish(final, style_key, detail):
+    """The finished drawing; a Value Study keeps its key, since that is where it is used."""
+    return _value_key(final, detail) if ALL[style_key].family == "value" else final
 
 
 def _progress(cb, n):

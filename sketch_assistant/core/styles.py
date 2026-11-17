@@ -70,11 +70,17 @@ def technical(img, d=0.5):
 
 
 # Value study: flat tonal blocks. Detail = number of tones (3-7) and how fine the shapes are.
+def value_levels(d):
+    """The flat greys a Value Study uses at this detail, darkest first. Shared with the
+    value key the step ladder prints underneath, so the key and the picture always match."""
+    return np.linspace(38, 238, 3 + int(d * 4)).astype(np.uint8)
+
+
 def value_study(img, d=0.3):
     img = _prep(img)
-    n = 3 + int(d * 4)
+    levels = value_levels(d)
+    n = len(levels)
     g = cv2.GaussianBlur(_gray(img), (0, 0), lerp(4.5, 2.0, d))
-    levels = np.linspace(38, 238, n).astype(np.uint8)
     q = np.take(levels, np.digitize(g, np.percentile(g, np.linspace(0, 100, n + 1)[1:-1])))
     return _to_bgr(cv2.medianBlur(q, int(lerp(15, 7, d)) | 1))
 
@@ -690,32 +696,6 @@ def eye_construction(img, d=0.5):
         v = v / (np.linalg.norm(v) + 1e-6)
         cv2.line(out, P(lo[i]), P(lo[i] + (v + axis * (i - n / 2) / n) * r * 0.2), blue, 1, cv2.LINE_AA)
     return out
-
-
-def soft_tone(img, d=0.5):
-    """Blended graphite with nothing sharp in it. Used by the eye step ladder for the
-    stages between flat value blocks and the finished drawing: the tones are right and
-    turn smoothly into one another, but no lash, iris fibre or skin texture is drawn yet.
-    Detail = how soft.
-
-    Not offered as a style. It was, briefly, as "Soft Tone", and on its own it reads as
-    the photograph out of focus rather than as a drawing anyone would set out to make --
-    it only means something as a step on the way to Photorealism, which is where it is.
-    """
-    img = _prep(img)
-    g = _gray(img)
-    # the same tone curve as Photorealism, fed a blurred source and no grain, so the
-    # blended stages and the finished drawing are the same drawing at different stages
-    # rather than two renderings that happen to share a subject
-    soft = cv2.GaussianBlur(g, (0, 0), lerp(10.0, 3.5, d))
-    sigma = float(np.clip(max(g.shape) / 55, 4, 30))
-    tone = cv2.addWeighted(_dodge(soft, sigma), 0.65, soft, 0.35, 0)
-    tone = (255 * (tone / 255.0) ** 1.25).astype(np.float32)
-    # the same paper grain as Photorealism: without it the stage is a blurred photograph,
-    # with it the tone sits on paper
-    grain = cv2.GaussianBlur(np.random.default_rng(0).normal(0, 7, g.shape).astype(np.float32), (0, 0), 0.8)
-    tone = np.clip(tone + grain * (1 - tone / 255.0), 0, 255)
-    return np.clip(tone[..., None] * np.array([0.94, 0.96, 0.97], np.float32), 0, 255).astype(np.uint8)
 
 
 @dataclass(frozen=True)

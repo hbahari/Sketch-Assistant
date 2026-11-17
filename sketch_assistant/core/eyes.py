@@ -33,6 +33,10 @@ PROMOTE, PROMOTE_ABS = 0.4, 0.8   # an outer circle this strong -- relative to t
                                   # units of the image's contrast -- is the limbus
 PUPIL_BLACK = 15                  # grey level (after contrast equalisation) a pupil's darkest quarter is under
 MAX_RATIO = 4.6                   # an iris is at most this many times its pupil
+RECENTRE = 0.2                    # a pupil further off-centre than this many radii means a lopsided circle
+RECENTRE_KEEP = 0.7               # ...and the circle round the pupil must score this well against it
+RECENTRE_GROW = 2 / 1.2           # ...and be at most this much bigger (see _recentre_on_pupil)
+MIN_PUPIL_AREA = 8                # pixels (at WORK_W) of black that count as a pupil
 ARC = 40                          # degrees either side of horizontal that the iris search reads
 
 # Average proportions, in iris radii. The palpebral fissure is about 2.5 iris diameters
@@ -101,6 +105,78 @@ def _limbus_score(g, cxs, cys, r, sd, mean, a, full):
     return edge + 0.6 * core, edge
 
 
+def _pupil_blob(g, cx, cy, r):
+    """A pupil inside the circle: a black blob that is also compact, round and filled.
+
+    Black alone is not enough -- the first attempt took the largest black patch inside
+    the circle for the pupil and it was as often a clump of lashes or a crease shadow,
+    which moved the iris on 27 of 38 test photographs. Lashes are long and thin, a crease
+    is an arc; a pupil, even with a highlight biting into it, is neither.
+    Returns (x, y, radius) or None.
+    """
+    h, w = g.shape
+    ys, xs = np.mgrid[0:h, 0:w]
+    m = ((xs - cx) ** 2 + (ys - cy) ** 2 <= (0.9 * r) ** 2) & (g <= PUPIL_BLACK)
+    n, _lab, st, ce = cv2.connectedComponentsWithStats(m.astype(np.uint8), connectivity=8)
+    best = None
+    for k in range(1, n):
+        area = float(st[k, cv2.CC_STAT_AREA])
+        bw, bh = float(st[k, cv2.CC_STAT_WIDTH]), float(st[k, cv2.CC_STAT_HEIGHT])
+        if area < MIN_PUPIL_AREA or max(bw, bh) > 1.6 * min(bw, bh) or area < 0.55 * bw * bh:
+            continue
+        if best is None or area > best[0]:
+            best = (area, float(ce[k][0]), float(ce[k][1]), max(bw, bh) / 2)
+    return None if best is None else best[1:]
+
+
+def _recentre_on_pupil(g, cx, cy, r, sd, mean, a, full):
+    """Fix a lopsided circle: the iris re-found round its pupil, or None to keep it.
+
+    An iris is centred on its pupil. When one side of the iris is in shadow its limbus
+    is weak there, and the search can settle on a circle whose bright side lies on the
+    limbus and whose shadowed side lies on the pupil's own edge -- smaller than the iris
+    and pushed toward the light. If a pupil sits well off the circle's centre, try the
+    best circle centred on that pupil instead, and take it only if it fits the image
+    nearly as well: re-centring is a correction for one failure, not a second opinion on
+    every eye.
+    """
+    h, w = g.shape
+    pb = _pupil_blob(g, cx, cy, r)
+    if pb is None:
+        return None
+    px, py, _rp = pb
+    if np.hypot(px - cx, py - cy) <= RECENTRE * r:
+        return None
+    # The size comes from the lopsided circle, not from the pupil: blur and contrast
+    # equalisation leave only a pupil's core black, so its measured radius runs at under
+    # half the real one. A circle spanning from the far edge of the pupil to the limbus
+    # has a diameter of iris radius R plus pupil radius p, so R = 2r - p; and a pupil,
+    # even constricted in bright light, is at least a fifth of its iris, so R <= 2r / 1.2.
+    # The limit matters: without it two test photographs had the re-centred circle grow
+    # past the iris onto the lids, and both had grown by more than 1.7 times.
+    hi = min(RECENTRE_GROW * r, w * R_RANGE[1])
+    best = None
+    for rr in np.arange(r, hi + 0.5, 1.5):
+        span = max(2.0, 0.08 * rr)                  # the pupil is the centre, give or take
+        xs, ys = np.meshgrid(np.arange(px - span, px + span + 0.5, 1.0),
+                             np.arange(py - span, py + span + 0.5, 1.0))
+        s, edge = _limbus_score(g, xs, ys, rr, sd, mean, a, full)
+        s = np.where((xs - 1.18 * rr < 0) | (xs + 1.18 * rr > w - 1), -1e9, s)
+        i = int(np.argmax(s))
+        if best is None or s.flat[i] > best[0]:
+            best = (float(s.flat[i]), float(edge.flat[i]), float(xs.flat[i]), float(ys.flat[i]), float(rr))
+    # Compared on the edge alone. The full score also rewards a dark core, which is what
+    # tells an iris from a bright spectacle ring -- but a circle centred on a pupil is
+    # known not to be a spectacle ring, and a pale iris round a small pupil has a
+    # mid-grey core that would lose to a lopsided circle on that term every time.
+    _, e0 = _limbus_score(g, np.array([cx]), np.array([cy]), r, sd, mean, a, full)
+    if best is None or best[1] < RECENTRE_KEEP * float(e0[0]):
+        return None
+    if best[4] >= hi - 1.5:
+        return None             # still climbing at the limit: no limbus inside it
+    return best[2], best[3], best[4]
+
+
 def _find_iris(g):
     """Best circle for the iris on a smoothed grey image. Returns (cx, cy, r, score).
 
@@ -130,6 +206,7 @@ def _find_iris(g):
         if s.flat[i] > best[0]:
             best = (float(s.flat[i]), float(cxs.flat[i]), float(cys.flat[i]), float(r))
     score, cx, cy, r = best
+
 
     def local(cx, cy, r, span):
         """Best centre and its edge strength for one radius, near (cx, cy)."""
@@ -173,7 +250,18 @@ def _find_iris(g):
         e, sc, x, y = local(cx, cy, rr, 2.0)
         if e > cand[0]:
             cand = (e, sc, x, y, float(rr))
-    return cand[2], cand[3], cand[4], max(score, cand[1])
+    cx, cy, r = cand[2], cand[3], cand[4]
+    # Last, once the circle is final: is it centred on its pupil? Checked on the final
+    # circle rather than the first pass's, because in a pale eye the first pass is often
+    # the pupil itself -- partly hidden by a reflection, so its black part sits off its
+    # centre -- and re-centring that before it had been grown out to the limbus turned a
+    # correct iris into a wrong one.
+    alt = _recentre_on_pupil(g, cx, cy, r, sd, mean, a, full)
+    if alt is not None:
+        # the score stays as it was: it is the evidence that there is an eye here at
+        # all, and moving the circle does not make that evidence weaker
+        cx, cy, r = alt
+    return cx, cy, r, max(score, cand[1])
 
 
 def _find_pupil(g, cx, cy, r):

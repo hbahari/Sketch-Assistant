@@ -348,3 +348,62 @@ def test_eyes_mode_frames_the_eye_with_the_box_picker():
         assert all(not home.tiles[k].disabled for k in MODES["eyes"].styles)
     finally:
         EventLoop.window.remove_widget(home)
+
+
+def test_the_steps_page_has_a_detail_slider_that_rebuilds_the_steps():
+    """Moving the slider on the steps page rebuilds the steps at the new detail in the
+    background, keeps the learner on the step they were looking at, and carries the new
+    detail back to the guide and main pages."""
+    import numpy as np
+
+    from sketch_assistant.core.modes import build_stages
+    from sketch_assistant.ui.steps import StepsScreen
+    app, home = _loaded_home("eyes", _fixture("eyes", "blue_macro.jpg"))
+    try:
+        app.style_key = "eye_realistic"
+        app.stages = build_stages("eyes", app.source_img, app.style_key, 0.2)
+        steps = StepsScreen(app, name="steps")
+        EventLoop.window.add_widget(steps)
+        steps.on_pre_enter()
+        steps.jump(9)
+        before = app.stages[-1].image.copy()
+        steps.on_detail(0.9)
+        steps._worker.join(timeout=30)
+        for _ in range(4):
+            Clock.tick()
+        assert app.detail["eye_realistic"] == 0.9
+        assert steps.i == 9, "the page jumped away from the step being looked at"
+        assert app.stages[-1].image.shape != before.shape or (app.stages[-1].image != before).mean() > 0.01
+        assert app.sketch is not None and not np.array_equal(app.sketch, before)
+        assert len(steps.strip.children) == len(app.stages)
+        EventLoop.window.remove_widget(steps)
+    finally:
+        EventLoop.window.remove_widget(home)
+
+
+def test_quick_slider_moves_build_once_more_not_once_each():
+    """Releases that arrive during a rebuild replace the waiting value instead of queuing
+    a build each, so the newest setting wins and the phone does not fall behind."""
+    from sketch_assistant.ui.steps import StepsScreen
+    app, home = _loaded_home("eyes", _fixture("eyes", "blue_macro.jpg"))
+    try:
+        from sketch_assistant.core.modes import build_stages
+        app.style_key = "eye_realistic"
+        app.stages = build_stages("eyes", app.source_img, app.style_key, 0.2)
+        steps = StepsScreen(app, name="steps")
+        calls = []
+        import sketch_assistant.ui.steps as ui_steps
+        real_build = ui_steps.build_stages
+        ui_steps.build_stages = lambda *a, **k: (calls.append(a[3]), real_build(*a, **k))[1]
+        try:
+            for v in (0.3, 0.5, 0.7, 0.9):
+                steps.on_detail(v)
+            steps._worker.join(timeout=60)
+        finally:
+            ui_steps.build_stages = real_build
+        for _ in range(4):
+            Clock.tick()
+        assert calls[-1] == 0.9 and len(calls) <= 2, f"built at {calls}"
+        assert app.detail["eye_realistic"] == 0.9
+    finally:
+        EventLoop.window.remove_widget(home)

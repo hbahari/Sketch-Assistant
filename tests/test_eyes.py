@@ -41,7 +41,7 @@ READ = {
     "blue_macro": (0.44, 0.54, 0.187),
     "brown_macro": (0.50, 0.42, 0.215),
     "amber_reflection": (0.46, 0.44, 0.301),
-    "brown_with_brow": (0.50, 0.54, 0.134),
+    "brown_with_brow": (0.50, 0.50, 0.138),   # re-read after the pupil re-centring; was 0.54, a little low
     "green_fills_frame": (0.54, 0.50, 0.346),
     "small_in_face": (0.46, 0.49, 0.107),
     "brown_side_light": (0.63, 0.38, 0.149),
@@ -141,6 +141,43 @@ def test_no_eye_is_reported_as_no_eye():
     assert 1.5 <= eye.irises_wide <= 3.5
 
 
+def _shadowed_iris(pupil=9):
+    """An iris of radius 30 at (180, 100) with its left side in shadow, so its left
+    limbus is weak: the condition behind the lopsided circle on a real photograph, with
+    every position known exactly."""
+    g = np.full((200, 320), 215, np.uint8)
+    g[:, :150] = 150
+    cv2.circle(g, (180, 100), 30, 120, -1)
+    cv2.circle(g, (180, 100), pupil, 4, -1)
+    g = cv2.GaussianBlur(g, (0, 0), 1.5)
+    a = np.deg2rad(np.r_[np.arange(-eyes.ARC, eyes.ARC + 1, 8), np.arange(180 - eyes.ARC, 180 + eyes.ARC + 1, 8)])
+    return g, float(g.std()) + 1e-6, float(g.mean()), a, np.deg2rad(np.arange(0, 360, 20))
+
+
+def test_a_lopsided_circle_is_recentred_on_its_pupil():
+    """A circle whose bright side is on the limbus and whose shadowed side is on the
+    pupil's edge -- what the search found on a side-lit photograph a tester sent, drawn
+    two-thirds the size of the iris and pushed toward the light. Re-centred on the pupil,
+    it should come back as the iris.
+
+    Tested on exact geometry because a synthetic photograph built to show the fault did
+    not show it: the full pipeline found that iris correctly with or without the fix.
+    The evidence that it matters on real eyes is the comparison over 38 photographs
+    recorded in core/eyes.py. Control: with RECENTRE set out of reach this returns None.
+    """
+    g, sd, mean, a, full = _shadowed_iris()
+    got = eyes._recentre_on_pupil(g, 190.5, 100.0, 19.5, sd, mean, a, full)
+    assert got is not None, "lopsided circle not corrected"
+    x, y, r = got
+    assert np.hypot(x - 180, y - 100) <= 4.0, f"re-centred to ({x:.1f}, {y:.1f})"
+    assert r == pytest.approx(30, rel=0.1)
+
+
+def test_a_circle_already_on_its_pupil_is_left_alone():
+    g, sd, mean, a, full = _shadowed_iris()
+    assert eyes._recentre_on_pupil(g, 180.0, 100.0, 30.0, sd, mean, a, full) is None
+
+
 # --------------------------------------------------------------------------- the mode
 def test_eyes_use_the_box_picker_not_the_face_detector():
     """Seventeen of the nineteen test photographs are close-ups with no face in them,
@@ -152,11 +189,12 @@ def test_eyes_use_the_box_picker_not_the_face_detector():
 
 @pytest.mark.parametrize("style,expect", [("eye_contour", 7), ("eye_construct", 7),
                                           ("eye_value", 8), ("eye_hatch", 8),
-                                          ("eye_realistic", 12)])
+                                          ("eye_realistic", 14)])
 def test_the_ladder_is_long_where_the_drawing_is_hard(style, expect):
     """Outline styles stop after the construction and the two outline passes.
-    Photorealism gets four more stages between flat values and the finish, because that
-    gap is the one this mode exists to close."""
+    Photorealism gets six more between flat values and the finish -- hatching, blending,
+    lights and darks, then the iris, the lids and the lashes -- because that gap is the
+    one this mode exists to close."""
     stages = build_stages("eyes", _img("blue_macro"), style, 0.6)
     assert len(stages) == expect, [s.key for s in stages]
     for a, b in zip(stages, stages[1:]):
@@ -176,37 +214,25 @@ def test_each_construction_level_adds_to_the_last():
     assert ink == sorted(ink) and len(set(ink)) == 4, f"ink per level: {ink}"
 
 
-def test_the_blended_stage_is_the_finished_drawing_without_its_detail():
-    """The blended stages lead to Photorealism, so they have to be the same drawing: the
-    same overall tone, with the fine detail missing. The first version used its own tone
-    curve and came out nearly sixty grey levels darker than the finish it leads to, so
-    the last step of the ladder appeared to bleach the drawing."""
-    from sketch_assistant.core.styles import soft_tone
-    img = _img("blue_macro")
-    soft = cv2.cvtColor(soft_tone(img, 0.3), cv2.COLOR_BGR2GRAY)
-    real = cv2.cvtColor(render("eye_realistic", img, 0.6), cv2.COLOR_BGR2GRAY)
-    assert abs(float(soft.mean()) - float(real.mean())) < 15, \
-        f"blended {soft.mean():.0f} vs finished {real.mean():.0f}"
-    blur = lambda g: cv2.GaussianBlur(g, (0, 0), 1.5)          # ignore the paper grain
-    assert cv2.Laplacian(blur(soft), cv2.CV_64F).var() < 0.25 * cv2.Laplacian(blur(real), cv2.CV_64F).var()
-
-
 @pytest.mark.parametrize("detail", [0.1, 0.5, 0.9])
 def test_the_tonal_stages_only_ever_approach_the_finish(detail):
-    """From 'Draw the iris' on, each stage is the finished rendering with something still
+    """From the blend on, each stage is the finished rendering with something still
     missing, so each one is closer to the finish than the one before. They used to be
     built at fixed settings whatever the slider said, and the lash stage laid black line
-    art over the tone that the finish did not contain."""
+    art over the tone that the finish did not contain. 'Lift the lights' is left out of
+    the comparison because it carries coloured marks that the finish does not."""
     stages = build_stages("eyes", _img("blue_macro"), "eye_realistic", detail)
     by = {s.key: s.image.astype(np.float32) for s in stages}
-    gap = [float(np.abs(by[k] - by["finish"]).mean()) for k in ("eye_blend", "eye_iris_tone", "eye_form", "eye_lashes")]
+    gap = [float(np.abs(by[k] - by["finish"]).mean()) for k in ("hatch_blend", "eye_iris_tone", "eye_form", "eye_lashes")]
     assert gap == sorted(gap, reverse=True), f"distance from the finish, stage by stage: {gap}"
 
 
-def test_soft_tone_is_a_step_not_a_style():
-    """It was offered as a style for one build. On its own it reads as the photograph
-    out of focus; it only means something on the way to Photorealism."""
+def test_soft_tone_is_gone():
+    """It was offered as a style for one build and then as a ladder stage; on its own it
+    read as the photograph out of focus. Blended hatching replaced it."""
+    import sketch_assistant.core.styles as st
     assert "eye_soft" not in MODES["eyes"].styles and len(MODES["eyes"].styles) == 5
+    assert not hasattr(st, "soft_tone")
 
 
 def test_eye_guides_say_where_the_pupil_and_the_lids_sit():
@@ -225,3 +251,23 @@ def test_eye_guides_say_where_the_pupil_and_the_lids_sit():
     assert got["pupil"][1] == pytest.approx(eye.iris[1] / h, abs=0.006)     # down
     assert got["upper lid"][0] < got["pupil"][1] < got["lower lid"][0]
     assert len(got["corner"]) == 2 and got["corner"][0] < got["pupil"][0] < got["corner"][1]
+
+
+@pytest.mark.parametrize("name", ["brown_macro", "small_in_face", "blue_macro"])
+def test_eye_guide_numbers_stay_in_the_margins(name):
+    """A tester called the first eye guides crowded: the numbers sat on the eye itself,
+    beside the features they measured. They now sit along the top edge (measured across)
+    and the left edge (measured down), so the eye carries only markers. The thirds grid
+    is off in this mode for the same reason."""
+    from sketch_assistant.core.guides import NO_GRID, label_rows
+    img = _img(name)
+    h, w = img.shape[:2]
+    labels = eye_guides(np.full_like(img, 255), w, h, 1, Ctx(source_img=img))
+    first, second = label_rows(w)
+    top_band = first + 3 * (second - first) + 12
+    for text, x, y, *_ in labels:
+        if text.endswith("irises wide"):
+            assert y > h * 0.9, "the eye-width caption should sit at the bottom edge"
+            continue
+        assert y <= top_band or x <= 30, f"'{text}' is drawn at ({x:.0f}, {y:.0f}), on the picture"
+    assert "eyes" in NO_GRID

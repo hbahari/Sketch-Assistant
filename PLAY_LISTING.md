@@ -43,10 +43,11 @@ EYES MODE
 The eye is the part of a portrait everyone looks at first and most people get wrong, so it
 has a mode to itself and the longest guide in the app. Drag a box round one eye -- or load
 a close-up and leave the box where it is -- and the app takes you from an empty page to a
-finished eye in twelve steps: the width, height and tilt; the eyeball and the lids wrapped
+finished eye in fourteen steps: the width, height and tilt; the eyeball and the lids wrapped
 over it; the iris, pupil and the thickness of the lids; where the highlight and the lid's
-shadow will go; the real outline; the brow; flat values; blended tone; the iris fibres;
-the lids and corners; and only then the lashes.
+shadow will go; the real outline; the brow; flat values; the same tones in hatching; the
+hatching blended smooth; the brightest lights and darkest darks; the iris fibres; the
+lids and corners; and only then the lashes.
 
 OBJECT MODE
 The same idea for still life. Drag a box round the object you want to draw -- useful when
@@ -75,7 +76,10 @@ Tap "Generate drawing steps" and the app rebuilds the sketch the way you would a
 it. For a portrait: construction lines first, then the eyes, nose, mouth and ears one at a
 time, then the outline, the values and the finish. For a hand: the palm block and axes, then
 the knuckles and joints, then the finger volumes, then the real outline. Every step tells you
-which pencil to pick up, the technique to use, and what to put on the paper. Save the whole
+which pencil to pick up, the technique to use, and what to put on the paper. For the
+realistic style, the steps take you there through hatching: hatch the tones in, blend
+them smooth, then lift the lights and deepen the shadows, with each kind of light and
+shadow explained. Change the detail right there on the steps page, and save the whole
 sequence as one sheet to print.
 
 THE DRAWING GUIDE

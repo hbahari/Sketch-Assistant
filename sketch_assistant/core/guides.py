@@ -254,12 +254,39 @@ def body_guides(ov, w, h, th, ctx):
     return labels
 
 
+def _margin_rows(items, w, row_step, first_row):
+    """Top-margin rows for labels centred on given x positions, so none overlap.
+
+    Greedy: each label takes the first row where it clears the label before it.
+    Returns [(text, x, y), ...] with x the left edge of the text.
+    """
+    th, fs = text_metrics(w)
+    ends, out = [], []
+    for text, x in sorted(items, key=lambda t: t[1]):
+        (tw, _), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, fs, th)
+        left = float(np.clip(x - tw / 2, 6, max(6, w - tw - 4)))
+        row = next((i for i, e in enumerate(ends) if left > e + 8), len(ends))
+        if row == len(ends):
+            ends.append(0.0)
+        ends[row] = left + tw
+        out.append((text, left, first_row + row * row_step))
+    return out
+
+
 def eye_guides(ov, w, h, th, ctx):
     """Eyes: the corner-to-corner line, the iris, and where each sits on the page.
 
     The measurements a drawing book gives for an eye are all relations between these: how
     many irises wide the eye is, how far across it the pupil sits, how much of the iris
     the upper lid covers. The lids themselves are left to the Construction style.
+
+    Laid out as a dimensioned drawing, because the first version was not and a tester
+    called it crowded: nine labels sat on the eye itself, two full-length lines crossed
+    at the pupil, and the thirds grid ran through all of it. Now the eye carries only
+    markers -- the iris circle, a cross at the pupil, dots at the corners, short ticks
+    at the top and bottom of the lids -- and every number sits in the margin, the ones
+    measured across along the top edge and the ones measured down along the left, each
+    with a tick at the edge in line with what it measures.
     """
     from .eyes import analyze                  # local: keeps the import graph one-way
     src = ctx.source_img
@@ -268,26 +295,51 @@ def eye_guides(ov, w, h, th, ctx):
     eye = analyze(src)
     sx, sy = w / src.shape[1], h / src.shape[0]
     P = lambda p: np.array([p[0] * sx, p[1] * sy])
+    I = lambda q: (int(round(q[0])), int(round(q[1])))
     c, r = P(eye.iris), eye.r * (sx + sy) / 2
     A, B = P(eye.left), P(eye.right)
     axis = (B - A) / (np.linalg.norm(B - A) + 1e-6)
-    dashed(ov, A - axis * r * 0.8, B + axis * r * 0.8, LINE, th)
-    cv2.circle(ov, (int(c[0]), int(c[1])), int(r), LINE, th, cv2.LINE_AA)
-    dashed(ov, (c[0], 0), (c[0], h), SOFT, th)             # plumb line through the pupil
-    dashed(ov, (0, c[1]), (w, c[1]), SOFT, th)
     top, bot = P(eye.upper[len(eye.upper) // 2]), P(eye.lower[len(eye.lower) // 2])
-    labels = [(at("pupil", c[0], w), c[0] + 4, label_rows(w)[1]),
-              (at("pupil", c[1], h), 6.0, c[1])]
-    for name, q in (("upper lid", top), ("lower lid", bot)):
-        dashed(ov, (q[0] - r * 0.9, q[1]), (q[0] + r * 0.9, q[1]), LINE, th)
-        labels.append((at(name, q[1], h), q[0] + r * 0.95, q[1] + 8))
+
+    # markers on the eye
+    dashed(ov, A - axis * r * 0.5, B + axis * r * 0.5, LINE, th)
+    cv2.circle(ov, I(c), int(r), LINE, th, cv2.LINE_AA)
+    arm = max(5.0, r * 0.18)
+    cv2.line(ov, I(c - (arm, 0)), I(c + (arm, 0)), LINE, th, cv2.LINE_AA)
+    cv2.line(ov, I(c - (0, arm)), I(c + (0, arm)), LINE, th, cv2.LINE_AA)
     for q in (A, B):
-        cv2.circle(ov, (int(q[0]), int(q[1])), max(3, th * 2), LINE, -1, cv2.LINE_AA)
-        dashed(ov, (q[0], q[1] - r * 0.5), (q[0], q[1] + r * 0.5), LINE, th)
-        labels.append((at("corner", q[0], w), q[0] - 20, q[1] + r * 0.5 + 22))
-    labels.append((f"{eye.irises_wide:.1f} irises wide", A[0], min(A[1], B[1]) - r * 1.25))
+        cv2.circle(ov, I(q), max(3, th * 2), LINE, -1, cv2.LINE_AA)
+    for q in (top, bot):
+        cv2.line(ov, I(q - (r * 0.35, 0)), I(q + (r * 0.35, 0)), LINE, th, cv2.LINE_AA)
+
+    # the numbers, in the margins
+    tick = max(6, th * 4)
+    for x in (A[0], c[0], B[0]):
+        cv2.line(ov, (int(x), 0), (int(x), tick), LINE, th, cv2.LINE_AA)
+    for y in (top[1], c[1], bot[1]):
+        cv2.line(ov, (0, int(y)), (tick, int(y)), LINE, th, cv2.LINE_AA)
+    first, second = label_rows(w)
+    across = _margin_rows([(at("corner", A[0], w), A[0]), (at("pupil", c[0], w), c[0]),
+                           (at("corner", B[0], w), B[0])], w, second - first, first + tick)
+    # the pupil's across label goes first, so labels read across before down
+    labels = sorted(across, key=lambda t: not t[0].startswith("pupil"))
+    # down the left edge, spread apart where a narrow eye would stack them on each other;
+    # the ticks stay where the features are and only the text moves
+    th_, fs_ = text_metrics(w)
+    (_, hh), _ = cv2.getTextSize("0", cv2.FONT_HERSHEY_SIMPLEX, fs_, th_)
+    down, last = [], -1e9
+    for name, y in (("upper lid", top[1]), ("pupil", c[1]), ("lower lid", bot[1])):
+        placed = max(y + 6, last + hh + 8)
+        down.append((at(name, y, h), tick + 4.0, placed))
+        last = placed
+    labels += down
+    labels.append((f"{eye.irises_wide:.1f} irises wide", 6.0, h - 8.0))
     return labels
 
+
+# Modes that draw no thirds grid. The grid is a composition aid; on a close-up of a
+# single eye it says nothing useful and ran straight through the eye's own measurements.
+NO_GRID = {"eyes"}
 
 GUIDES = {"portrait": face_guides, "object": frame_guides, "hands": hand_guides,
           "body": body_guides, "eyes": eye_guides}
@@ -305,7 +357,7 @@ def draw_guides(sketch, mode, style_key=None, landmarks=(), crop_shape=None, box
     th, fs = text_metrics(w)
     grid_row = label_rows(w)[0]
     ov, labels = out.copy(), []
-    for i in (1, 2):
+    for i in (1, 2) if mode not in NO_GRID else ():
         dashed(ov, (w * i / 3, 0), (w * i / 3, h), SOFT, th)
         dashed(ov, (0, h * i / 3), (w, h * i / 3), SOFT, th)
         # numbered in every mode, including the ones whose own guides are not straight

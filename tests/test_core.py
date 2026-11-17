@@ -334,3 +334,110 @@ def test_the_outline_steps_follow_the_detail_slider(mode):
 CONSTRUCTION_STEPS = {"construction", "proportion", "hand_block", "hand_joints", "hand_volumes",
                       "body_action", "body_tilts", "body_masses", "body_limbs",
                       "eye_envelope", "eye_ball", "eye_lids", "eye_plan"}
+
+
+# ---- the bridge from hatching to a realistic finish ---------------------------------
+def _real_job(mode):
+    img, _line, extra = _line_job(mode)
+    real = next(k for k, st in MODES[mode].styles.items() if st.family == "real")
+    return img, real, extra
+
+
+def _gray(img):
+    import cv2
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).astype(np.float32)
+
+
+@pytest.mark.parametrize("mode", list(MODES))
+def test_realistic_ladders_go_through_hatching_and_blending(mode):
+    """A tester found hatching easy and the realistic finish a leap. Every realistic
+    ladder now goes values -> hatching -> blended hatching -> lights and darks -> finish.
+    (Posture's hatching is its own cross-contour stage.)"""
+    from sketch_assistant.core.modes import build_stages
+    img, real, extra = _real_job(mode)
+    keys = [s.key for s in build_stages(mode, img, real, 0.5, *extra)]
+    hatch = "body_hatch" if mode == "body" else "hatch_tone"
+    order = ["values", hatch, "hatch_blend", "lights_darks"]
+    assert all(k in keys for k in order), keys
+    assert [keys.index(k) for k in order] == sorted(keys.index(k) for k in order), keys
+    assert keys.index("lights_darks") < keys.index("finish")
+
+
+@pytest.mark.parametrize("mode", list(MODES))
+def test_the_blend_has_no_strokes_left_and_the_finish_s_tone(mode):
+    """The blend is the hatching with the strokes merged, at the finished drawing's
+    average tone. The tone match is a small correction (1 to 8 grey levels on these
+    photos); switched off, one of the five modes goes past the tolerance here.
+
+    Texture is measured inside the subject and away from its outline, which the blend
+    keeps on purpose. It is 2-3% of the hatching's now; with the blur cut to a third of
+    a stroke spacing it is 11-240%, so stroke-sized texture left in would fail this.
+    What it does not catch: at under half a spacing a faint coarser criss-cross remained,
+    and neither this measure nor a band-pass at that scale separated it reliably from
+    the setting chosen. That one was judged by eye.
+    """
+    import cv2
+    from sketch_assistant.core.modes import build_stages
+    img, real, extra = _real_job(mode)
+    by = {s.key: s.image for s in build_stages(mode, img, real, 0.5, *extra)}
+    hatch = by.get("hatch_tone", by.get("body_hatch"))
+    blend, finish = _gray(by["hatch_blend"]), _gray(by["finish"])
+    if hatch.shape[:2] != blend.shape:
+        hatch = cv2.resize(hatch, (blend.shape[1], blend.shape[0]))
+    inside = cv2.erode((finish < 250).astype(np.uint8), np.ones((15, 15), np.uint8)) > 0
+    edges = cv2.dilate(cv2.Canny(blend.astype(np.uint8), 40, 100), np.ones((9, 9), np.uint8)) > 0
+    m = inside & ~edges
+    hf = lambda g: float(np.abs(g - cv2.GaussianBlur(g, (0, 0), 2.0))[m].mean())
+    assert hf(blend) < 0.08 * hf(_gray(hatch)), f"{mode}: texture {hf(blend):.2f} vs hatching {hf(_gray(hatch)):.2f}"
+    assert abs(blend.mean() - finish.mean()) < 6, f"{mode}: blend {blend.mean():.0f}, finish {finish.mean():.0f}"
+
+
+@pytest.mark.parametrize("mode", list(MODES))
+def test_lights_and_darks_mark_small_accents_from_the_finish(mode):
+    """The marks come from the finished drawing's own brightest and darkest small
+    shapes. Marking where finish and blend differed was tried first and, before the blend
+    was tone-matched, covered half the picture. This bounds how much the step may change
+    and checks the red marks sit on dark parts of the finish. Control: the difference-
+    based version, on today's blend, fails it in two modes of five (21% and 32% changed)."""
+    import cv2
+    from sketch_assistant.core.modes import build_stages
+    from sketch_assistant.core.steps import MARK_DARK
+    img, real, extra = _real_job(mode)
+    by = {s.key: s.image for s in build_stages(mode, img, real, 0.5, *extra)}
+    blend, marked, finish = by["hatch_blend"], by["lights_darks"], by["finish"]
+    is_mark = lambda col: np.all(np.abs(marked.astype(int) - col) <= 40, axis=2) & \
+        (np.abs(marked.astype(int) - blend.astype(int)).sum(axis=2) > 60)
+    dark = is_mark(MARK_DARK)
+    assert dark.sum() > 30, f"{mode}: no darkest accents marked"
+    changed = (np.abs(marked.astype(int) - blend.astype(int)).sum(axis=2) > 24).mean()
+    assert changed < 0.15, f"{mode}: the step changes {changed:.0%} of the picture"
+    F = _gray(finish)
+    # the marks are drawn just outside each shape, so look at the finish just inside them
+    near_dark = cv2.erode(cv2.dilate(dark.astype(np.uint8), np.ones((9, 9), np.uint8)), np.ones((3, 3), np.uint8)) > 0
+    assert F[near_dark].mean() < F.mean() - 20, f"{mode}: red marks are not round dark parts of the finish"
+
+
+@pytest.mark.parametrize("mode", list(MODES))
+def test_the_value_step_carries_a_key_of_its_greys(mode):
+    """'What does Value even mean, and how do I use the value step?' The step now prints
+    a key underneath: every flat grey in the picture, with the pencil for it."""
+    from sketch_assistant.core.modes import build_stages
+    from sketch_assistant.core.steps import VALUE_PENCILS
+    from sketch_assistant.core.styles import value_levels
+    img, real, extra = _real_job(mode)
+    by = {s.key: s.image for s in build_stages(mode, img, real, 0.5, *extra)}
+    values, finish = by["values"], by["finish"]
+    assert values.shape[0] > finish.shape[0], "no key under the value step"
+    strip = values[finish.shape[0]:, :, 0]
+    d = 0.15 if mode == "eyes" else 0.1
+    for v in value_levels(d):
+        assert (strip == v).sum() > 200, f"{mode}: grey {v} is missing from the key"
+    assert len(VALUE_PENCILS[len(value_levels(d))]) == len(value_levels(d))
+
+
+def test_a_value_finish_keeps_its_key():
+    from sketch_assistant.core.modes import build_stages
+    img, _style, extra = _line_job("object")
+    st = build_stages("object", img, "obj_value", 0.6, *extra)
+    plain = __import__("sketch_assistant.core.styles", fromlist=["render"]).render("obj_value", img, 0.6)
+    assert st[-1].image.shape[0] > plain.shape[0]

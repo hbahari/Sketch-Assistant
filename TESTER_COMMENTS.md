@@ -14,6 +14,79 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 12 — the jump to realistic, what "Value" means, and the slider on the steps page
+
+*Shipped in: —*
+
+> "Going from the hatch style to realistic is still a big leap. Hatching feels easy to
+> draw, but realistic suddenly feels much harder and there isn't a smooth path between
+> the two. The 'soft' step before didn't make much sense. Maybe add a step that guides me
+> on how to add the different kinds of shading and shadow to get from one to the other?"
+
+**What changed.** The realistic style's steps now go through hatching on the way, in every
+mode. After the flat value shapes you hatch the same tones in strokes (the part that feels
+easy), then blend the hatching smooth with a blending stump, then do a "lift the lights,
+deepen the shadows" step before the finish. On that step the picture marks the brightest
+spots in blue (keep them as white paper or lift them out with an eraser) and the darkest
+in red (press to full dark). The instructions name the different kinds of light and
+shadow — highlight, the lit side, core shadow, reflected light, cast shadow and the thin
+dark "contact" shadow where two surfaces meet — and say how each one is drawn. The old
+"soft" step is gone; the blended hatching replaces it, and it keeps the lines of the
+drawing instead of looking like a blurry photo.
+
+> "What does the Value style even mean? How am I supposed to use the value step?"
+
+**What changed.** "Value" just means how light or dark something is, regardless of
+colour. The Value style now says so in its tips, and explains that it's the plan every
+shaded drawing is built on: it shows only the big light and dark shapes so you can get
+them right before any detail. The value step in the drawing steps now has a key printed
+underneath — each grey used in the picture, with the pencil to draw it — so you can fill
+each shape by matching it to the key.
+
+> "I want the detail slider available after I press 'Generate drawing steps', so I can
+> play with the detail while I'm in the steps. Does that make the app too heavy?"
+
+**What changed.** The steps page has the detail slider now. When you let go of it, the
+steps are rebuilt at the new detail in the background and you stay on the step you were
+looking at. It isn't too heavy: rebuilding takes under a second on a computer, and it only
+happens when you let go, never while you're dragging. On a phone it will be slower, likely
+a second or two, and that hasn't been timed yet. Moving it several times quickly only
+rebuilds once more, at the last setting.
+
+---
+
+## Round 11 — eye guides crowded, and the circle in the wrong place
+
+*Shipped in: —*
+
+> "I tested the app on a photo and the guiding lines seem a bit too crowded and off,
+> especially the circle. What is the circle representing?"
+
+**What changed.** The circle is the outline of the iris — the coloured part of the eye —
+and on that photo it was drawn about two-thirds too small and off to one side. The photo
+is lit from one side, so the edge of the iris on the shadowed side was faint, and the app
+settled on a circle that ran from the bright edge of the iris to the edge of the pupil
+instead. It now checks that the circle is centred on the pupil, as an iris always is,
+and if not, looks again around the pupil. On the tester's photo the circle now matches
+the iris. Across all 38 eye images it was checked against, this changed six results,
+all for the better, and left every other one exactly as it was.
+
+The guides were also cleared off the eye. The numbers used to sit right next to the parts
+they measured, on top of the drawing, with two full-length lines crossing at the pupil
+and the rule-of-thirds grid running through everything. Now the eye only has small
+markers on it — the iris circle, a cross on the pupil, dots at the corners, short ticks
+at the top and bottom of the lids — and all the numbers sit along the top and left edges
+of the picture, each lined up with what it measures.
+
+**Left as is, deliberately.** The rule-of-thirds grid no longer appears in Eyes mode. It
+helps with placing a subject in a picture, which doesn't apply to a close-up of one eye.
+
+**Still not right.** On the same photo the app places the corners of the eye too far in,
+so it reports the eye as 1.8 irises wide when it is closer to 2.3. The eyelid shapes are
+an estimate, and this is the known weakness of that estimate.
+
+---
+
 ## Round 10 — steps going backwards, and a style nobody could explain
 
 *Shipped in: 1.4.0 (not yet uploaded)*
@@ -282,6 +355,10 @@ missed.
   pencil grades, pressure notes and steps follow common practice, but the specific figures
   in them (an eye being about two and a half irises wide, finger joints at 47% and 74%, and
   so on) are rules of thumb, and none of it has been tested on beginners.
+- **How long the steps take to rebuild on a phone** when the detail slider moves has not
+  been measured. On a computer it is well under a second.
+- **Eyes mode places the eye corners too far in on some photos**, which makes the "irises
+  wide" figure too low (1.8 instead of about 2.3 on one tester photo).
 - **Eyes mode misreads about one close-up in six.** A bright reflection covering half the
   pupil, a black-and-white photo with the white of the eye in shadow, and an eye turned far
   to one side each throw off the construction steps (too small, or off-centre). The shaded

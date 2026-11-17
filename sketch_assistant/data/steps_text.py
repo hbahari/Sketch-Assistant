@@ -70,12 +70,65 @@ STEPS = {
                 "This is the point where it stops looking like a diagram.",
     },
     "values": {
-        "pencil": "HB for light tones, 2B for mid, 4B for the darks",
-        "technique": "Squint hard at the reference until the detail disappears and only patches "
-                     "of light and dark remain. Those patches are what you are drawing.",
-        "text": "Fill each area as one flat tone, with no blending yet, and leave the lightest "
-                "areas as bare paper. Work from light to dark: it is easy to deepen a tone and "
-                "difficult to lift one out.",
+        "pencil": "Paper, then HB, 2B and 4B -- the key under the picture says which grey is which",
+        "technique": "Value just means how light or dark something is, whatever its colour. "
+                     "This picture keeps only a few greys, so the big light and dark shapes "
+                     "show before any detail gets in the way. Squint at the photo and you will "
+                     "see the same shapes.",
+        "text": "Draw the borders between the greys lightly, as if they were the outlines of "
+                "countries on a map. Leave the lightest shapes as bare paper. Then fill every "
+                "shape of the next grey with one flat, even layer of the pencil the key gives "
+                "it, and so on down to the darkest. No blending and no detail yet. Work from "
+                "light to dark: a tone is easy to deepen and hard to lift out. When you have "
+                "finished, the drawing should already read as the subject from across the "
+                "room -- if it does not, the values are wrong, and no amount of detail later "
+                "will fix that.",
+    },
+    # ---- the bridge from hatching to a realistic finish, shared by every mode -----------
+    "hatch_tone": {
+        "pencil": "A sharp HB or 2B",
+        "technique": "The same values as the step before, built from strokes instead of flat "
+                     "fills. Darker means more crossing layers, never more pressure.",
+        "text": "Lay one layer of parallel strokes over everything except the lightest shapes, "
+                "a second crossing layer over the darker ones, and more layers only in the "
+                "darkest. Keep the strokes light and close together: they are going to be "
+                "blended in the next step, and heavy, widely spaced strokes leave stripes that "
+                "will not blend out.",
+    },
+    "hatch_blend": {
+        "pencil": "A blending stump (tortillon) for small areas, a tissue or chamois for large ones",
+        "technique": "Blend along the form and from dark into light, with light pressure. Keep "
+                     "a clean stump for the light areas: one that has been in the darks will "
+                     "grey everything it touches. Never scrub -- it polishes the paper, and "
+                     "polished paper will not take more graphite.",
+        "text": "Go over the hatching until the strokes melt into continuous tone. The lines of "
+                "your drawing should still be there; blending moves graphite around, it does "
+                "not erase anything. Stay out of the lightest shapes altogether. The result is "
+                "softer and a little flat -- that is right, the next step brings back the "
+                "contrast. If the strokes will not disappear, they were spaced too widely: "
+                "add a light layer in between and blend again.",
+    },
+    "lights_darks": {
+        "pencil": "Kneaded eraser, pinched to an edge; 4B to 6B for the darks",
+        "technique": "Blue outlines: the brightest shapes -- keep them as clean paper, or lift "
+                     "them back out with the eraser, pressing and lifting rather than rubbing. "
+                     "Red outlines: the darkest shapes -- press to full dark, in small strokes.",
+        "text": "This is where shading turns into light and shadow. Light falls on a form in a "
+                "few distinct ways, and each is drawn differently:\n"
+                "- [b]Highlight[/b]: where light hits directly. Bare paper. Hard-edged on shiny "
+                "things (an eye, glass), soft on skin and cloth.\n"
+                "- [b]Light side[/b]: the lit surface, getting slowly darker as it turns away from "
+                "the light.\n"
+                "- [b]Core shadow[/b]: the darkest band of the shadow side, just past where light "
+                "turns to shadow. Soft-edged on round forms, sharp on angular ones.\n"
+                "- [b]Reflected light[/b]: a slightly lighter area inside a shadow, from light "
+                "bouncing off something nearby. Lift it a touch -- it must stay darker than "
+                "anything on the lit side.\n"
+                "- [b]Cast shadow[/b]: the shadow a form throws onto something else. Darkest and "
+                "sharpest where the two touch, softer and lighter further away.\n"
+                "- [b]Contact shadow[/b]: the thin, darkest accent where two surfaces meet -- "
+                "mouth corners, between fingers, under an object. Most red outlines are these.\n"
+                "Do the marked shapes first, then look for the rest of each kind in the photo.",
     },
 
     # ---- objects --------------------------------------------------------------------
@@ -357,12 +410,15 @@ FINISH = {
                 "no longer need.",
     },
     "value": {
-        "pencil": "HB, 2B, 4B and 6B; a blending stump is optional",
+        "pencil": "The key under the picture: paper for the lightest grey, then one pencil per grey",
         "technique": "Keep each tone flat and distinct. If two neighbouring tones look the same, "
                      "the study has failed at its one job.",
-        "text": "Work through the tones from light to dark, leaving the brightest shapes as bare "
-                "paper. Hold the edges between tones crisp: this style is about seeing the big "
-                "shapes of light, not about smooth gradients.",
+        "text": "A value study is a plan, not a finished picture: it shows only where the light "
+                "and dark shapes are. Work through the greys from light to dark, matching each "
+                "to its swatch in the key and leaving the lightest as bare paper. Hold the edges "
+                "between tones crisp. Artists make one of these before a shaded drawing because "
+                "the big shapes of light are what make a drawing read -- get them right here "
+                "and every other style is this, with more on top.",
     },
     "hatch": {
         "pencil": "A sharp HB or 2B, or a fine liner; re-sharpen often",
@@ -378,7 +434,10 @@ FINISH = {
                      "in the very darkest accents, and blend along the form rather than across it.",
         "text": "Lay the mid-tones first and blend them smooth, then deepen the shadows gradually. "
                 "Lift the highlights back out with a kneaded eraser rather than drawing around "
-                "them. Add texture and the sharpest details last.",
+                "them. Add texture and the sharpest details last. If smooth shading feels hard, "
+                "take the route the steps show: hatch the tones in, blend the hatching, then "
+                "lift the lights and deepen the darks -- each of those is easier than shading "
+                "smooth from nothing.",
     },
 }
 
