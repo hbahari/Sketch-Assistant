@@ -1,0 +1,6 @@
+<!-- The app locks to portrait (buildozer.spec: orientation = portrait), and Android reads
+     a portrait-locked activity as *requiring* a portrait screen. Play Console then hides
+     the app from devices that don't report one (some tablets, Chromebooks, Android XR)
+     and refused to send 1.5.0 for review. Declaring the feature optional keeps the
+     portrait layout everywhere it can be had without excluding anyone. -->
+<uses-feature android:name="android.hardware.screen.portrait" android:required="false" />

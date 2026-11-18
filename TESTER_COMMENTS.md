@@ -14,6 +14,27 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 18 — Play Console wouldn't send 1.5.0 for review
+
+*Shipped in: 1.5.0, version code 8 (not yet uploaded)*
+
+> "Can you address this issue that was raised while uploading to Play Console: required
+> hardware feature declarations are restricting your app's availability —
+> android.hardware.screen.portrait affects Phone, Tablet, Desktop, and Android XR users."
+
+**What changed.** The app still opens upright as before. Because it's locked upright,
+though, Android was treating an upright screen as something a device must have, so Play
+would have hidden the app from devices that don't report one (some tablets, Chromebooks
+and headsets) and refused to send the update for review. The app now says an upright
+screen is preferred but not required. The build number went up by one, because Play
+won't accept the same build number twice.
+
+**Process failure, owned.** The upright lock had always carried this requirement. Nothing
+in the build or the release checklist looked at what the finished app asks of a device,
+so the first warning was the store's.
+
+---
+
 ## Round 17 — portrait circle smaller than the face; eye guides too big when the eye isn't found; the build failing
 
 *Shipped in: 1.5.0 (not yet uploaded)*

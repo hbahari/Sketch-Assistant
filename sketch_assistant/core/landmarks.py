@@ -162,10 +162,11 @@ def iris_landmarks(img, start=None, iterations=3, flip=None):
 MESH_SCALE = 1.6        # crop side / the face's eye-to-mouth length x 2.6, see face_mesh
 MESH_EYES = ((33, 133), (362, 263))   # outer, inner corner of the eye on the image's left, then right
 
-def face_mesh(img, eye_mid, mouth_mid, iterations=2, with_flag=False):
+def face_mesh(img, eye_mid, mouth_mid, iterations=2, with_flag=False, with_z=False):
     """468 face points, or None. Started from the face detector's eye and mouth centres.
     With `with_flag`, (points, flag): the model's own face-present score, positive when it
-    thinks a face fills its crop.
+    thinks a face fills its crop. With `with_z`, 468 x 3: depth too, in the same pixel
+    units, smaller toward the camera.
 
     MediaPipe crops the face from its own detector, turned so the face is upright and
     scaled up 1.5 times; this does the same from the five-point detector already in the
@@ -189,11 +190,14 @@ def face_mesh(img, eye_mid, mouth_mid, iterations=2, with_flag=False):
         outs = dict(zip(net.getUnconnectedOutLayersNames(), net.forward(net.getUnconnectedOutLayersNames())))
         flag, mesh = outs["conv2d_31"], outs["conv2d_21"]
         first = float(flag.ravel()[0]) if first is None else first
-        p = mesh.reshape(-1, 3)[:, :2].astype(np.float64)
-        pts = _back(M, p)
+        p3 = mesh.reshape(-1, 3).astype(np.float64)
+        pts = _back(M, p3[:, :2])
+        z = p3[:, 2] / np.hypot(M[0, 0], M[0, 1])          # crop pixels -> image pixels
         lo, hi = pts.min(0), pts.max(0)
         centre = (lo + hi) / 2
         side = 1.5 * float(max(hi - lo))
     # the flag from the first crop, made from the detector alone: the later crops are
     # framed by the mesh itself, and it will frame a non-face as confidently as a face
+    if with_z:
+        pts = np.c_[pts, z]
     return (pts, first) if with_flag else pts

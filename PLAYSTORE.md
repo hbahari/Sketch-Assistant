@@ -133,10 +133,18 @@ Every upload needs a higher version code. In `buildozer.spec`:
 
 ```ini
 version = 1.5.0              # the version name users see
-android.numeric_version = 7  # must increase on EVERY upload (1.0.0 shipped as 1)
+android.numeric_version = 8  # must increase on EVERY upload (1.0.0 shipped as 1)
 ```
-Both are already set to the values above for this release. For the one after it, raise
-`android.numeric_version` to 8.
+Both are already set to the values above for this release. Code 7 was a 1.5.0 build that
+Play Console wouldn't send for review (the portrait-screen requirement, below); a code
+that has been uploaded once can't be reused, hence 8. For the next release, raise it to 9.
+
+**"Required hardware feature declarations are restricting your app's availability" /
+`android.hardware.screen.portrait`.** Locking the app to portrait makes Android treat a
+portrait screen as a *required* feature, which hides the app from some tablets,
+Chromebooks and Android XR, and Play Console blocks the review. `buildozer.spec` adds
+`android_manifest/extra_manifest.xml` to the manifest, which declares the feature
+optional. Keep that line if the manifest settings are ever changed.
 
 Then run the release workflow again. Tagging a commit `v0.1.1` also triggers it.
 

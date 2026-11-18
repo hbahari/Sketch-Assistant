@@ -8,12 +8,12 @@ package.domain = golemapps.sketchassistant
 
 source.dir = .
 source.include_exts = py,png,jpg,kv,xml,onnx,tflite,txt
-source.exclude_dirs = tests,scripts,bin,.buildozer,venv,.venv,.github,.idea,shots
+source.exclude_dirs = tests,scripts,bin,.buildozer,venv,.venv,.github,.idea,shots,android_manifest
 
 # versionName shown in the Play listing
 version = 1.5.0
 # versionCode: MUST increase on every upload to the Play Console
-android.numeric_version = 7
+android.numeric_version = 8
 
 # Versions come from the pinned python-for-android below, which ships a tested set:
 # Python 3.14.2, Kivy 2.3.1, numpy 2.3.0, OpenCV 4.12.0, pyjnius 1.7.0.
@@ -34,6 +34,8 @@ requirements = python3,kivy,numpy,opencv,plyer,pyjnius,android,charset_normalize
 p4a.branch = v2026.05.09
 
 orientation = portrait
+# ...but don't let that *require* a portrait screen: see android_manifest/extra_manifest.xml
+android.extra_manifest_xml = ./android_manifest/extra_manifest.xml
 fullscreen = 0
 
 icon.filename = %(source.dir)s/sketch_assistant/assets/brand/icon.png
