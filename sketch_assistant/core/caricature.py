@@ -127,6 +127,7 @@ class Measure:
     jaw_visible: np.ndarray = None  # per FACE_OUTLINE point: drawn or under the hair
     face_h: float = 0.0
     light: int = 1                 # +1 light from the image's left, -1 from the right
+    folds: tuple = (0.0, 0.0, 0.0, 0.0)   # how deep each laugh line and cheek line is in the photo
 
 
 _cache = {}
@@ -163,7 +164,8 @@ def _scaled(m, k, shape):
     up = lambda mask: None if mask is None else cv2.resize(mask, (shape[1], shape[0]), interpolation=cv2.INTER_NEAREST)
     return Measure(shape, True, P=m.P * k, M=m.M * k, irises=[(x * k, y * k, r * k) for x, y, r in m.irises],
                    hair=[p * k for p in m.hair], strands=[p * k for p in m.strands], shadows=up(m.shadows),
-                   hair_dark=up(m.hair_dark), jaw_visible=m.jaw_visible, face_h=m.face_h * k, light=m.light)
+                   hair_dark=up(m.hair_dark), jaw_visible=m.jaw_visible, face_h=m.face_h * k, light=m.light,
+                   folds=m.folds)
 
 
 def _measure(img):
@@ -331,6 +333,15 @@ def _measure(img):
             if stats[i, cv2.CC_STAT_AREA] > 0.006 * fh * fh:
                 keep[lab_cc == i] = 255
         m.shadows = keep
+    # how deep the laugh lines and cheek lines are: how much darker the photo is along each
+    # than just beside it, in units of the face's own contrast
+    sd = float(gray[inner > 0].std()) + 1e-6 if (inner > 0).any() else 1.0
+    depth = []
+    for line, out_dir in _fold_paths(xy):
+        on = _mean_along(gray, line)
+        off = _mean_along(gray, line + out_dir)
+        depth.append(float(np.clip((off - on) / sd, 0.0, 1.0)))
+    m.folds = tuple(depth)
     return m
 
 
@@ -498,6 +509,7 @@ class Drawing:
     construct: dict = field(default_factory=dict)
     th: int = 2
     light: int = 1
+    folds: tuple = (0.0, 0.0, 0.0, 0.0)
 
 
 _last = {}      # source image key -> the last Drawing made from it, for the guides
@@ -544,6 +556,7 @@ def drawing(img, detail):
     L["nose_tip"] = []
     L["lips"] = [idx(LIP_TOP), idx(LIP_LINE), idx(LIP_OUTER_LOWER)]
     L["lip_detail"], L["chin"] = _mouth_and_chin(xy)
+    L["folds"] = [line for line, _ in _fold_paths(xy)]
     L["hair"] = [warp(p) for p in m.hair]
     L["strands"] = [warp(p) for p in m.strands]
     irises = []
@@ -582,10 +595,53 @@ def drawing(img, detail):
         cv2.fillPoly(inside, [cv2.convexHull(np.vstack(outline).astype(np.float32)).astype(np.int32)], 255)
     hatch = _clip(([F(p) for p in hatch]), inside)
     hair_hatch = _clip([F(p) for p in hair_hatch], inside)
-    D = Drawing((H, W), True, L, irises, hatch, hair_hatch, th=max(1, int(round(max(H, W) / 380))), light=m.light)
+    D = Drawing((H, W), True, L, irises, hatch, hair_hatch, th=max(1, int(round(max(H, W) / 380))), light=m.light,
+                folds=m.folds)
     D.construct = _construction(F(xy), irises, L)
     _last[_key(img)] = D
     return D
+
+
+def _bezier(a, c, b, t0=0.0, t1=1.0, n=16):
+    t = np.linspace(t0, t1, n)[:, None]
+    return (1 - t) ** 2 * a + 2 * (1 - t) * t * c + t ** 2 * b
+
+
+def _fold_paths(xy):
+    """The laugh lines (nasolabial folds) and cheek lines, placed from the mesh, each with the
+    offset to a point just beside it: [(polyline, offset)] -- left fold, right fold, left
+    cheek, right cheek. A laugh line runs from just outside the nose's wing down and out
+    to just outside the mouth's corner, bowing out over the cheek; it stops short of the
+    mouth, as drawn ones do. A cheek line is a short curve under the outer corner of the
+    eye, following the cheekbone down and in."""
+    mL, mR = xy[61], xy[291]
+    mw = float(np.linalg.norm(mR - mL))
+    if mw < 4:
+        return []
+    ex = (mR - mL) / mw
+    ey = np.array([-ex[1], ex[0]])
+    if np.dot(ey, xy[CHIN] - xy[2]) < 0:
+        ey = -ey
+    out = []
+    for wing, corner, sgn in ((xy[64], mL, -1.0), (xy[294], mR, 1.0)):
+        a = wing + ex * sgn * 0.08 * mw - ey * 0.03 * mw
+        b = corner + ex * sgn * 0.12 * mw + ey * 0.05 * mw
+        c = (a + b) / 2 + ex * sgn * 0.14 * mw
+        out.append((_bezier(a, c, b, 0.05, 0.85), ex * sgn * 0.06 * mw))
+    for eye_out, edge, sgn in ((xy[33], xy[234], -1.0), (xy[263], xy[454], 1.0)):
+        ew = float(np.linalg.norm(xy[133] - xy[33])) if sgn < 0 else float(np.linalg.norm(xy[362] - xy[263]))
+        a = eye_out * 0.7 + edge * 0.3 + ey * 0.45 * ew
+        b = a + ey * 0.55 * ew - ex * sgn * 0.15 * ew
+        c = (a + b) / 2 + ex * sgn * 0.12 * ew
+        out.append((_bezier(a, c, b), ex * sgn * 0.08 * ew))
+    return out
+
+
+def _mean_along(gray, line):
+    H, W = gray.shape
+    q = np.round(line).astype(int)
+    ok = (q[:, 0] >= 0) & (q[:, 0] < W) & (q[:, 1] >= 0) & (q[:, 1] < H)
+    return float(gray[q[ok, 1], q[ok, 0]].mean()) if ok.any() else 0.0
 
 
 def _mouth_and_chin(xy):
@@ -868,8 +924,10 @@ def paint(D, parts=None, hatch=True, base=None, faded=None):
         for p in D.lines["face"]:
             _poly(out, p, INK, th)
     if want("hair"):
+        # the hair's outline is what says "hair" from across the room: drawn as heavy as the
+        # upper lids, the heaviest line on the page, so the shape of the hair reads first
         for p in D.lines["hair"]:
-            _poly(out, p, INK, th)
+            _poly(out, p, INK, th + 1)
     if want("strands"):
         for p in D.lines["strands"]:
             _poly(out, p, INK, max(1, th - 1))
@@ -900,6 +958,12 @@ def paint(D, parts=None, hatch=True, base=None, faded=None):
         _poly(out, lower[2:-2], INK, th)                     # the lower lip, short of the corners
         for p in D.lines.get("lip_detail", []):
             _poly(out, p, (90, 90, 90), max(1, th - 1), smooth=False)
+    if want("folds"):
+        # laugh lines and cheek lines: always there, as in the icon, but faint where the
+        # photo shows none and darker as the photo's own fold deepens
+        for p, depth in zip(D.lines.get("folds", []), D.folds):
+            g = int(140 - 80 * depth)
+            _poly(out, p, (g, g, g), max(1, th - 1))
     if want("chin"):
         for p in D.lines.get("chin", []):
             _poly(out, p, (70, 70, 70), max(1, th - 1))
@@ -1017,7 +1081,3 @@ def caricature_hatched(img, d=0.5):
     D = drawing(img, d)
     return paint(D, hatch=True) if D.found else _fallback(img)
 
-
-def caricature_shapes(img, d=0.5):
-    D = drawing(img, d)
-    return paint_construction(D, 2) if D.found else _fallback(img)

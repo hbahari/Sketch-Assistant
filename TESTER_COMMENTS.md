@@ -14,6 +14,58 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 26 — tab order
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "Change the order of the tabs at the top to: Portrait, Eyes, Nose, Hands, Posture,
+> Cartoon, Object."
+
+**What changed.** The mode tabs now run in exactly that order. The app still opens on
+Portrait.
+
+---
+
+## Round 25 — laugh lines and cheek lines; Shapes style taken out
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "Hmm, not bad. I think it's still missing some cheek lines and nasolabial folds, or laugh
+> lines. Also remove the Shapes style from Cartoon; it's not useful."
+
+**What changed.** Cartoon drawings now have laugh lines running from beside each nostril
+down towards the corners of the mouth, curving out over the cheek and stopping just short
+of the mouth. There's also a short cheek line under the outer corner of each eye. They're
+always there, but they follow the photo: faint on a smooth face, darker where the face
+really has a deep fold, so a young face doesn't come out looking older. They're drawn in
+the nose-and-mouth step. The Shapes style is gone, so Cartoon now offers Light Hatching and
+Clean Lines. The simple shapes are still the first two steps of each.
+
+**Process failure, owned.** While adding these, it turned out that the written step
+for the nose and mouth had never been updated in Round 22: the change to it silently
+didn't apply, and nothing checked. It now describes the lips, the ridges, the corners, and
+the new laugh and cheek lines.
+
+---
+
+## Round 24 — more of the hair's outline, and a bigger box
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "Looks much better. Is there any way we could improve the hair a bit more, and make it
+> show the outline of the hair a bit more? Also, it's not a bad idea to increase the box
+> size by 10–20 percent to cover the entire hair and head."
+
+**What changed.** In Cartoon mode the box drawn round a face now takes in the whole head:
+it's 20% wider and about 30% taller, with most of the extra above the face, where the
+hair is. The picture is cut from that bigger box, so the outline of the hair no longer
+stops where the old crop sliced through it. On the 24 test portraits, the old crop cut
+through the head on 11 and the new one on 3, all long hair or a raised hand. The hair's
+outline is also drawn heavier, as heavy as the upper eyelids, so the shape of the hair is
+the first thing you see. Portrait mode's box is unchanged.
+
+---
+
 ## Round 23 — say that Cartoon mode is for portraits
 
 *Shipped in: 1.6.0 (not yet uploaded)*
@@ -119,7 +171,7 @@ out what makes this particular face different from an average one (a wider nose,
 longer chin, closer eyes) and pushes exactly that. The slider runs from no exaggeration
 to strong, and its ends say so. There are three styles: Light Hatching, which adds a
 single layer of hatching in the shadows; Clean Lines, which has no shading at all; and
-Shapes, the simple shapes it's all built on. The steps go from the head shape and the
+Shapes, the simple shapes it's all built on (taken out again in Round 25). The steps go from the head shape and the
 features as simple shapes to the lines, one feature at a time.
 
 On eight test faces, when a feature stood out from the average, the caricature pushed it

@@ -334,7 +334,8 @@ TIPS = {
             "Draw the face outline and the hair's outline in one even line.",
             "Draw the eyes: heavy upper lid, crease, iris and pupil with a white catchlight, "
             "lashes sweeping out from the outer half. Then the brows, hair by hair.",
-            "Draw the nose as a curl round each wing and a curve under the tip, then the mouth.",
+            "Draw the nose as a curl round each wing and a curve under the tip, then the mouth, "
+            "then light laugh lines and cheek lines.",
             "Add strands of hair, following the way it falls.",
             "Hatch the shadow side in short parallel strokes, all one direction, and stop early.",
         ],
@@ -351,20 +352,6 @@ TIPS = {
             "Draw the face outline and the hair's outline.",
             "Draw the eyes and brows, then the nose and mouth.",
             "Add a few long strands of hair, and erase the shapes underneath.",
-        ],
-    },
-    "car_shapes": {
-        "what": "The cartoon as the simple shapes it is built on: the head, the hair mass, "
-                "and an oval or a triangle for each feature. Get these right and the rest "
-                "follows.",
-        "pencils": "2H or HB, kept light.",
-        "pressure": "Light throughout: these shapes are scaffolding for the line drawing.",
-        "steps": [
-            "Draw the head shape and the outline of the hair mass.",
-            "Draw the centre line and the eye, nose and mouth lines across it.",
-            "Draw an oval for each eye on the eye line.",
-            "Draw a triangle for the nose down to the nose line.",
-            "Draw an oval for the mouth on the mouth line.",
         ],
     },
 }

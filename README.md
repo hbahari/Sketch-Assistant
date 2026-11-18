@@ -217,7 +217,13 @@ one line down the side away from the light. Mouth and chin (a third pass, on req
 whole lower lip, a tick at each corner, the philtrum ridges to the peaks of the upper lip,
 three strokes across the lower lip, the dip under it and the chin's curve above its
 outline; a hair outline running within 3% of a face height of the jaw is dropped, as it
-drew a second chin line. Hair: up to 26 strands, closer together and
+drew a second chin line. Laugh lines and cheek lines (a fourth pass): each laugh line
+runs from just outside the nose's wing to just outside the mouth's corner, bowing out
+over the cheek and stopping short of the mouth; each cheek line is a short curve under the
+eye's outer corner. Both are always drawn, faint, and darker as the photo's own fold
+deepens -- measured as how much darker the photo is along the line than just beside it,
+in units of the face's contrast (0.68 on the grimacing bearded test face, 0.12 on a
+smooth young one; tested). Hair: up to 26 strands, closer together and
 shorter at the minimum. Hatching is clipped to inside the drawing's outline. Measured:
 round the eyes and nose, half as much ink again as the plain version at least (tested),
 and still under a third of Portrait's Cross-Hatch overall.
@@ -271,12 +277,18 @@ where it doesn't -- deepest first, at most 14, each stopping short of its ends.
 stopping short of each edge. Light Hatching puts down under a third of the ink of
 Portrait's Cross-Hatch on the same crop; Clean Lines less again (tested).
 
+**The head's box.** Cartoon mode's boxes are the face detector's grown by
+`modes.HEAD_GROW` (20% wider, 22% more above, 8% below), so the crop takes in the hair:
+on the 24 test portraits the crop cut through the head on 3, against 11 with the face box.
+The hair's outline is inked at the upper lids' weight, the heaviest line on the page.
+
 **Portraits only, said up front.** `Mode.note` is shown on the status line as soon as the
 mode is chosen ("Cartoon works on portraits only - add a photo of a face"), and the found,
 not-found and hint lines repeat it.
 
-**Styles and steps.** Light Hatching (default), Clean Lines, Shapes. The slider is the
-exaggeration in all three -- its ends say so (`Mode.slider_labels`). Steps: head shape
+**Styles and steps.** Light Hatching (default) and Clean Lines; a Shapes style was taken
+out on a tester's say-so (the shapes remain the first two steps). The slider is the
+exaggeration in both -- its ends say so (`Mode.slider_labels`). Steps: head shape
 and guide lines, features as shapes, then over the fading shapes the outline, eyes and
 brows, nose and mouth, strands, the hatching, the finish. The guides are the
 caricature's own proportions, not the photo's.

@@ -954,7 +954,6 @@ def _car(name):
 CARICATURE_STYLES = {s.key: s for s in (
     Style("car_hatch", "Light Hatching", _car("caricature_hatched"), "Hatched", 0.35, "line"),
     Style("car_lines", "Clean Lines", _car("caricature_lines"), "Lines", 0.35, "line"),
-    Style("car_shapes", "Shapes", _car("caricature_shapes"), "Shapes", 0.35, "construct"),
 )}
 ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES, **BODY_STYLES, **EYE_STYLES, **NOSE_STYLES,
        **CARICATURE_STYLES}

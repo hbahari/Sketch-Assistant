@@ -695,7 +695,8 @@ def caricature_stages(job):
     """Shapes first, then the lines one feature at a time over the fading construction.
 
     Light Hatching: head, features, outline, eyes, nose and mouth, hair, hatching, finish
-    -- eight stages. Clean Lines skips the hatching. Shapes stops at its own drawing. The
+    -- eight stages. Clean Lines skips the hatching. (A Shapes style was taken out: a tester
+    found it no use on its own; the shapes are still the first two steps.) The
     exaggeration (the slider) is the same in every stage, so the proportions the first
     stage sets up are the ones the last one keeps.
     """
@@ -705,24 +706,21 @@ def caricature_stages(job):
     final = render(style_key, img, detail)
     if not D.found:
         return [Stage("finish", "No caricature", final)]
-    shapes_only = style_key == "car_shapes"
     hatched = style_key == "car_hatch"
-    step = _progress(job.progress, 3 if shapes_only else (8 if hatched else 7))
+    step = _progress(job.progress, 8 if hatched else 7)
     head = C.paint_construction(D, level=1)
     step()
     feats = C.paint_construction(D, level=2)
     step()
     stages = [Stage("car_head", "Head shape and the guide lines", head),
               Stage("car_features", "Place the features as shapes", feats)]
-    if shapes_only:
-        stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", final))
-        step()
-        return stages
     under = _fade(feats, .45)
     order = [("car_outline", "Face, chin and hair outline", {"face", "chin", "hair"}),
              ("car_eyes", "Eyes and brows", {"face", "chin", "hair", "eyes", "brows"}),
-             ("car_nose_mouth", "Nose and mouth", {"face", "chin", "hair", "eyes", "brows", "nose", "lips"}),
-             ("car_strands", "A few strands of hair", {"face", "chin", "hair", "eyes", "brows", "nose", "lips", "strands"})]
+             ("car_nose_mouth", "Nose, mouth, laugh lines and cheeks",
+              {"face", "chin", "hair", "eyes", "brows", "nose", "lips", "folds"}),
+             ("car_strands", "A few strands of hair",
+              {"face", "chin", "hair", "eyes", "brows", "nose", "lips", "folds", "strands"})]
     for key, title, parts in order:
         stages.append(Stage(key, title, C.paint(D, parts=parts, hatch=False, base=under)))
         step()

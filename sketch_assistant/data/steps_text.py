@@ -522,8 +522,13 @@ STEPS = {
         "text": "Draw a round curl for each nostril wing, from above the wing, out and down into "
                 "the nostril, a soft curve under the tip between them, and one line down the "
                 "side of the nose away from the light. For the mouth, draw the top edge of the "
-                "upper lip, the line between the lips a little heavier, and a short curve under "
-                "the lower lip.",
+                "upper lip with its two peaks, the line between the lips heavier, with a small "
+                "tick at each corner, and the lower lip. Then the two short ridges from the nose "
+                "down to the peaks, and a few light strokes across the lower lip for its fullness. "
+                "Last, the laugh lines from beside each nostril down towards the corners of the "
+                "mouth, bowing out over the cheek and stopping short of the mouth, and a short "
+                "curve under each eye's outer corner for the cheekbone. Keep these light; press "
+                "harder only where the photo shows a deep fold.",
     },
     "car_strands": {
         "pencil": "A sharp 2B or a fine liner, lighter than the outline",
@@ -601,12 +606,6 @@ FINISH_OVERRIDE = {
         "text": "Check the lines against the picture, erase the construction, and leave it. A "
                 "caricature in this style is finished when it reads, and it reads early: more "
                 "hatching makes it heavier, not better.",
-    },
-    "car_shapes": {
-        "pencil": "2H or HB",
-        "technique": "Compare shapes, not details: is this oval as wide as that one?",
-        "text": "Check the shapes against the picture. These are the stage to get right -- the "
-                "Clean Lines and Light Hatching styles are drawn over exactly these shapes.",
     },
     "body_formhatch": {
         "pencil": "A sharp 2B or a fine liner",

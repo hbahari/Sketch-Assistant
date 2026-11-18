@@ -160,7 +160,7 @@ def test_the_ladder_builds_up_from_shapes():
     dark = [int((cv2.cvtColor(s.image, cv2.COLOR_BGR2GRAY) < 128).sum()) for s in st[2:7]]
     assert dark == sorted(dark), dark
     assert [s.key for s in build_stages("caricature", crop, "car_lines", 0.5)][-2] == "car_strands"
-    assert [s.key for s in build_stages("caricature", crop, "car_shapes", 0.5)] == ["car_head", "car_features", "finish"]
+    assert set(MODES["caricature"].styles) == {"car_hatch", "car_lines"}       # Shapes was taken out
 
 
 def test_no_face_means_a_message_not_a_crash():
@@ -226,3 +226,61 @@ def test_the_eyes_brows_and_nose_carry_detail(monkeypatch):
     plain_lines = dict(D.lines, nose_side=[], nose=[])
     plain = _ink(C.paint(C.Drawing(D.shape, True, plain_lines, D.irises, th=D.th), parts={"eyes", "nose"}, hatch=False))
     assert full.sum() > 1.5 * plain.sum(), (full.sum(), plain.sum())
+
+
+def _head_cut(img, face, person):
+    """How much of the person crosses the crop's top edge and upper sides, where the photo
+    itself goes on: a head the crop has cut through."""
+    crop, lm, box = crop_info(img, face)
+    ox = (face.oval_box[0] if face.oval_box is not None else face.x) - box[0]
+    oy = (face.oval_box[1] if face.oval_box is not None else face.y) - box[1]
+    x0, y0 = int(round(ox)), int(round(oy))
+    h, w = crop.shape[:2]
+    H, W = img.shape[:2]
+    sub = person[y0:y0 + h, x0:x0 + w]
+    top = sub[0].mean() if y0 > 0 else 0.0
+    left = sub[: h // 2, 0].mean() if x0 > 0 else 0.0
+    right = sub[: h // 2, -1].mean() if x0 + w < W else 0.0
+    return top + max(left, right)
+
+
+def test_the_cartoon_box_takes_in_the_whole_head():
+    """A tester asked for the box to be 10-20% bigger "to cover the entire hair and head".
+    On the 24 portraits with a face, the crop from Cartoon mode's box cuts through the
+    head (hair crossing its edge where the photo goes on) on at most 4 -- 3 measured:
+    long hair on close_01 and close_05 and a raised hand on close_15. Control, run here:
+    the face box Portrait mode uses cuts through 11. With the growth set to nothing the
+    first assertion fails."""
+    _models()
+    import glob
+    cut_face = cut_head = n = 0
+    for p in sorted(glob.glob(str(FX / "portraits" / "*.jpg"))) + sorted(glob.glob(str(FX / "portraits_close" / "*.jpg"))):
+        img = load_image(p)
+        faces = detect_faces(img)
+        if not faces:
+            continue
+        n += 1
+        person = C._person_mask(img) > 0.5
+        heads = MODES["caricature"].detect(img)
+        cut_face += _head_cut(img, max(faces, key=lambda f: f.w * f.h), person) > 0.02
+        cut_head += _head_cut(img, max(heads, key=lambda f: f.w * f.h), person) > 0.02
+    assert n >= 20
+    assert cut_head <= 4, f"the head was cut on {cut_head} of {n}"
+    assert cut_face >= cut_head + 5, (cut_face, cut_head)
+
+
+def test_laugh_lines_follow_the_photo():
+    """A tester asked for cheek lines and laugh lines. They're always drawn, as in the
+    icon, but their weight follows the photo: on a grimacing face with deep folds
+    (beard_dark_skin) the laugh lines measure deeper than on a smooth young face
+    (close_13), and are drawn darker. Control: with the depth ignored (every fold drawn
+    at the same weight) the second assertion fails."""
+    _models()
+    deep = C.measure(_crop("portraits/beard_dark_skin.jpg")).folds
+    smooth = C.measure(_crop("portraits_close/close_13.jpg")).folds
+    assert max(deep[:2]) > max(smooth[:2]) + 0.3, (deep, smooth)
+    D_deep, D_smooth = C.drawing(_crop("portraits/beard_dark_skin.jpg"), 0.35), C.drawing(_crop("portraits_close/close_13.jpg"), 0.35)
+    ink = lambda D: (255 - cv2.cvtColor(C.paint(D, parts={"folds"}, hatch=False), cv2.COLOR_BGR2GRAY)).astype(float)
+    darkest = lambda D: float(ink(D).max())
+    assert darkest(D_deep) > darkest(D_smooth) + 20, (darkest(D_deep), darkest(D_smooth))
+    assert len(D_deep.lines["folds"]) == 4

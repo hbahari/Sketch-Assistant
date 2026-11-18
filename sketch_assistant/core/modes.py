@@ -24,6 +24,24 @@ from . import steps as _steps
 from .faces import detect_faces
 
 
+# Cartoon draws the whole head, hair included, so its box is the face's grown to take in
+# the hair: 20% wider, and 30% taller, most of it upwards. A tester asked for 10-20%
+# "to cover the entire hair and head"; the crop then adds its usual margin round that.
+HEAD_GROW = (0.20, 0.22, 0.08)      # extra width; extra height above; extra height below
+
+
+def _detect_heads(img):
+    from dataclasses import replace
+    H, W = img.shape[:2]
+    gw, up, down = HEAD_GROW
+    heads = []
+    for f in detect_faces(img):
+        x0, x1 = max(0, int(f.x - f.w * gw / 2)), min(W, int(f.x + f.w * (1 + gw / 2)))
+        y0, y1 = max(0, int(f.y - f.h * up)), min(H, int(f.y + f.h * (1 + down)))
+        heads.append(replace(f, x=x0, y=y0, w=x1 - x0, h=y1 - y0))
+    return heads
+
+
 def _mesh_reason():
     """Caricature can't fall back to anything without the face mesh; say why up front."""
     from .landmarks import unavailable_reason
@@ -65,6 +83,7 @@ class Mode:
 
 
 MODES = {m.key: m for m in (
+    # tab order, left to right, as the tester set it
     Mode(
         key="portrait",
         label="Portrait",
@@ -111,38 +130,12 @@ MODES = {m.key: m for m in (
         none_fmt="Couldn't find a face - drag a box round the nose",
     ),
     Mode(
-        key="object",
-        label="Object",
-        styles=OBJECT_STYLES,
-        guide=_guides.frame_guides,
-        stages=_steps.object_stages,
-        materials=True,
-        pick_box=True,
-        hint="Drag a box round one object, then pick a style",
-    ),
-    Mode(
         key="hands",
         label="Hands",
         styles=HAND_STYLES,
         guide=_guides.hand_guides,
         stages=_steps.hand_stages,
         hint="Pick a style (one hand, plain background)",
-    ),
-    Mode(
-        # Portraits only: the face is found and tapped as in Portrait mode, and the slider
-        # sets how far the face's own differences from an average face are pushed.
-        key="caricature",
-        label="Cartoon",          # shown as Cartoon: a tester found "caricature" promised the wrong thing
-        styles=CARICATURE_STYLES,
-        detect=detect_faces,
-        guide=_guides.caricature_guides,
-        stages=_steps.caricature_stages,
-        hint="Portraits only - pick a style; the slider sets how far to exaggerate",
-        found_fmt="{n} face(s) found - tap a box (Cartoon works on portraits only)",
-        none_fmt="No face found - Cartoon works on portraits only",
-        note="Cartoon works on portraits only - add a photo of a face",
-        slider_labels=("Less exaggerated", "More exaggerated"),
-        requires=_mesh_reason,
     ),
     Mode(
         key="body",
@@ -155,6 +148,32 @@ MODES = {m.key: m for m in (
         hint="Pick a style",
         found_fmt="{n} figure(s) found - tap one, or several",
         none_fmt="No figure found - use New photo to try another",
+    ),
+    Mode(
+        # Portraits only: the face is found and tapped as in Portrait mode, and the slider
+        # sets how far the face's own differences from an average face are pushed.
+        key="caricature",
+        label="Cartoon",          # shown as Cartoon: a tester found "caricature" promised the wrong thing
+        styles=CARICATURE_STYLES,
+        detect=_detect_heads,
+        guide=_guides.caricature_guides,
+        stages=_steps.caricature_stages,
+        hint="Portraits only - pick a style; the slider sets how far to exaggerate",
+        found_fmt="{n} face(s) found - tap a box (Cartoon works on portraits only)",
+        none_fmt="No face found - Cartoon works on portraits only",
+        note="Cartoon works on portraits only - add a photo of a face",
+        slider_labels=("Less exaggerated", "More exaggerated"),
+        requires=_mesh_reason,
+    ),
+    Mode(
+        key="object",
+        label="Object",
+        styles=OBJECT_STYLES,
+        guide=_guides.frame_guides,
+        stages=_steps.object_stages,
+        materials=True,
+        pick_box=True,
+        hint="Drag a box round one object, then pick a style",
     ),
 )}
 

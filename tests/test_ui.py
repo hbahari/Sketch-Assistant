@@ -111,16 +111,18 @@ def test_there_is_no_scrollbar():
 
 
 def test_tapping_a_pill_selects_it():
+    # a pill in view: since the tester's tab order, Object is last and off the edge of a
+    # phone-width bar until it is scrolled to (the scroll test covers that)
     bar, picked = make_bar(attach=True)
     try:
-        t = Touch(*window_pos(bar, "object"))
+        t = Touch(*window_pos(bar, "nose"))
         t.touch_down()
         t.touch_up()
         for _ in range(5):       # ButtonBehavior defers on_release by min_state_time
             Clock.tick()
-        assert picked == ["object"], f"tap did not select (got {picked})"
-        bar.select("object")
-        assert bar.btns["object"].active and not bar.btns["portrait"].active
+        assert picked == ["nose"], f"tap did not select (got {picked})"
+        bar.select("nose")
+        assert bar.btns["nose"].active and not bar.btns["portrait"].active
     finally:
         drop(bar)
 
@@ -585,3 +587,13 @@ def test_cartoon_mode_says_it_works_on_portraits_only():
     home.set_mode("object")
     assert "portraits only" not in home.status.text
     assert "portraits only" in MODES["caricature"].found_fmt and "portraits only" in MODES["caricature"].none_fmt
+
+
+def test_the_mode_tabs_are_in_the_tester_s_order():
+    """A tester set the tab order: Portrait, Eyes, Nose, Hands, Posture, Cartoon, Object."""
+    from sketch_assistant.app import SketchApp
+    from sketch_assistant.ui.home import HomeScreen
+    assert [m.label for m in MODES.values()] == ["Portrait", "Eyes", "Nose", "Hands", "Posture", "Cartoon", "Object"]
+    home = HomeScreen(SketchApp(), name="home")
+    shown = [b.text for b in reversed(home.mode_bar.children[0].children)]    # Kivy lists children last-first
+    assert shown == ["Portrait", "Eyes", "Nose", "Hands", "Posture", "Cartoon", "Object"], shown
