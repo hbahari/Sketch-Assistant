@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 from . import guides as _guides
+from . import eyes as _eyes
+from . import noses as _noses
 from . import steps as _steps
 from .faces import detect_faces
 
@@ -27,7 +29,7 @@ def _detect_people(img):
     when Posture mode is actually used."""
     from .bodies import detect
     return detect(img)
-from .styles import BODY_STYLES, HAND_STYLES, OBJECT_STYLES, STYLES
+from .styles import BODY_STYLES, EYE_STYLES, HAND_STYLES, NOSE_STYLES, OBJECT_STYLES, STYLES
 
 
 @dataclass(frozen=True)
@@ -44,6 +46,8 @@ class Mode:
     hint: str = ""                   # status line once a photo is loaded
     found_fmt: str = ""              # status line after a successful detection ({n} boxes)
     none_fmt: str = ""               # ...and after an unsuccessful one
+    locate: Optional[Callable] = None        # photo -> a box to start the box picker on, or None
+    on_crop: Optional[Callable] = None       # (photo, crop, origin) -> None, told about every crop
 
     @property
     def default_style(self):
@@ -61,6 +65,40 @@ MODES = {m.key: m for m in (
         hint="Pick a sketch style",
         found_fmt="{n} face(s) found - tap a box",
         none_fmt="No faces found - use New photo to try another",
+    ),
+    Mode(
+        # Framed by the user, but the box starts on an eye when the photo has a face: the
+        # face sets the eye's scale, which the rules reading a crop on its own get wrong
+        # (see core/eyes.py). Close-ups of one eye, with no face, start as before.
+        key="eyes",
+        label="Eyes",
+        styles=EYE_STYLES,
+        guide=_guides.eye_guides,
+        stages=_steps.eye_stages,
+        pick_box=True,
+        locate=_eyes.propose_box,
+        on_crop=_eyes.note_crop,
+        found_fmt="Found an eye - drag a new box if it's not right",
+        none_fmt="Drag a box round one eye",
+        hint="Drag a box round one eye, then pick a style",
+    ),
+    Mode(
+        # Framed by the user, like Eyes: a nose reference is often a close-up, and a box
+        # the user draws is the one framing every renderer can trust.
+        key="nose",
+        label="Nose",
+        styles=NOSE_STYLES,
+        guide=_guides.nose_guides,
+        stages=_steps.nose_stages,
+        pick_box=True,
+        hint="Drag a box round the nose, from between the eyes to the lip",
+        # The box starts on the nose. Started on 85% of the photo, a close-up of a face
+        # handed the analysis the mouth and chin too, and it found the nose on one of
+        # sixteen test photos. See core/noses.py.
+        locate=_noses.propose_box,
+        on_crop=_noses.note_crop,
+        found_fmt="Found the nose - drag a new box if it's not right",
+        none_fmt="Couldn't find a face - drag a box round the nose",
     ),
     Mode(
         key="object",

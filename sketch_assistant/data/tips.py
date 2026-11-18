@@ -37,6 +37,11 @@ TIPS = {
         ],
     },
     "value_study": {
+        "what": "Value means how light or dark something is, whatever its colour. This style "
+                "keeps only a few flat greys, so you can see the big shapes of light and shadow "
+                "without the detail. It is the plan every shaded drawing is built on: draw this "
+                "first and the other styles are the same picture with more added. The steps "
+                "show a key with each grey and the pencil for it.",
         "pencils": "HB for the lightest tone, then 2B, 4B and 6B for darker ones. A blending stump is optional.",
         "pressure": "Keep each tone flat and even; press harder only as the values get darker.",
         "steps": [
@@ -85,6 +90,10 @@ TIPS = {
         ],
     },
     "obj_value": {
+        "what": "Value means how light or dark something is, whatever its colour. This style "
+                "keeps only a few flat greys, so you can see where the light falls on the object "
+                "and where its shadows are, without the detail. It is the plan a shaded drawing "
+                "is built on. The steps show a key with each grey and the pencil for it.",
         "pencils": "HB to 6B. A blending stump is optional.",
         "pressure": "Keep each tone flat and even; press harder only for darker values.",
         "steps": [
@@ -210,6 +219,103 @@ TIPS = {
             "Mark the joints as circles; keep hands and feet as wedges.",
         ],
     },
+
+    # ---- eyes: construction and the realistic style need their own words; value and
+    # hatch are built the same way whatever the subject, so those fall back
+    "eye_contour": {
+        "pencils": "2H for the construction, HB for the lids, 2B for the upper lash line.",
+        "pressure": "Very light for the ball and the box; firm and tapering for the upper lid; "
+                    "light and broken for the lower.",
+        "steps": [
+            "Dot the two corners, the top of the upper lid and the bottom of the lower lid.",
+            "Join the corners with a line and check its tilt against the photo.",
+            "Draw the eyeball as a full circle, about two irises wide.",
+            "Lay the upper lid over the ball as an arch; the lower lid as a flatter curve.",
+            "Draw the iris as a whole circle, then erase what the upper lid covers.",
+            "Put the pupil in the centre of the whole iris, not of the visible part.",
+            "Add the tear duct at the inner corner and the lower lid's inner rim.",
+            "Place the crease and block the brow in as one tapered shape.",
+            "Go over the final lines, heaviest along the upper lid, and erase the construction.",
+        ],
+    },
+    "eye_construct": {
+        "pencils": "2H for the ball, the box and the axis; HB for the lids and the iris.",
+        "pressure": "Light throughout. This is a working diagram and it should stay readable.",
+        "steps": [
+            "Box the eye: its width, its height, and the sloping line between the corners.",
+            "Count the width in irises -- most eyes are between two and two and a half.",
+            "Draw the ball behind it all, twice the width of the iris.",
+            "Wrap the two lids over the ball. Their high and low points are not in line.",
+            "Draw the full iris circle and see how much of it each lid hides.",
+            "Mark the lower lid's thickness and the crease above the upper lid.",
+            "Outline the highlight, shade in the lid's shadow on the iris, and note the "
+            "direction the lashes fan.",
+        ],
+    },
+    "eye_realistic": {
+        "pencils": "2H to 6B, a sharp HB for fibres, stump, kneaded eraser, a white gel pen at most once.",
+        "pressure": "Light, layered and blended for skin and eyeball; full pressure only for the "
+                    "pupil and the roots of the lashes.",
+        "steps": [
+            "Build the eye in construction first: box, ball, lids, iris. Do not skip this.",
+            "Reserve the highlight, lay the flat tones, then blend each boundary from dark to light.",
+            "Fill the pupil to full dark and darken the iris's outer rim.",
+            "Draw iris fibres as short spokes from the pupil, and inward from the rim.",
+            "Keep the top of the iris in the lid's shadow; lift the far side from the highlight.",
+            "Model the lids as bands round a ball, and give the lower lid its bright wet rim.",
+            "Soften the tear duct in and deepen both corners.",
+            "Flick in the upper lashes in clumps, curving away; then the short lower ones.",
+            "Lay brow hairs over the brow shape in their direction of growth.",
+            "Re-clean the highlight, add the small one on the lower rim, and stop.",
+        ],
+    },
+
+    # ---- noses: construction, outline and the realistic finish need their own words;
+    # value and hatch are built the same way whatever the subject, so those fall back
+    "nose_contour": {
+        "pencils": "2H for the construction, HB for the wings, 2B for the nostrils.",
+        "pressure": "Very light for the box and planes; firm only for the nostrils and the "
+                    "bottom of the wing creases. No lines down the sides of the bridge.",
+        "steps": [
+            "Mark the root between the eyes, the base, and the width across the wings.",
+            "Check the width against the gap between the inner corners of the eyes.",
+            "Draw a centre line from root to base, following the tilt of the face.",
+            "Block in a ball for the tip and a smaller ball for each wing.",
+            "Place the nostrils under the wings as small comma shapes.",
+            "Draw the wing creases, firm at the bottom and fading upward.",
+            "Leave the sides of the bridge unlined -- they are drawn with tone, not lines.",
+            "Erase the construction and add the top of the upper lip below.",
+        ],
+    },
+    "nose_construct": {
+        "pencils": "2H for the box and planes; HB for the balls and nostrils.",
+        "pressure": "Light throughout. This is a working diagram and it should stay readable.",
+        "steps": [
+            "Box the nose: root to base, wing to wing, and the centre line.",
+            "Draw the wedge: a narrow front plane down the bridge, a side plane each side.",
+            "Add the base plane underneath, between the wings.",
+            "Draw a ball for the tip and a smaller ball for each wing.",
+            "Tuck the nostrils under the wings, with the columella between them.",
+            "Shade in the side away from the light, the base plane, and the cast shadow.",
+            "Outline the highlights to keep white: the bridge strip and the tip.",
+        ],
+    },
+    "nose_realistic": {
+        "pencils": "2H to 6B, a blending stump, a kneaded eraser.",
+        "pressure": "Light, layered and blended for the planes; full pressure only deep in the "
+                    "nostrils and right under the nose where the cast shadow starts.",
+        "steps": [
+            "Build the construction first: box, planes, balls. Do not skip it.",
+            "Reserve the highlights on the tip and down the bridge.",
+            "Shade the side plane away from the light, softening its turn toward the front.",
+            "Shade the base plane, darker than the sides.",
+            "Fill the nostrils, darkest deep inside, softer at the edges.",
+            "Lift reflected light under the wings and on the columella.",
+            "Draw the cast shadow on the upper lip, sharp under the nose and fading out.",
+            "Soften any line left down the sides of the bridge into tone.",
+            "Add skin texture lightly round the tip and wings, and stop.",
+        ],
+    },
 }
 
 
@@ -221,4 +327,6 @@ def tips_markup(style_key):
     steps = "\n".join(f"  {i}. {s}" for i, s in enumerate(t["steps"], 1))
     h = lambda x: f"[b][color=a66a00]{x}[/color][/b]"
     text = f"{h('Pencils & grades')}\n{t['pencils']}\n\n{h('Pressure')}\n{t['pressure']}\n\n{h('Steps')}\n{steps}"
+    if t.get("what"):
+        text = f"{h('What this is')}\n{t['what']}\n\n" + text
     return text

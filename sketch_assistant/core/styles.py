@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Callable
 import cv2
 import numpy as np
-from .guides import dashed
+from .guides import dashed, dashed_path
 
 WORK_SIZE = 800  # long side used while processing
 
@@ -70,11 +70,17 @@ def technical(img, d=0.5):
 
 
 # Value study: flat tonal blocks. Detail = number of tones (3-7) and how fine the shapes are.
+def value_levels(d):
+    """The flat greys a Value Study uses at this detail, darkest first. Shared with the
+    value key the step ladder prints underneath, so the key and the picture always match."""
+    return np.linspace(38, 238, 3 + int(d * 4)).astype(np.uint8)
+
+
 def value_study(img, d=0.3):
     img = _prep(img)
-    n = 3 + int(d * 4)
+    levels = value_levels(d)
+    n = len(levels)
     g = cv2.GaussianBlur(_gray(img), (0, 0), lerp(4.5, 2.0, d))
-    levels = np.linspace(38, 238, n).astype(np.uint8)
     q = np.take(levels, np.digitize(g, np.percentile(g, np.linspace(0, 100, n + 1)[1:-1])))
     return _to_bgr(cv2.medianBlur(q, int(lerp(15, 7, d)) | 1))
 
@@ -600,6 +606,277 @@ def on_hand(render_fn, outline=False):
     return wrapped
 
 
+# --------------------------------------------------------------------------- eyes
+EYEBALL = 2.05      # radius of the eyeball in iris radii: a 24 mm globe behind an 11.7 mm iris
+
+
+def _offset_curve(curve, toward, dist):
+    """A lid line moved bodily toward a point -- the inner edge of a lid's thickness."""
+    v = np.asarray(toward, float) - curve
+    return curve + v / (np.linalg.norm(v, axis=1, keepdims=True) + 1e-6) * dist
+
+
+def eye_construction(img, d=0.5):
+    """The eye as a drawing book builds it: envelope, ball, lids, iris, then the details.
+
+    Four levels, one per quarter of the detail slider, each adding to the last -- the
+    step ladder shows them one at a time. The order is the lesson: an eye drawn outline
+    first comes out flat and almond-shaped, like a symbol of an eye; drawn as lids
+    wrapped round a ball it comes out as a form.
+    """
+    from .eyes import analyze
+    img = _prep(img)
+    h, w = img.shape[:2]
+    eye = analyze(img)
+    out = np.full((h, w, 3), 255, np.uint8)
+    blue, ink, grey = (200, 120, 40), (60, 60, 60), (175, 175, 175)
+    c, r = np.array(eye.iris, float), float(eye.r)
+    A, B = np.array(eye.left, float), np.array(eye.right, float)
+    up, lo = eye.upper.astype(np.float64), eye.lower.astype(np.float64)
+    thick = max(2, int(w * 0.004))
+    P = lambda q: (int(round(q[0])), int(round(q[1])))
+    poly = lambda pts: [np.round(pts).astype(np.int32)]
+
+    # level 1 -- the envelope: how wide, how tall, how tilted. Nothing else yet.
+    pts = np.vstack([up, lo])
+    (x0, y0), (x1, y1) = pts.min(0), pts.max(0)
+    for a, b in (((x0, y0), (x1, y0)), ((x1, y0), (x1, y1)), ((x1, y1), (x0, y1)), ((x0, y1), (x0, y0))):
+        dashed(out, a, b, blue, 1)
+    axis = (B - A) / (np.linalg.norm(B - A) + 1e-6)
+    dashed(out, A - axis * r * 0.6, B + axis * r * 0.6, blue, thick)
+    for q in (A, B, up[len(up) // 2], lo[len(lo) // 2]):
+        cv2.circle(out, P(q), max(4, thick * 2), blue, -1, cv2.LINE_AA)
+    cv2.putText(out, f"eye : iris = {eye.irises_wide:.1f} : 1", (int(max(x0, 6)), int(max(22, y0 - 10))),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, blue, 1, cv2.LINE_AA)
+    if d <= 0.25:
+        return out
+
+    # level 2 -- the ball, and the lids as two curves lying on it
+    cv2.circle(out, P(c), int(r * EYEBALL), grey, max(1, thick - 1), cv2.LINE_AA)
+    cv2.polylines(out, poly(up), False, ink, thick + 1, cv2.LINE_AA)
+    cv2.polylines(out, poly(lo), False, ink, thick, cv2.LINE_AA)
+    if d <= 0.5:
+        return out
+
+    # level 3 -- the iris and pupil, cut off by the lids; the lids' thickness; the crease
+    opening = np.zeros((h, w), np.uint8)
+    cv2.fillPoly(opening, [np.round(np.vstack([up, lo[::-1]])).astype(np.int32)], 255)
+    layer = np.full((h, w, 3), 255, np.uint8)
+    cv2.circle(layer, P(c), int(r), ink, thick, cv2.LINE_AA)
+    cv2.circle(layer, P(c), int(eye.pupil_r), ink, thick, cv2.LINE_AA)
+    ghost = np.full((h, w, 3), 255, np.uint8)                    # the part the lids hide
+    cv2.circle(ghost, P(c), int(r), (215, 215, 215), 1, cv2.LINE_AA)
+    out = np.minimum(out, ghost)
+    out = np.where((opening > 0)[..., None], np.minimum(out, layer), out)
+    cv2.polylines(out, poly(_offset_curve(lo[2:-2], c, r * 0.13)), False, grey, max(1, thick - 1), cv2.LINE_AA)
+    if eye.crease is not None:
+        cv2.polylines(out, poly(eye.crease), False, ink, max(1, thick - 1), cv2.LINE_AA)
+    if d <= 0.75:
+        return out
+
+    # level 4 -- what to plan before any shading: the highlight to keep white, the shadow
+    # the upper lid throws across the top of the iris, and which way the lashes grow
+    ys, xs = np.mgrid[0:h, 0:w]
+    iris = ((xs - c[0]) ** 2 + (ys - c[1]) ** 2 <= r * r) & (opening > 0)
+    band = np.zeros((h, w), np.uint8)
+    cv2.polylines(band, poly(up), False, 255, int(max(2, r * 0.55)))
+    shade = iris & (band > 0)
+    out[shade] = np.minimum(out[shade], 205)
+    if eye.highlight is not None:
+        cv2.circle(out, P(eye.highlight), int(max(4, r * 0.16)), blue, thick, cv2.LINE_AA)
+    n = len(up)
+    for i in range(2, n - 2, 2):                                 # upper lashes fan outward
+        v = up[i] - c
+        v = v / (np.linalg.norm(v) + 1e-6)
+        fan = (i - n / 2) / n                                    # lean toward the nearer corner
+        tip = up[i] + (v + axis * fan * 1.2) * r * 0.42
+        cv2.line(out, P(up[i]), P(tip), blue, 1, cv2.LINE_AA)
+    for i in range(4, n - 4, 4):                                 # lower: fewer and shorter
+        v = lo[i] - c
+        v = v / (np.linalg.norm(v) + 1e-6)
+        cv2.line(out, P(lo[i]), P(lo[i] + (v + axis * (i - n / 2) / n) * r * 0.2), blue, 1, cv2.LINE_AA)
+    return out
+
+
+# --------------------------------------------------------------------------- noses
+def nose_construction(img, d=0.5):
+    """The nose as drawing books build it: envelope, wedge, three balls, then the light.
+
+    Four levels, one per quarter of the detail slider, each adding to the last. The order
+    is the lesson. A nose is mostly drawn with tone rather than line -- the sides of the
+    bridge have no outline at all -- so a beginner who starts from the outline draws a
+    hook and two holes. Built as a wedge of planes with a ball at the tip and a ball for
+    each wing, it comes out as a form that the light can then describe.
+    """
+    from .noses import analyze
+    img = _prep(img)
+    h, w = img.shape[:2]
+    n = analyze(img)
+    out = np.full((h, w, 3), 255, np.uint8)
+    blue, ink, shade = (200, 120, 40), (60, 60, 60), 214
+    thick = max(2, int(w * 0.004))
+    P = lambda q: (int(round(q[0])), int(round(q[1])))
+    W, s = n.width, n.spacing
+    tip = np.array(n.tip[:2]); radix = np.array(n.radix)
+    hl, hr = n.half_left, n.half_right
+    up = (n.along(0, 1)[0] - n.cx, n.along(0, 1)[1] - n.base_y)      # unit "up" in the nose's tilt
+    across = (n.along(1, 0)[0] - n.cx, n.along(1, 0)[1] - n.base_y)
+    off = lambda q, dx, dy: (q[0] + dx * across[0] + dy * up[0], q[1] + dx * across[1] + dy * up[1])
+    # nostrils drawn no bigger than a nostril can be: the dark shape found often takes in
+    # the shadow round it, and drawn at that size it filled the whole base of the nose
+    clamp = lambda c: (c[0], c[1], min(c[2], 0.2 * W), min(c[3], 0.09 * W))
+    if n.view != "front":
+        return _nose_side_construction(out, n, d, P, off, up, across, clamp, thick, blue, ink, shade)
+
+    # level 1 -- the envelope: how long, how wide, how tilted. Nothing else yet.
+    corners = [off(radix, -hl, 0), off(radix, hr, 0), n.along(hr, 0), n.along(-hl, 0)]
+    for a, b in zip(corners, corners[1:] + corners[:1]):
+        dashed(out, a, b, blue, 1)
+    ridge = [tuple(q) for q in n.bridge]                                             # root to tip
+    dashed_path(out, [off(ridge[0], 0, 0.1 * W)] + ridge[1:] + [n.along(0, -0.35 * s)], blue, thick)
+    dashed(out, n.along(-hl - 0.3 * s, 0), n.along(hr + 0.3 * s, 0), blue, thick)  # the base line
+    for q in (radix, tip, n.along(-hl, 0), n.along(hr, 0)):
+        cv2.circle(out, P(q), max(4, thick * 2), blue, -1, cv2.LINE_AA)
+    cv2.putText(out, f"length = {n.length / max(W, 1e-6):.1f} x width", (int(max(6, n.cx - hl)), int(max(22, radix[1] - 10))),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, blue, 1, cv2.LINE_AA)
+    if d <= 0.25:
+        return out
+
+    # level 2 -- the wedge: a narrow front plane down the bridge, two side planes, and
+    # the base plane underneath, which is the one most beginners forget is there
+    RL, RR = off(radix, -0.10 * W, 0), off(radix, 0.10 * W, 0)
+    TL, TR = off(tip, -0.22 * W, 0), off(tip, 0.22 * W, 0)
+    UL, UR = n.along(-0.22 * W, 0), n.along(0.22 * W, 0)
+    BL, BR = n.along(-hl, 0.12 * s), n.along(hr, 0.12 * s)
+    planes = np.full((h, w, 3), 255, np.uint8)
+    for poly in ([RL, RR, TR, TL], [RL, TL, UL, BL], [RR, TR, UR, BR], [BL, UL, UR, BR]):
+        cv2.polylines(planes, [np.round(poly).astype(np.int32)], True, ink, thick, cv2.LINE_AA)
+    out = np.minimum(out, planes)
+    if d <= 0.5:
+        return out
+
+    # level 3 -- the three balls: the tip and the two wings, with the nostrils tucked
+    # under the wings and the columella between them. The wedge stays, faintly.
+    out = np.maximum(out, 255 - ((255 - out) * 0.45).astype(np.uint8))           # fade levels 1-2
+    layer = np.full((h, w, 3), 255, np.uint8)
+    cv2.circle(layer, P(tip), int(n.tip[2]), ink, thick, cv2.LINE_AA)
+    for x, y, r in n.wings:
+        cv2.circle(layer, P((x, y)), int(r), ink, thick, cv2.LINE_AA)
+    nostrils = [clamp(c) for c in n.nostrils] or \
+        [(*n.along(side * 0.5 * s, 0.12 * s), 0.22 * s, 0.1 * s) for side in (-1, 1)]
+    for x, y, a, b in nostrils:
+        cv2.ellipse(layer, P((x, y)), (max(2, int(a)), max(2, int(b))), n.tilt, 0, 360, ink, thick, cv2.LINE_AA)
+    out = np.minimum(out, layer)
+    if d <= 0.75:
+        return out
+
+    # level 4 -- the light, planned before any shading: which side plane is in shadow,
+    # the base plane underneath, the shadow the nose throws onto the lip, and the two
+    # highlights to keep white -- the strip down the bridge and the spot on the tip
+    lit = n.light or "left"            # unknown: assume light from the upper left, the convention
+    shadow_side = [RR, TR, UR, BR] if lit == "left" else [RL, TL, UL, BL]
+    fill = np.zeros((h, w), np.uint8)
+    cv2.fillPoly(fill, [np.round(shadow_side).astype(np.int32)], 255)
+    cv2.fillPoly(fill, [np.round([BL, UL, UR, BR]).astype(np.int32)], 255)
+    away = 0.25 * W if lit == "left" else -0.25 * W
+    cast = n.along(away, -0.38 * s)
+    cv2.ellipse(fill, P(cast), (int(0.45 * W), int(0.22 * s)), n.tilt, 0, 360, 255, -1)
+    out[fill > 0] = np.minimum(out[fill > 0], shade)
+    # the highlight down the bridge, following the ridge and stopping short of the tip
+    strip = [off(ridge[0], 0, -0.1 * W)] + ridge[1:-1] + [off(tip, 0, 0.3 * n.tip[2])]
+    cv2.polylines(out, [np.round(np.array([P(q) for q in strip])).astype(np.int32)], False, blue, thick, cv2.LINE_AA)
+    spot = n.highlight or off(tip, 0, 0.35 * n.tip[2])
+    cv2.circle(out, P(spot), int(max(4, 0.25 * n.tip[2])), blue, thick, cv2.LINE_AA)
+    for x, y, a, b in nostrils:                     # the darkest accents: deep inside each nostril
+        cv2.ellipse(out, P((x, y - 0.2 * b)), (max(1, int(0.5 * a)), max(1, int(0.5 * b))), n.tilt, 0, 360, (90, 90, 90), -1, cv2.LINE_AA)
+    return out
+
+
+def _nose_side_construction(out, n, d, P, off, up, across, clamp, thick, blue, ink, shade):
+    """The construction for a turned head, three-quarter or side-on.
+
+    The face-on template drawn on a profile is two wings either side of a symmetric wedge
+    -- a front view pasted onto a side view. Side-on, drawing books build the nose as a
+    triangle instead: root, tip and the back of the wing, with the underside as a thin
+    sliver from the tip back to the wing, one wing ball behind the tip and the nostril
+    under it. In three-quarter the front plane shows as a narrow strip along the bridge
+    and the far wing peeks out behind the tip.
+    """
+    h, w = out.shape[:2]
+    f = n.side or 1                                    # the way the tip points
+    W = n.width                                        # tip to the back of the wing
+    front = n.half_right if f > 0 else n.half_left
+    back = n.half_left if f > 0 else n.half_right
+    T, R = n.tip[:2], n.radix
+    Bf, Bb = n.along(f * front, 0), n.along(-f * back, 0)  # the base line, under the tip and at the back
+    S = n.along(f * (front - 0.35 * W), 0)                 # where the underside meets the lip
+    three_q = n.view == "three-quarter"
+    R2 = off(R, -f * 0.07 * W, 0) if three_q else R        # the near edge of the front plane
+    T2 = off(T, -f * 0.14 * W, -0.05 * W) if three_q else T
+
+    # level 1 -- the envelope: the bridge from root to tip, the base line, and the depth
+    ridge = [tuple(q) for q in n.bridge]                  # root to tip, along the nose's line
+    dashed_path(out, [off(ridge[0], 0, 0.08 * W)] + ridge[1:], blue, thick)
+    dashed(out, off(Bb, -f * 0.2 * W, 0), off(Bf, f * 0.15 * W, 0), blue, thick)
+    for q in (R, T, Bf, Bb):
+        cv2.circle(out, P(q), max(4, thick * 2), blue, -1, cv2.LINE_AA)
+    cv2.putText(out, f"length = {n.length / max(W, 1e-6):.1f} x depth",
+                (int(np.clip(min(R[0], T[0]), 6, w - 220)), int(max(22, R[1] - 10))),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, blue, 1, cv2.LINE_AA)
+    if d <= 0.25:
+        return out
+
+    # level 2 -- the wedge, side-on: the side plane from root to tip to the back of the
+    # wing, the underside as a sliver, and in three-quarter the front strip along the bridge
+    planes = np.full((h, w, 3), 255, np.uint8)
+    polys = [[R2, T2, Bb], [T, S, Bb]]
+    if three_q:
+        polys.append([R, T, T2, R2])
+    for poly in polys:
+        cv2.polylines(planes, [np.round(poly).astype(np.int32)], True, ink, thick, cv2.LINE_AA)
+    out = np.minimum(out, planes)
+    if d <= 0.5:
+        return out
+
+    # level 3 -- the balls: the tip, the near wing, the far wing just showing in
+    # three-quarter, the nostril under the wing, and the columella from tip to lip
+    out = np.maximum(out, 255 - ((255 - out) * 0.45).astype(np.uint8))
+    layer = np.full((h, w, 3), 255, np.uint8)
+    cv2.circle(layer, P(T), int(n.tip[2]), ink, thick, cv2.LINE_AA)
+    if n.wings:
+        x, y, r = n.wings[0]
+        cv2.circle(layer, P((x, y)), int(r), ink, thick, cv2.LINE_AA)
+    if three_q and len(n.wings) > 1:                   # only the part that shows past the tip
+        x, y, r = n.wings[1]
+        start = 0 if f > 0 else 180
+        cv2.ellipse(layer, P((x, y)), (int(r), int(r)), n.tilt, start - 70, start + 70, ink, max(1, thick - 1), cv2.LINE_AA)
+    nostrils = [clamp(c) for c in n.nostrils] or [(*n.along(f * (front - 0.45 * W), 0.08 * W), 0.12 * W, 0.05 * W)]
+    for x, y, a, b in nostrils:
+        cv2.ellipse(layer, P((x, y)), (max(2, int(a)), max(2, int(b))), n.tilt, 0, 360, ink, thick, cv2.LINE_AA)
+    cv2.line(layer, P(off(T, 0, -0.6 * n.tip[2])), P(S), ink, max(1, thick - 1), cv2.LINE_AA)
+    out = np.minimum(out, layer)
+    if d <= 0.75:
+        return out
+
+    # level 4 -- the light: the underside and the plane turned from the light in tone, the
+    # shadow on the lip behind the nose, and the bridge strip and tip highlight kept white
+    lit = n.light or ("right" if f > 0 else "left")
+    fill = np.zeros((h, w), np.uint8)
+    cv2.fillPoly(fill, [np.round([T, S, Bb]).astype(np.int32)], 255)
+    if (lit == "right") == (f > 0):                    # light on the front: the side plane turns away
+        cv2.fillPoly(fill, [np.round([R2, T2, Bb]).astype(np.int32)], 140)
+    cast = n.along(-f * 0.05 * W, -0.25 * W)
+    cv2.ellipse(fill, P(cast), (int(0.35 * W), int(0.1 * W)), n.tilt, 0, 360, 255, -1)
+    out[fill > 0] = np.minimum(out[fill > 0], shade)
+    strip = [off(ridge[0], f * 0.02 * W, -0.1 * W)] + ridge[1:-1] + [off(T, -f * 0.05 * W, 0.3 * n.tip[2])]
+    cv2.polylines(out, [np.round(np.array([P(q) for q in strip])).astype(np.int32)], False, blue, thick, cv2.LINE_AA)
+    spot = n.highlight or off(T, -f * 0.25 * n.tip[2], 0.3 * n.tip[2])
+    cv2.circle(out, P(spot), int(max(4, 0.25 * n.tip[2])), blue, thick, cv2.LINE_AA)
+    for x, y, a, b in nostrils:
+        cv2.ellipse(out, P((x, y - 0.2 * b)), (max(1, int(0.5 * a)), max(1, int(0.5 * b))), n.tilt, 0, 360, (90, 90, 90), -1, cv2.LINE_AA)
+    return out
+
+
 @dataclass(frozen=True)
 class Style:
     """One renderer, as offered in one mode.
@@ -648,7 +925,21 @@ BODY_STYLES = {s.key: s for s in (      # posture mode: abstract first, rendered
     Style("body_formhatch", "Cross-Contour", form_hatch, "Hatch", 0.5, "hatch"),
     Style("body_realistic", "Photorealism", on_body(photorealistic), "Realistic", 0.5, "real"),
 )}
-ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES, **BODY_STYLES}
+EYE_STYLES = {s.key: s for s in (       # eyes mode: one eye, framed by the user
+    Style("eye_contour", "Contour", line_art, "Contour", 0.4, "line"),
+    Style("eye_construct", "Construction", eye_construction, "Construct", 1.0, "construct"),
+    Style("eye_value", "Value Study", value_study, "Value", 0.4, "value"),
+    Style("eye_hatch", "Cross-Hatch", crosshatch, "Hatch", 0.5, "hatch"),
+    Style("eye_realistic", "Photorealism", photorealistic, "Realistic", 0.6, "real"),
+)}
+NOSE_STYLES = {s.key: s for s in (      # nose mode: one nose, framed by the user
+    Style("nose_contour", "Contour", line_art, "Contour", 0.4, "line"),
+    Style("nose_construct", "Construction", nose_construction, "Construct", 1.0, "construct"),
+    Style("nose_value", "Value Study", value_study, "Value", 0.4, "value"),
+    Style("nose_hatch", "Cross-Hatch", crosshatch, "Hatch", 0.5, "hatch"),
+    Style("nose_realistic", "Photorealism", photorealistic, "Realistic", 0.6, "real"),
+)}
+ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES, **BODY_STYLES, **EYE_STYLES, **NOSE_STYLES}
 
 
 def family_of(style_key):

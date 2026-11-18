@@ -88,7 +88,7 @@ because OpenCV is compiled from source; later runs reuse the cache and are much 
 
 When it finishes, download the `sketch-assistant-release` artifact. It contains:
 
-- `app-1.3.0-arm64-v8a-release.aab` → upload this
+- `app-1.5.0-arm64-v8a-release.aab` → upload this
 - `sketch-assistant-universal.apk` → install this on a phone to check the release build
 
 The workflow fails loudly if the bundle comes out unsigned, so a green run means it is ready.
@@ -132,11 +132,11 @@ accounts are exempt. Plan for this — it is the slowest part of a first release
 Every upload needs a higher version code. In `buildozer.spec`:
 
 ```ini
-version = 1.3.0              # the version name users see
-android.numeric_version = 5  # must increase on EVERY upload (1.0.0 shipped as 1)
+version = 1.5.0              # the version name users see
+android.numeric_version = 7  # must increase on EVERY upload (1.0.0 shipped as 1)
 ```
 Both are already set to the values above for this release. For the one after it, raise
-`android.numeric_version` to 6.
+`android.numeric_version` to 8.
 
 Then run the release workflow again. Tagging a commit `v0.1.1` also triggers it.
 

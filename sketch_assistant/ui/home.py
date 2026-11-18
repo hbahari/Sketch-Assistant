@@ -12,7 +12,7 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 
-from ..core.faces import crop_info, crop_to_box, load_image
+from ..core.faces import crop_bounds, crop_info, crop_to_box, load_image
 from ..core.modes import MODES, mode_of
 from ..core.styles import render
 from ..platform_utils import pick_from_gallery, take_photo
@@ -27,7 +27,10 @@ class HomeScreen(Screen):
     def __init__(self, app, **kw):
         super().__init__(**kw)
         self.app_ref = app
-        self.photo_loaded, self.regions, self.tiles = False, None, {}
+        # Detections, per mode, for the current photo. Per mode, not per photo: kept as a
+        # single list it was handed from Portrait to Posture, which crashed framing a face
+        # as a figure, and back the other way, offering figures to tap as faces.
+        self.photo_loaded, self.regions, self.tiles = False, {}, {}
         root = BoxLayout(orientation="vertical", spacing=dp(6))
         root.add_widget(LogoBar())
         body = BoxLayout(orientation="vertical", spacing=dp(8), padding=(0, 0, 0, dp(14)))
@@ -121,10 +124,11 @@ class HomeScreen(Screen):
         picker = self.box_picker if m.pick_box else (self.multi_selector if m.multi else self.selector)
         self._show_picker(picker)
         if m.pick_box:                             # the user draws the region
-            self.box_picker.set_photo(a.photo)
+            found = m.locate(a.photo) if m.locate else None
+            self.box_picker.set_photo(a.photo, box=found)
             self._enable_styles(m)
-            self.status.text = m.hint
-            self.on_box(self.box_picker.box)       # render the default box straight away
+            self.status.text = (m.found_fmt if found else m.none_fmt) if m.locate else m.hint
+            self.on_box(self.box_picker.box)       # render the starting box straight away
             return
         if m.detect is None:                       # whole image is used, no detection
             self.selector.set_photo(a.photo, [])
@@ -133,15 +137,16 @@ class HomeScreen(Screen):
             self.status.text = m.hint
             self.on_style(m.default_style)
             return
-        if self.regions is None:
-            self.regions = m.detect(a.photo)
-        picker.set_photo(a.photo, self.regions)
-        n = len(self.regions)
+        regions = self.regions.get(a.mode)
+        if regions is None:
+            regions = self.regions[a.mode] = m.detect(a.photo)
+        picker.set_photo(a.photo, regions)
+        n = len(regions)
         self.status.text = m.found_fmt.format(n=n) if n else m.none_fmt
         if m.multi and n:
             picker.chosen = [0]              # start on the first figure so something renders
             picker._redraw()
-            self.on_people([0], [self.regions[0]])
+            self.on_people([0], [regions[0]])
 
     def _show_picker(self, widget):
         """Swap the photo card's contents between the tap-a-box and draw-a-box pickers."""
@@ -152,8 +157,11 @@ class HomeScreen(Screen):
 
     def on_box(self, box):
         """A region was drawn (or defaulted): crop to it and re-render the current style."""
-        a = self.app_ref
+        a, m = self.app_ref, mode_of(self.app_ref.mode)
         a.source_img = crop_to_box(a.photo, box)
+        if m.on_crop:                              # e.g. Nose reads the whole photo, not the crop
+            b = crop_bounds(a.photo, box)
+            m.on_crop(a.photo, a.source_img, (b[0], b[1]) if b else (0, 0))
         a.landmarks, a.crop_box = (), None
         a.crop_shape = a.source_img.shape[:2]
         self.on_style(a.style_key or mode_of(a.mode).default_style)
@@ -180,7 +188,7 @@ class HomeScreen(Screen):
         except ValueError as e:
             self.status.text = str(e)
             return
-        self.app_ref.photo, self.regions, self.photo_loaded = img, None, True
+        self.app_ref.photo, self.regions, self.photo_loaded = img, {}, True
         if self.new_photo_btn.parent is None:
             self.status_row.add_widget(self.new_photo_btn)
         self.box.clear_widgets(); self.box.add_widget(self.photo_card)

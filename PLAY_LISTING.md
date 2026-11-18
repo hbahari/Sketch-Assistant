@@ -39,6 +39,25 @@ and pick a style:
 • Cross-Hatch — shading built from layered pen strokes
 • Photorealism — smooth graphite shading with real pencil texture
 
+EYES MODE
+The eye is the part of a portrait everyone looks at first and most people get wrong, so it
+has a mode to itself and the longest guide in the app. Load a portrait and the app finds
+the eye for you; load a close-up of one eye and drag a box round it -- and the app takes
+you from an empty page to a
+finished eye in fourteen steps: the width, height and tilt; the eyeball and the lids wrapped
+over it; the iris, pupil and the thickness of the lids; where the highlight and the lid's
+shadow will go; the real outline; the brow; flat values; the same tones in hatching; the
+hatching blended smooth; the brightest lights and darkest darks; the iris fibres; the
+lids and corners; and only then the lashes.
+
+NOSE MODE
+A nose is drawn mostly with shading, not lines, which is why it so often comes out as a
+hook and two dots. Load a photo and the app finds the nose and frames it for you — face-on,
+three-quarter or side-on — then builds it the way a drawing class does: its length, width and tilt; a wedge of flat planes for the bridge, the sides and the
+underside; a ball for the tip and one for each wing, with the nostrils tucked underneath;
+then where the light falls and where the shadows go. After the outline it walks you
+through the shading in small steps, through hatching, to a finished nose.
+
 OBJECT MODE
 The same idea for still life. Drag a box round the object you want to draw -- useful when
 there is more than one thing in the shot -- and pick from Contour, Basic Shapes, Value
@@ -66,7 +85,10 @@ Tap "Generate drawing steps" and the app rebuilds the sketch the way you would a
 it. For a portrait: construction lines first, then the eyes, nose, mouth and ears one at a
 time, then the outline, the values and the finish. For a hand: the palm block and axes, then
 the knuckles and joints, then the finger volumes, then the real outline. Every step tells you
-which pencil to pick up, the technique to use, and what to put on the paper. Save the whole
+which pencil to pick up, the technique to use, and what to put on the paper. For the
+realistic style, the steps take you there through hatching: hatch the tones in, blend
+them smooth, then lift the lights and deepen the shadows, with each kind of light and
+shadow explained. Change the detail right there on the steps page, and save the whole
 sequence as one sheet to print.
 
 THE DRAWING GUIDE
@@ -153,7 +175,8 @@ pre-rounded asset gets double-rounded and transparent corners show the Play UI t
 2. The drawing guide page with the proportion lines on
 3. The style tiles, to show the range
 4. Object mode with the material guide open
-5. Hands mode showing the Construction style, which is the clearest demonstration of
+5. Eyes mode with the step sequence open -- fourteen stages on one screen sells the mode
+6. Hands mode showing the Construction style, which is the clearest demonstration of
    what the app does that a still image can carry
 
 ---

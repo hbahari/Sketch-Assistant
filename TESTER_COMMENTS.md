@@ -14,6 +14,287 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 16 — eye guides too big, nose circles and bridge line off
+
+*Shipped in: 1.5.0 (not yet uploaded)*
+
+> "Those sections where you draw a box, like Nose and Eyes, don't work very well —
+> especially the guiding lines, which are usually a bit off. Look at this example: the
+> guiding lines for the eye are way bigger than the eye itself. Is there a cost-efficient
+> way to detect these automatically, with good precision, instead of making the user draw
+> a box?"
+
+> "The guiding lines for the nose could use some improvement too: the circles don't always
+> land on the edges of the nose curvature, and the purple line doesn't always follow the
+> line of the nose."
+
+**What changed — eyes.** On a photo with a face in it, Eyes mode now finds the eye itself
+and the box starts round it, the same way Nose mode does. It reads the eye from the whole
+face, so the size of the eye comes from the face, not from the box you drew. That was the
+fault: the old reading judged the eye's size from the box, so a loose box gave a huge
+eye. On ten eyes marked by hand, the iris circle now comes out within about a fifth of
+its real size every time, typically within a twentieth, however big the box. Before, with
+a loose box, six of those ten were drawn between about three and four times too big. The
+lid outline comes from the same reading. Where the circle sits is less exact than its
+size: always within about half the iris's width of the middle, closer on most.
+
+Close-ups of a single eye, with no face in the photo, work as before. We tried the new
+method on those too and it did worse than the old one (right on 7 of 19 close-ups,
+against 10), so it isn't used there. You still draw the box on a close-up. The app is also
+careful not to "find" a face in an eye close-up: on five of the nineteen test close-ups
+the face finder thought it saw one, and none of them gets through now.
+
+**What changed — nose.** The wing circles and the line down the nose are now placed from
+a detailed map of the face rather than worked out by proportion. The line follows the
+ridge of the nose from between the eyes to the tip, curving where the nose does, instead
+of being one straight stroke. Face-on, the outer edges of the wings now typically land
+within a tenth of the nose's width of where they really are, against about an eighth
+before, and the worst case is noticeably better. On three-quarter views the far wing is
+never drawn inside the tip. Where the nose is found at all is unchanged (13 of the 16 test
+photos). On the three photos it already got wrong, the new wings are a little worse.
+
+Both use two small extra pieces from Google's free face-tracking toolkit. They run on the
+phone like everything else, and nothing leaves the device. The toolkit's licence allows
+use in a paid app, and its credit and licence text now ship inside the app.
+
+**Process failure, owned.** The eye tests checked the app against readings the app had
+made itself, all on close-ups, and none of them drew a box round an eye in a face photo
+the way a person does. So the size fault the tester found could never show up in a test.
+There are now hand-marked eyes in face photos, read through the same box-drawing steps a
+person uses. Separately, the first estimate that the new method would also help on
+close-ups was wrong; once it was measured properly it made close-ups worse, and it was
+left out there. And the first build of this change would have left the two new pieces out
+of the app itself (the packaging list didn't include their file type). That was caught
+before release.
+
+---
+
+## Round 15 — crash when switching modes
+
+*Shipped in: 1.5.0 (not yet uploaded)*
+
+> "The app crashes when I draw a box in Nose mode and then swap to other modes."
+
+**What changed.** The crash is fixed. When you switched modes with a photo loaded, the app
+kept the faces or figures it had already found and handed them to the next mode, instead
+of looking again. Portrait mode's faces were being passed to Posture mode, which tried to
+treat a face as a whole body and crashed. It also went wrong the other way, more quietly:
+Portrait mode offered whole figures from Posture to tap as if they were faces. Each mode
+now does its own looking, once per photo.
+
+Nose mode wasn't the cause. Drawing a box there just meant coming from Portrait to Posture
+by way of Nose, and the same crash happened going straight from Portrait to Posture.
+
+**Process failure, owned.** The problem had been there since Posture mode got its own way
+of finding people, through several releases. No test ever loaded a photo and then switched
+between modes, which is exactly what a person trying the app does. There are now tests
+for the switches that crashed, and one that tours every mode and back on the same photo.
+
+---
+
+## Round 14 — the nose wasn't being found
+
+*Shipped in: 1.5.0 (not yet uploaded)*
+
+> "Here are some test photos. The app is doing an awful job detecting the nose in the
+> first place!"
+
+**What changed.** The tester was right, and it was worse than awful: on the 16 photos sent,
+the app found the nose on one. Nose mode had been built assuming you would draw a box
+tightly round the nose, but it starts with a box over most of the photo, and on a close-up
+of a face it was mistaking the mouth or a beard for the nose. Even with a box drawn round
+each nose it only managed five. It now finds the face first and works out where the nose
+is from that, which also works on close-ups where only part of the face is in the photo.
+It found the nose on 13 of the 16.
+
+When you load a photo the box now starts on the nose instead of covering most of the
+picture, and the message underneath says it found the nose. If it picked the wrong spot,
+drag a new box. It gives the same result however tightly or loosely you draw that box.
+
+It also tells which way the nose is pointing. Side-on and three-quarter noses get a
+construction drawn the way drawing books do a side view — a triangle from the top of the
+nose to the tip and back to the wing, one wing behind the tip, the nostril under it —
+instead of the face-on version, which looked wrong on a turned head.
+
+**Still wrong on three of the sixteen.** Two faces turned only slightly to one side: the
+nose is found, but the tip is placed on the edge of the nose rather than its middle. On
+one of those the eyes are cut off by the top of the photo and the app gets the direction of
+the turn backwards. On the third it thinks it has found a face that isn't there, and the
+drawing lands beside the nose. In all three the box still lands on the nose, so dragging
+it a little fixes the framing, though not yet the misread tip.
+
+**Process failure, owned.** The first version was tested only on noses cut out of face
+photos and framed by hand, the easy case. Nobody had tried the box the app actually
+starts with, and the tests passed because they never asked the question the tester asked.
+
+---
+
+## Round 13 — a mode just for noses
+
+*Shipped in: 1.5.0 (not yet uploaded)*
+
+> "For the next version I want a nose mode. Very similar to the eyes tab, with similar
+> steps and guidelines, and as detailed as the eyes section."
+
+**What changed.** A Nose mode was added. You drag a box round the nose, from between the
+eyes down to the top lip. Like Eyes, it has a construction style and a long step-by-step
+guide — thirteen steps for the realistic style. It starts with the nose's length, width
+and tilt; then builds it as a wedge of flat planes (the bridge, the two sides and the
+underside, which most beginners forget); then a ball for the tip and one for each wing,
+with the nostrils tucked under the wings; then plans where the light and shadows go. The
+outline step deliberately shows only the nostrils and the creases round the wings,
+because the sides of a nose have no outline — they're drawn with shading. The shading
+then goes through the same hatch-and-blend route as the other modes, followed by steps
+for the bridge and sides and for the nostrils and the shadow under the nose. The guide
+lines show where the tip, wings, root and base of the nose sit, with the numbers kept in
+the margins as in Eyes.
+
+**Where it falls short, as tested on 25 noses cut from the face test photos.** The app
+reads the nose well on about 14. On 5 it can't see the nostrils at all (a finger over the
+nose, a wink, very soft lighting) and shows an average nose in the middle, which is
+roughly right on most. On about 5 it gets it wrong: a nose seen from the side, one behind
+glasses with a septum ring that it mistakes for a nostril, a broad nose where it picked a
+crease in the cheek, and two turned heads. The line down the bridge is always drawn
+straight, which is slightly off when the head is turned. Which side the light comes from
+is a guess from the photo, and the instructions say to check it.
+
+---
+
+## Round 12 — the jump to realistic, what "Value" means, and the slider on the steps page
+
+*Shipped in: —*
+
+> "Going from the hatch style to realistic is still a big leap. Hatching feels easy to
+> draw, but realistic suddenly feels much harder and there isn't a smooth path between
+> the two. The 'soft' step before didn't make much sense. Maybe add a step that guides me
+> on how to add the different kinds of shading and shadow to get from one to the other?"
+
+**What changed.** The realistic style's steps now go through hatching on the way, in every
+mode. After the flat value shapes you hatch the same tones in strokes (the part that feels
+easy), then blend the hatching smooth with a blending stump, then do a "lift the lights,
+deepen the shadows" step before the finish. On that step the picture marks the brightest
+spots in blue (keep them as white paper or lift them out with an eraser) and the darkest
+in red (press to full dark). The instructions name the different kinds of light and
+shadow — highlight, the lit side, core shadow, reflected light, cast shadow and the thin
+dark "contact" shadow where two surfaces meet — and say how each one is drawn. The old
+"soft" step is gone; the blended hatching replaces it, and it keeps the lines of the
+drawing instead of looking like a blurry photo.
+
+> "What does the Value style even mean? How am I supposed to use the value step?"
+
+**What changed.** "Value" just means how light or dark something is, regardless of
+colour. The Value style now says so in its tips, and explains that it's the plan every
+shaded drawing is built on: it shows only the big light and dark shapes so you can get
+them right before any detail. The value step in the drawing steps now has a key printed
+underneath — each grey used in the picture, with the pencil to draw it — so you can fill
+each shape by matching it to the key.
+
+> "I want the detail slider available after I press 'Generate drawing steps', so I can
+> play with the detail while I'm in the steps. Does that make the app too heavy?"
+
+**What changed.** The steps page has the detail slider now. When you let go of it, the
+steps are rebuilt at the new detail in the background and you stay on the step you were
+looking at. It isn't too heavy: rebuilding takes under a second on a computer, and it only
+happens when you let go, never while you're dragging. On a phone it will be slower, likely
+a second or two, and that hasn't been timed yet. Moving it several times quickly only
+rebuilds once more, at the last setting.
+
+---
+
+## Round 11 — eye guides crowded, and the circle in the wrong place
+
+*Shipped in: —*
+
+> "I tested the app on a photo and the guiding lines seem a bit too crowded and off,
+> especially the circle. What is the circle representing?"
+
+**What changed.** The circle is the outline of the iris — the coloured part of the eye —
+and on that photo it was drawn about two-thirds too small and off to one side. The photo
+is lit from one side, so the edge of the iris on the shadowed side was faint, and the app
+settled on a circle that ran from the bright edge of the iris to the edge of the pupil
+instead. It now checks that the circle is centred on the pupil, as an iris always is,
+and if not, looks again around the pupil. On the tester's photo the circle now matches
+the iris. Across all 38 eye images it was checked against, this changed six results,
+all for the better, and left every other one exactly as it was.
+
+The guides were also cleared off the eye. The numbers used to sit right next to the parts
+they measured, on top of the drawing, with two full-length lines crossing at the pupil
+and the rule-of-thirds grid running through everything. Now the eye only has small
+markers on it — the iris circle, a cross on the pupil, dots at the corners, short ticks
+at the top and bottom of the lids — and all the numbers sit along the top and left edges
+of the picture, each lined up with what it measures.
+
+**Left as is, deliberately.** The rule-of-thirds grid no longer appears in Eyes mode. It
+helps with placing a subject in a picture, which doesn't apply to a close-up of one eye.
+
+**Still not right.** On the same photo the app places the corners of the eye too far in,
+so it reports the eye as 1.8 irises wide when it is closer to 2.3. The eyelid shapes are
+an estimate, and this is the known weakness of that estimate.
+
+---
+
+## Round 10 — steps going backwards, and a style nobody could explain
+
+*Shipped in: 1.4.0 (not yet uploaded)*
+
+> "In contour mode with the detail turned down, step 7 has less in it than step 6, which
+> looks wrong. Step 6 doesn't follow the detail I set on the slider at all."
+
+**What changed.** The steps that build up the outline were quietly refusing to go below a
+certain amount of detail, while the finished drawing obeyed the slider — so at a low
+setting the last step looked like half the drawing had been rubbed out. The outline steps
+now use exactly the detail you set. This was not only in Eyes mode: Portrait, Object and
+Hands did the same thing and are fixed too.
+
+> "I don't understand what the 'Soft' style really does. It doesn't feel implemented
+> correctly and it isn't intuitive."
+
+**What changed.** It was removed as a style. It was meant to show the eye fully shaded
+before any sharp detail goes in, but on its own it just looked like the photo out of
+focus. That idea only makes sense as a step on the way to the realistic drawing, so that
+is where it lives now, and those steps were reworked so each one is visibly closer to the
+finished drawing than the last. Eyes mode has five styles, like the others.
+
+> "How accurate and reliable are the pencil grades, pressure and steps written under each
+> style?"
+
+**Not changed yet — answered.** The advice follows standard drawing-class practice and was
+written from general knowledge. It has not been checked against named sources, reviewed by
+a drawing teacher, or tried with learners, and it is the same text for every photo. See
+"Still open".
+
+---
+
+## Round 9 — a mode just for eyes
+
+*Shipped in: 1.4.0 (not yet uploaded)*
+
+> "I want a mode specifically for eyes. There are so many guides out there for drawing eyes
+> realistically, and I want this to be a lot more detailed going from the outline to the
+> realistic version."
+
+**What changed.** An Eyes mode was added. You drag a box round one eye, or load a close-up
+and leave the box alone. It has the longest step-by-step guide in the app: twelve stages
+where a portrait has nine. It starts with how wide, tall and tilted the eye is, then the
+eyeball with the lids wrapped over it, then the iris and pupil, then a planning step for
+where the highlight and the lid's shadow will go. After the outline it splits the shading
+into small steps instead of one jump: flat tones, the tones blended together, the iris on
+its own, the lids and corners, and the lashes last.
+
+**Where it falls short, as tested on 18 close-up photos.** The app has to find the coloured
+part of the eye before it can build anything round it. It gets that right on 12 of the 18,
+puts it in the right place at the wrong size on 3, and gets it wrong on 3. The eyelid
+shapes in the construction steps are an educated estimate fitted to each photo rather than
+a tracing, so they are eye-shaped and in the right place but not exact. The shaded steps
+do not depend on any of this and come out right regardless.
+
+**Left as is, deliberately.** The app does not try to find the eyes in a photo of a whole
+face for you. That was the first plan, and the test photos ended it: nearly all were
+close-ups with no face in them, and the face finder "found" a face inside more than half of
+those anyway.
+
+---
+
 ## Round 8 — figures cut off by the crop; no measurements on the guide lines
 
 *Shipped in: 1.3.0 (not yet uploaded)*
@@ -216,6 +497,32 @@ edges fade to show there's more off-screen.
 Known and not yet addressed. Worth listing in the write-up as acknowledged rather than
 missed.
 
+- **The written drawing advice has not been reviewed by anyone who teaches drawing.** The
+  pencil grades, pressure notes and steps follow common practice, but the specific figures
+  in them (an eye being about two and a half irises wide, finger joints at 47% and 74%, and
+  so on) are rules of thumb, and none of it has been tested on beginners.
+- **Nose mode misses about one photo in five**: faces turned only slightly to one side
+  (the tip is placed on the edge of the nose), photos with the eyes cut off at the top, and
+  the odd photo where it imagines a face. Tested on the tester's 16 photos; more photos of
+  mild turns would show whether this is a real pattern.
+- **How long the steps take to rebuild on a phone** when the detail slider moves has not
+  been measured. On a computer it is well under a second.
+- **Eyes mode on close-ups of a single eye** (no face in the photo) still uses the old
+  reading, which gets about half of the 19 test close-ups right by a strict measure. A
+  bright reflection covering half the pupil, a black-and-white photo with the white of the
+  eye in shadow, and an eye turned far to one side each throw off the construction steps,
+  and on some it places the corners too far in. The new face-based reading can't help
+  there: there's no face to take the eye's size from.
+- **Eyes mode on face photos was tested on only ten eyes**, in eight photos, and places
+  the iris less exactly than it sizes it (up to about half the iris's width off-centre).
+- **Eyes mode doesn't draw the tear duct.** On photos with a face it now knows which
+  corner is the inner one, but nothing draws it yet; on close-ups it can't tell, so the
+  instructions describe it instead.
+- **The nose wing correction was tuned on the same six face-on photos it was tested on.**
+  More face-on photos would show whether it holds.
+- **No visible credits screen.** The licence text for the face-tracking pieces (and the
+  other open-source parts) ships inside the app, but nothing in the app shows it. An
+  "About" or "Open-source licences" screen would be the tidy way to show it.
 - **One hand photo can't be read at all** — a hand mostly out of frame gripping a phone.
   It falls back to the rougher method rather than failing, but the result is poor.
 - **Dark backgrounds confuse posture mode's outline.** On one test photo of a figure

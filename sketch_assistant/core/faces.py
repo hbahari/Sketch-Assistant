@@ -114,11 +114,20 @@ def crop_to_box(img, box, margin=BOX_MARGIN):
     against it -- measured at 5%, 12% and 25%, all three isolate the object and 12% sits
     in the middle.
     """
+    b = crop_bounds(img, box, margin)
+    if b is None:                              # degenerate selection: use the whole frame
+        return img
+    x0, y0, x1, y1 = b
+    return img[y0:y1, x0:x1].copy()
+
+
+def crop_bounds(img, box, margin=BOX_MARGIN):
+    """The pixel bounds `crop_to_box` cuts: (x0, y0, x1, y1), or None for the whole frame."""
     H, W = img.shape[:2]
     x, y, w, h = box
     mx, my = w * margin, h * margin
     x0, y0 = int(max(0, x - mx)), int(max(0, y - my))
     x1, y1 = int(min(W, x + w + mx)), int(min(H, y + h + my))
-    if x1 - x0 < 8 or y1 - y0 < 8:            # degenerate selection: use the whole frame
-        return img
-    return img[y0:y1, x0:x1].copy()
+    if x1 - x0 < 8 or y1 - y0 < 8:
+        return None
+    return x0, y0, x1, y1

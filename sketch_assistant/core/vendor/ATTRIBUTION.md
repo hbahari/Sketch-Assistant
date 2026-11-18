@@ -35,3 +35,15 @@ Models, also Apache 2.0 from the same repository and fetched by
 
 - `person_detection_mediapipe_2023mar.onnx` (12 MB)
 - `pose_estimation_mediapipe_2023mar.onnx` (5.6 MB)
+
+## Eyes and Nose
+
+No code is vendored: `core/landmarks.py` runs the models through OpenCV's TFLite reader.
+The models are MediaPipe's own, Apache 2.0, from
+[google-ai-edge/mediapipe](https://github.com/google-ai-edge/mediapipe), fetched by
+`scripts/download_models.py` and checked by SHA-256:
+
+- `iris_landmark.tflite` (2.6 MB) -- the eye's lids and iris
+- `face_landmark.tflite` (1.2 MB) -- the 468-point face mesh
+
+The licence text and these notices ship inside the app as `assets/LICENSES.txt`.

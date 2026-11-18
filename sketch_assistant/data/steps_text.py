@@ -70,12 +70,65 @@ STEPS = {
                 "This is the point where it stops looking like a diagram.",
     },
     "values": {
-        "pencil": "HB for light tones, 2B for mid, 4B for the darks",
-        "technique": "Squint hard at the reference until the detail disappears and only patches "
-                     "of light and dark remain. Those patches are what you are drawing.",
-        "text": "Fill each area as one flat tone, with no blending yet, and leave the lightest "
-                "areas as bare paper. Work from light to dark: it is easy to deepen a tone and "
-                "difficult to lift one out.",
+        "pencil": "Paper, then HB, 2B and 4B -- the key under the picture says which grey is which",
+        "technique": "Value just means how light or dark something is, whatever its colour. "
+                     "This picture keeps only a few greys, so the big light and dark shapes "
+                     "show before any detail gets in the way. Squint at the photo and you will "
+                     "see the same shapes.",
+        "text": "Draw the borders between the greys lightly, as if they were the outlines of "
+                "countries on a map. Leave the lightest shapes as bare paper. Then fill every "
+                "shape of the next grey with one flat, even layer of the pencil the key gives "
+                "it, and so on down to the darkest. No blending and no detail yet. Work from "
+                "light to dark: a tone is easy to deepen and hard to lift out. When you have "
+                "finished, the drawing should already read as the subject from across the "
+                "room -- if it does not, the values are wrong, and no amount of detail later "
+                "will fix that.",
+    },
+    # ---- the bridge from hatching to a realistic finish, shared by every mode -----------
+    "hatch_tone": {
+        "pencil": "A sharp HB or 2B",
+        "technique": "The same values as the step before, built from strokes instead of flat "
+                     "fills. Darker means more crossing layers, never more pressure.",
+        "text": "Lay one layer of parallel strokes over everything except the lightest shapes, "
+                "a second crossing layer over the darker ones, and more layers only in the "
+                "darkest. Keep the strokes light and close together: they are going to be "
+                "blended in the next step, and heavy, widely spaced strokes leave stripes that "
+                "will not blend out.",
+    },
+    "hatch_blend": {
+        "pencil": "A blending stump (tortillon) for small areas, a tissue or chamois for large ones",
+        "technique": "Blend along the form and from dark into light, with light pressure. Keep "
+                     "a clean stump for the light areas: one that has been in the darks will "
+                     "grey everything it touches. Never scrub -- it polishes the paper, and "
+                     "polished paper will not take more graphite.",
+        "text": "Go over the hatching until the strokes melt into continuous tone. The lines of "
+                "your drawing should still be there; blending moves graphite around, it does "
+                "not erase anything. Stay out of the lightest shapes altogether. The result is "
+                "softer and a little flat -- that is right, the next step brings back the "
+                "contrast. If the strokes will not disappear, they were spaced too widely: "
+                "add a light layer in between and blend again.",
+    },
+    "lights_darks": {
+        "pencil": "Kneaded eraser, pinched to an edge; 4B to 6B for the darks",
+        "technique": "Blue outlines: the brightest shapes -- keep them as clean paper, or lift "
+                     "them back out with the eraser, pressing and lifting rather than rubbing. "
+                     "Red outlines: the darkest shapes -- press to full dark, in small strokes.",
+        "text": "This is where shading turns into light and shadow. Light falls on a form in a "
+                "few distinct ways, and each is drawn differently:\n"
+                "- [b]Highlight[/b]: where light hits directly. Bare paper. Hard-edged on shiny "
+                "things (an eye, glass), soft on skin and cloth.\n"
+                "- [b]Light side[/b]: the lit surface, getting slowly darker as it turns away from "
+                "the light.\n"
+                "- [b]Core shadow[/b]: the darkest band of the shadow side, just past where light "
+                "turns to shadow. Soft-edged on round forms, sharp on angular ones.\n"
+                "- [b]Reflected light[/b]: a slightly lighter area inside a shadow, from light "
+                "bouncing off something nearby. Lift it a touch -- it must stay darker than "
+                "anything on the lit side.\n"
+                "- [b]Cast shadow[/b]: the shadow a form throws onto something else. Darkest and "
+                "sharpest where the two touch, softer and lighter further away.\n"
+                "- [b]Contact shadow[/b]: the thin, darkest accent where two surfaces meet -- "
+                "mouth corners, between fingers, under an object. Most red outlines are these.\n"
+                "Do the marked shapes first, then look for the rest of each kind in the photo.",
     },
 
     # ---- objects --------------------------------------------------------------------
@@ -215,6 +268,218 @@ STEPS = {
                 "fold drawn without knowing what is beneath it reads as a crease in paper. "
                 "Then erase the scaffolding.",
     },
+    # ---- eyes -----------------------------------------------------------------------
+    "eye_envelope": {
+        "pencil": "2H, barely touching the paper",
+        "technique": "Measure with the pencil: hold it at arm's length against the photo, mark "
+                     "the eye's width with your thumb, and see how many times the height goes "
+                     "into it. Then check the tilt the same way before drawing anything.",
+        "text": "Put down four dots and one line, and nothing else: a dot at each corner, one "
+                "at the highest point of the upper lid and one at the lowest point of the lower "
+                "lid, then the line from corner to corner. That line is almost never level -- "
+                "one corner sits higher than the other -- and getting its slope right now is "
+                "what stops the finished eye looking like a symbol of an eye. Notice that the "
+                "high point of the upper lid and the low point of the lower lid are not above "
+                "one another.",
+    },
+    "eye_ball": {
+        "pencil": "2H for the ball, HB for the lids",
+        "technique": "Draw through. The eyeball is a sphere sitting in a socket and the lids are "
+                     "two strips of skin wrapped over it, so draw the whole ball first, even "
+                     "though most of it will never show.",
+        "text": "Lightly draw the ball as a full circle, bigger than you expect: about twice "
+                "the width of the iris. Then lay the upper lid over it as one curve from corner "
+                "to corner through your high dot, and the lower lid through your low dot. The "
+                "upper lid is the more arched of the two; the lower is nearly flat for most of "
+                "its length. Because the lids lie on a ball, they bulge toward you in the "
+                "middle -- keep that in mind when you shade later.",
+    },
+    "eye_lids": {
+        "pencil": "HB",
+        "technique": "The iris is a full circle that the lids cut into. Draw the whole circle "
+                     "first and let the lids hide part of it, rather than drawing the visible "
+                     "piece as its own shape.",
+        "text": "Draw the iris as a complete circle, then erase what the upper lid covers -- on "
+                "a relaxed eye the lid hides the top of it, and the lower lid just touches the "
+                "bottom. An iris showing white all the way round reads as fright. Put the pupil "
+                "dead centre of the iris, not centre of the visible part. Then give the lower "
+                "lid its thickness: a second line just inside the first, which is the wet rim "
+                "the lashes grow out of. Add the crease above the upper lid if there is one, "
+                "following the lid but drifting away from it toward the middle.",
+    },
+    "eye_plan": {
+        "pencil": "HB, very lightly -- these are notes to yourself",
+        "technique": "Decide where the white is before you add any dark. Graphite cannot be "
+                     "made lighter than the paper, so the highlight has to be saved, not added.",
+        "text": "Outline the highlight in the iris and promise yourself not to shade inside it. "
+                "Mark the band of shadow the upper lid throws across the top of the iris -- it "
+                "is why the top of an iris is always darker than the bottom, and leaving it out "
+                "makes the eye look like it is staring. Finally note which way the lashes grow: "
+                "they fan outward, leaning toward whichever corner they are nearer, and the "
+                "lower ones are shorter and fewer. Do not draw any lashes yet.",
+    },
+    "eye_outline": {
+        "pencil": "HB, then 2B along the upper lid",
+        "technique": "Line weight carries the form. The upper lid line is the heaviest because "
+                     "the lashes and their shadow sit on it; the lower lid is light enough to "
+                     "almost disappear toward the inner corner.",
+        "text": "Go over the lids with their real shapes, using your construction as the guide "
+                "and the photo for the small departures from it. Thicken the upper lid line "
+                "and let it taper at both ends. Draw the lower lid broken and light. At the "
+                "inner corner draw the small pink fold of the tear duct instead of bringing the "
+                "two lids to a sharp point -- it is the detail most often left out. Firm up "
+                "the iris and the pupil, and the crease.",
+    },
+    "eye_surround": {
+        "pencil": "HB",
+        "technique": "Draw the brow as a shape first and as hairs never, at this stage. An eye "
+                     "without what surrounds it floats on the page.",
+        "text": "Place the brow, measuring its distance from the lid in iris-heights. Block it "
+                "in as one tapered shape: thickest toward the nose, thinning as it arcs over "
+                "and down past the outer corner. Add the fold below the lower lid and any "
+                "lines at the outer corner, lightly. Then erase the construction -- the ball, "
+                "the box and the axis have done their job.",
+    },
+    "eye_blend": {
+        "pencil": "2B on its side, then a blending stump or tissue",
+        "technique": "Blend from the dark into the light, never the other way, and keep the "
+                     "stump off the highlight. Blending is for joining tones, not for creating "
+                     "them: lay the right value first, then soften the edge.",
+        "text": "Turn your flat value blocks into continuous tone. Soften every boundary "
+                "between them so one value slides into the next. The white of the eye is not "
+                "white: it is a ball, so it darkens toward both corners and under the upper "
+                "lid, and only the patch nearest the light is left as bare paper. At this "
+                "stage nothing should be sharp -- no lashes, no iris pattern. If it looks like "
+                "the photo slightly out of focus, it is right.",
+    },
+    "eye_iris_tone": {
+        "pencil": "4B for the pupil and the rim, 2B and a sharp HB for the fibres, kneaded eraser",
+        "technique": "Work from the pupil outwards in short strokes, like spokes. The iris is a "
+                     "shallow bowl with a pattern in it, not a flat disc with lines on it.",
+        "text": "Fill the pupil as dark as your pencil will go, leaving the highlight clean. "
+                "Darken the outer rim of the iris -- most irises have a darker ring at the "
+                "edge. Then draw the fibres: short strokes radiating from the pupil, uneven in "
+                "length and weight, with a second set coming inward from the rim to meet them. "
+                "Keep the top of the iris darker, under the lid's shadow, and let the side "
+                "opposite the highlight glow a little lighter: light passes through the iris "
+                "and brightens the far side. Pinch the eraser to a point to lift a few pale "
+                "fibres back out.",
+    },
+    "eye_form": {
+        "pencil": "HB and 2B, stump",
+        "technique": "Shade the lids as bands wrapping a ball. The value changes along the lid "
+                     "as it turns away from the light, not just from top to bottom.",
+        "text": "Model the upper lid: darkest in the crease, lighter on the swell below it, "
+                "dark again where it meets the lashes. Give the lower lid its lit rim -- that "
+                "thin wet edge catches light and is usually the second-brightest thing in the "
+                "drawing. Deepen the two corners, shade the tear duct softly, and put the "
+                "shadow under the lower lid in. Sharpen the edges that are really sharp (lid "
+                "against eyeball) and leave the rest soft.",
+    },
+    "eye_lashes": {
+        "pencil": "A sharp 2B or 4B",
+        "technique": "Flick, do not draw. Start each lash at the lid with pressure and lift off "
+                     "as you go, so it is thick at the root and vanishes at the tip. Turn the "
+                     "paper so the stroke curves the natural way for your hand.",
+        "text": "Lashes go on last and there are fewer than you think. Draw them in clumps of "
+                "two or three whose tips touch, curving up and away, leaning toward the nearer "
+                "corner. Upper lashes are long and start from the lid's outer edge; lower ones "
+                "are short, sparse and start from the far side of the wet rim, not from the "
+                "eyeball. Let a few upper lashes cross the highlight and reflect in it. Then "
+                "the brow: short hairs laid in its direction of growth, upward near the nose "
+                "and flattening outward, over the shape you blocked in.",
+    },
+    # ---- noses ----------------------------------------------------------------------
+    "nose_envelope": {
+        "pencil": "2H, barely touching the paper",
+        "technique": "Measure before drawing. A nose is usually about as wide as the gap between "
+                     "the inner corners of the eyes, and from its root between the eyes to its "
+                     "base it is about a third of the face: the same as from the brows to the "
+                     "hairline, or from the base of the nose to the chin. Check both against the "
+                     "photo with your pencil held at arm's length.",
+        "text": "Mark three things and nothing else: the root of the nose between the eyes, the "
+                "base where the nostrils are, and the width across the wings. Draw a light box "
+                "through them and a centre line from root to base. The centre line follows the "
+                "tilt of the face; if the head is turned, the whole nose shifts toward the far "
+                "side, so line it up with the photo rather than with the middle of the box.",
+    },
+    "nose_wedge": {
+        "pencil": "2H",
+        "technique": "Think of the nose as a wedge of flat planes stuck onto the face: a narrow "
+                     "front plane down the bridge, a side plane on each side, and a base plane "
+                     "underneath where the nostrils are. Light falls differently on each plane, "
+                     "and those differences are what you will shade later.",
+        "text": "Draw the front plane as a long, narrow strip from the root to the tip, wider at "
+                "the tip. Join its edges out to the wings for the two side planes. Then draw the "
+                "base plane as a flat shape underneath, between the wings. The base plane is the "
+                "one most people forget: it faces down, so it is nearly always in shadow, and "
+                "without it the nose looks pasted on.",
+    },
+    "nose_balls": {
+        "pencil": "HB, lightly",
+        "technique": "The three-ball method: one ball for the fleshy tip, a smaller ball on each "
+                     "side for the wings. The nostrils sit under and inside the wings, not on the "
+                     "front of the nose.",
+        "text": "Draw a circle for the ball of the tip and a smaller one for each wing, resting "
+                "on the base line and just overlapping the tip. Place each nostril under its "
+                "wing as a small comma or kidney shape, angled toward the centre. Between them "
+                "is the columella, the strip of skin under the tip. From the front only part of "
+                "each nostril shows -- draw just the part you can see in the photo.",
+    },
+    "nose_plan": {
+        "pencil": "HB, very lightly -- these are notes to yourself",
+        "technique": "A nose is drawn mostly with tone, not lines, so plan the shadow shapes "
+                     "before any shading. The light direction decides all of them.",
+        "text": "Lightly outline the side plane facing away from the light, the base plane "
+                "underneath, and the shadow the nose throws onto the upper lip, on the side away "
+                "from the light. Mark the two highlights you will keep white: the strip down the "
+                "bridge and the spot on the tip. Note where the darkest accents go, deep inside "
+                "the nostrils. The app guesses the light from the photo and shades the side it "
+                "thinks is in shadow; check that against the photo.",
+    },
+    "nose_outline": {
+        "pencil": "HB, then 2B for the nostrils",
+        "technique": "Only a few lines on a nose are real lines: the nostril openings and the "
+                     "creases round the wings. The sides of the bridge have no outline at all -- "
+                     "they are a change of tone.",
+        "text": "Draw the nostrils, darkest at their inner, upper part and softer toward the "
+                "outside. Draw the crease where each wing meets the cheek, firm at the bottom "
+                "and fading as it rises. Resist drawing lines down the sides of the bridge; if "
+                "you need a reminder of where the side plane turns, make a mark so faint it will "
+                "disappear under the shading.",
+    },
+    "nose_surround": {
+        "pencil": "HB",
+        "technique": "A nose only reads as a nose with something around it. Draw the "
+                     "surroundings lightly, so they place the nose without competing with it.",
+        "text": "Place the inner corners of the eyes, the brows and the line of each cheek, and "
+                "the top of the upper lip with the groove that runs up to the nose. Then erase "
+                "the construction, keeping only the faintest trace of the planes to guide the "
+                "shading.",
+    },
+    "nose_planes": {
+        "pencil": "HB and 2B, blending stump",
+        "technique": "Shade plane by plane. The front plane is lit; the side plane away from the "
+                     "light is the darkest of the upper planes; the turn between them is soft "
+                     "over the fleshy tip and sharper over the bony bridge.",
+        "text": "Lay tone on the shadow side plane and soften it where it turns toward the "
+                "front. Keep the bridge strip light; it changes where the bone gives way to "
+                "cartilage, about halfway down, often a slight bump or a change in the width of "
+                "the highlight. Add the soft shadow at the root, where the nose meets the brow "
+                "and the corners of the eyes, and darken the side where the nose meets the "
+                "cheek.",
+    },
+    "nose_base": {
+        "pencil": "2B to 4B, kneaded eraser",
+        "technique": "The base plane and the cast shadow are what fix a nose to the face. Without "
+                     "them it floats.",
+        "text": "Shade the base plane under the tip, darker than the side planes. Fill the "
+                "nostrils, darkest deep inside; their edges are not pure black, because they "
+                "catch light bouncing up from the lip. Lift a touch of that reflected light on "
+                "the underside of the wings and the columella. Then draw the cast shadow on the "
+                "upper lip: darkest and sharpest right under the nose, softer and lighter as it "
+                "spreads away.",
+    },
 }
 
 # `finish` depends on the style family you chose, so it gets its own table
@@ -236,12 +501,15 @@ FINISH = {
                 "no longer need.",
     },
     "value": {
-        "pencil": "HB, 2B, 4B and 6B; a blending stump is optional",
+        "pencil": "The key under the picture: paper for the lightest grey, then one pencil per grey",
         "technique": "Keep each tone flat and distinct. If two neighbouring tones look the same, "
                      "the study has failed at its one job.",
-        "text": "Work through the tones from light to dark, leaving the brightest shapes as bare "
-                "paper. Hold the edges between tones crisp: this style is about seeing the big "
-                "shapes of light, not about smooth gradients.",
+        "text": "A value study is a plan, not a finished picture: it shows only where the light "
+                "and dark shapes are. Work through the greys from light to dark, matching each "
+                "to its swatch in the key and leaving the lightest as bare paper. Hold the edges "
+                "between tones crisp. Artists make one of these before a shaded drawing because "
+                "the big shapes of light are what make a drawing read -- get them right here "
+                "and every other style is this, with more on top.",
     },
     "hatch": {
         "pencil": "A sharp HB or 2B, or a fine liner; re-sharpen often",
@@ -257,7 +525,10 @@ FINISH = {
                      "in the very darkest accents, and blend along the form rather than across it.",
         "text": "Lay the mid-tones first and blend them smooth, then deepen the shadows gradually. "
                 "Lift the highlights back out with a kneaded eraser rather than drawing around "
-                "them. Add texture and the sharpest details last.",
+                "them. Add texture and the sharpest details last. If smooth shading feels hard, "
+                "take the route the steps show: hatch the tones in, blend the hatching, then "
+                "lift the lights and deepen the darks -- each of those is easier than shading "
+                "smooth from nothing.",
     },
 }
 
@@ -297,6 +568,50 @@ FINISH_OVERRIDE = {
                 "last time, and check that the plumb line from the chest still lands near "
                 "the supporting foot -- if it does not, the figure will look like it is "
                 "falling over, however well the parts are drawn.",
+    },
+    "eye_construct": {
+        "pencil": "2H for the ball and the box, HB for the lids and the iris",
+        "technique": "Leave the construction showing. This drawing is for understanding how "
+                     "the eye is built, and it is the page to come back to when a finished "
+                     "eye looks wrong and you cannot tell why.",
+        "text": "Firm up the lids, the iris and the pupil, and keep the ball, the corner line "
+                "and the box visible underneath. Check three things against the photo: how "
+                "many irises wide the eye is, how much of the iris the upper lid covers, and "
+                "whether the pupil really is in the centre of the iris. Most eyes that look "
+                "wrong are wrong in one of those three.",
+    },
+    "eye_realistic": {
+        "pencil": "2H through 6B, a sharp HB, stump, kneaded eraser pinched to a point",
+        "technique": "Contrast makes an eye look wet. The darkest dark and the cleanest white "
+                     "sit side by side at the highlight, and that one hard edge does more than "
+                     "any amount of detail.",
+        "text": "Bring the pupil and the upper lash line to full dark. Clean the highlight back "
+                "to bare paper and give it one crisp edge. Add the small second highlight on "
+                "the wet rim of the lower lid and in the tear duct. Put the faintest shadow of "
+                "the lashes on the eyeball below the upper lid. Then stop: over-worked lashes "
+                "and an iris with every fibre drawn are the two things that most often spoil "
+                "an eye that was right ten minutes earlier.",
+    },
+    "nose_construct": {
+        "pencil": "2H for the box and the planes, HB for the balls and nostrils",
+        "technique": "Leave the construction showing. This drawing is for understanding how the "
+                     "nose is built, and it is the page to come back to when a finished nose "
+                     "looks flat or stuck on.",
+        "text": "Firm up the balls and the nostrils and keep the planes visible underneath. "
+                "Check three things against the photo: the width against the inner corners of "
+                "the eyes, that the base plane is there at all, and that the nostrils sit under "
+                "the wings rather than on the front. Most noses that look wrong are wrong in one "
+                "of those three.",
+    },
+    "nose_realistic": {
+        "pencil": "2H through 6B, blending stump, kneaded eraser",
+        "technique": "Edges make a nose. Keep them hard where a nostril meets its wing and where "
+                     "the cast shadow starts, and soft everywhere along the bridge and the sides.",
+        "text": "Bring the nostrils and the darkest part of the cast shadow to full dark. Lift "
+                "the highlight on the tip and the strip down the bridge back to clean paper. "
+                "Soften any line left down the sides of the bridge until it is only a change of "
+                "tone. Add skin texture lightly -- pores show most round the tip and the wings -- "
+                "and stop before the nose gets more detail than the rest of the face around it.",
     },
     "hand_construct": {
         "pencil": "2H for the block-in, HB for structure, 2B for the joint creases",

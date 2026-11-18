@@ -110,18 +110,21 @@ class BoxSelector(Image):
         self._drag = None
         self.bind(pos=self._redraw, size=self._redraw, texture_size=self._redraw)
 
-    def set_photo(self, img_bgr, default=0.85):
-        """Show a photo and start from a box covering `default` of it, centred.
+    def set_photo(self, img_bgr, default=0.85, box=None):
+        """Show a photo and start from `box`, or else a box covering `default` of it, centred.
 
         The default is deliberately close to the whole frame: it keeps the result for
         photos that already worked unchanged, so dragging is purely an improvement rather
-        than a new thing to get right.
+        than a new thing to get right. A mode that can find its subject (Nose) passes the
+        box it found instead, so the user starts from the answer and only drags to correct it.
         """
         h, w = img_bgr.shape[:2]
         self._size = (w, h)
         self.texture = to_texture(img_bgr)
-        bw, bh = w * default, h * default
-        self.box = ((w - bw) / 2, (h - bh) / 2, bw, bh)
+        if box is None:
+            bw, bh = w * default, h * default
+            box = ((w - bw) / 2, (h - bh) / 2, bw, bh)
+        self.box = tuple(float(v) for v in box)
         self._redraw()
 
     def _scale_origin(self):
