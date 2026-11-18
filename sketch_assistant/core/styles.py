@@ -939,7 +939,25 @@ NOSE_STYLES = {s.key: s for s in (      # nose mode: one nose, framed by the use
     Style("nose_hatch", "Cross-Hatch", crosshatch, "Hatch", 0.5, "hatch"),
     Style("nose_realistic", "Photorealism", photorealistic, "Realistic", 0.6, "real"),
 )}
-ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES, **BODY_STYLES, **EYE_STYLES, **NOSE_STYLES}
+def _car(name):
+    """Caricature renderers, imported on first use (core/caricature.py)."""
+    def render_fn(img, d=0.5):
+        from . import caricature
+        return getattr(caricature, name)(img, d)
+    return render_fn
+
+
+# caricature mode (shown as Cartoon): the slider is the exaggeration, not the detail (see
+# Mode.slider_labels). It starts a third of the way up: a cartoon, not a lampoon.
+# Light Hatching is a line drawing with a little line hatching, not a tonal style -- it has
+# no value study or blending on its way -- so it is in the line family.
+CARICATURE_STYLES = {s.key: s for s in (
+    Style("car_hatch", "Light Hatching", _car("caricature_hatched"), "Hatched", 0.35, "line"),
+    Style("car_lines", "Clean Lines", _car("caricature_lines"), "Lines", 0.35, "line"),
+    Style("car_shapes", "Shapes", _car("caricature_shapes"), "Shapes", 0.35, "construct"),
+)}
+ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES, **BODY_STYLES, **EYE_STYLES, **NOSE_STYLES,
+       **CARICATURE_STYLES}
 
 
 def family_of(style_key):

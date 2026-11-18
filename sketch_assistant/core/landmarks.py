@@ -39,6 +39,20 @@ def _net(path):
     return _nets[path]
 
 
+def unavailable_reason(path=None):
+    """Why a model can't be used here, in words a person can act on, or None if it can.
+    A missing model used to look exactly like a photo with no face in it."""
+    path = path or MESH_PATH
+    if not hasattr(cv2.dnn, "readNetFromTFLite"):
+        return (f"this OpenCV ({cv2.__version__}) can't read the face models - "
+                "it needs 4.8 or newer (pip install -U opencv-python-headless)")
+    if not path.exists():
+        return f"the face model {path.name} is missing - run scripts/download_models.py"
+    if _net(path) is None:
+        return f"the face model {path.name} wouldn't load - run scripts/download_models.py again"
+    return None
+
+
 def iris_available():
     return _net(IRIS_PATH) is not None
 
@@ -73,6 +87,13 @@ def _back(M, pts):
     return pts @ inv[:, :2].T + inv[:, 2]
 
 
+def _by_size(net, sizes):
+    """The model's outputs picked by how many numbers each holds, not by name: OpenCV
+    versions name a TFLite model's outputs differently."""
+    outs = net.forward(net.getUnconnectedOutLayersNames())
+    return [next(o for o in outs if o.size == n) for n in sizes]
+
+
 def _blob(crop):
     x = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
     return x.transpose(2, 0, 1)[None]
@@ -89,7 +110,7 @@ def _iris_once(img, cx, cy, side, flip, angle=0.0):
     if flip:
         crop = crop[:, ::-1]
     net.setInput(_blob(np.ascontiguousarray(crop)))
-    eye, iris = net.forward(["output_eyes_contours_and_brows", "output_iris"])
+    eye, iris = _by_size(net, (213, 15))
     pts = np.r_[eye.reshape(-1, 3)[:, :2], iris.reshape(-1, 3)[:, :2]].astype(np.float64)
     if flip:
         pts[:, 0] = 64.0 - pts[:, 0]
@@ -187,8 +208,7 @@ def face_mesh(img, eye_mid, mouth_mid, iterations=2, with_flag=False, with_z=Fal
     for _ in range(iterations):
         crop, M = _crop(img, centre[0], centre[1], side, 192, angle)
         net.setInput(_blob(crop))
-        outs = dict(zip(net.getUnconnectedOutLayersNames(), net.forward(net.getUnconnectedOutLayersNames())))
-        flag, mesh = outs["conv2d_31"], outs["conv2d_21"]
+        mesh, flag = _by_size(net, (1404, 1))
         first = float(flag.ravel()[0]) if first is None else first
         p3 = mesh.reshape(-1, 3).astype(np.float64)
         pts = _back(M, p3[:, :2])

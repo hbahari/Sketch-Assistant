@@ -11,7 +11,10 @@ The committed Posture tiles were made from `tests/fixtures/bodies/kneeling.jpg` 
 `union_box(detect(...), margin=0.08)`. Recorded because the reference photos for the other
 modes do not live in the repo, so a single stale tile is otherwise impossible to redo
 without reframing the whole set. The Eyes tiles are from `tests/fixtures/eyes/blue_macro.jpg`,
-uncropped, and the Nose tiles from `tests/fixtures/noses/front_clear.jpg`, uncropped.
+uncropped, and the Nose tiles from `tests/fixtures/noses/front_clear.jpg`, uncropped. The
+Caricature tiles come from the portrait reference like the Portrait ones; the committed
+ones were made from `tests/fixtures/portraits_close/close_09.jpg` with
+`python scripts/make_examples.py --caricature tests/fixtures/portraits_close/close_09.jpg`.
 """
 import sys
 from pathlib import Path
@@ -20,7 +23,7 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from sketch_assistant.core.faces import crop_face, detect_faces, load_image  # noqa: E402
+from sketch_assistant.core.faces import crop_face, crop_info, detect_faces, load_image  # noqa: E402
 from sketch_assistant.core.modes import MODES  # noqa: E402
 from sketch_assistant.core.styles import render  # noqa: E402
 
@@ -88,7 +91,20 @@ def tile(src, key, fit=False):
     cv2.imwrite(str(OUT / f"{key}.png"), sq)
 
 
+def caricature_only(path):
+    full = load_image(path)
+    faces = detect_faces(full)
+    if not faces:
+        sys.exit(f"No face found in {path}.")
+    src = crop_info(full, max(faces, key=lambda f: f.w * f.h))[0]
+    for key in MODES["caricature"].styles:
+        tile(src, key, fit=True)
+        print(f"  {key}")
+
+
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "--caricature":
+        return caricature_only(sys.argv[2])
     if len(sys.argv) < 3:
         sys.exit(__doc__)
     full = load_image(sys.argv[1])
@@ -103,6 +119,7 @@ def main():
         "eyes": load_image(sys.argv[5]) if len(sys.argv) > 5 else None,
         "nose": load_image(sys.argv[6]) if len(sys.argv) > 6 else None,
     }
+    sources["caricature"] = crop_info(full, faces[0])[0]
     if len(sys.argv) <= 3:
         print("note: no hand photo given, using the synthetic stand-in for the Hands tiles")
     if len(sys.argv) <= 4:
@@ -113,7 +130,7 @@ def main():
             print(f"warning: no reference image for mode '{mode}', its tiles were skipped")
             continue
         for key in m.styles:
-            tile(src, key, fit=(mode == "body"))
+            tile(src, key, fit=(mode in ("body", "caricature")))
             print(f"  {key}")
     print("wrote", len(list(OUT.glob('*.png'))), "thumbnails to", OUT)
 

@@ -316,6 +316,57 @@ TIPS = {
             "Add skin texture lightly round the tip and wings, and stop.",
         ],
     },
+    # ---- caricature -------------------------------------------------------------------
+    "car_hatch": {
+        "what": "A cartoon of the face in the style of the app's icon: clean lines, expressive "
+                "eyes with lashes, brows drawn hair by hair, a simple nose, flowing strands of "
+                "hair and a little hatching. The slider pushes what is already distinctive "
+                "about the face -- a long chin longer, close eyes closer -- from not at all to a "
+                "full caricature.",
+        "pencils": "HB for the shapes, 2B or a fine liner for the final lines.",
+        "pressure": "Light for the shapes; one even, confident weight for the final lines; "
+                    "lighter again for the hatching.",
+        "steps": [
+            "Draw the head shape and the hair mass as simple outlines, with the centre line.",
+            "Mark the eye, nose and mouth lines where the guide puts them - these are the "
+            "caricature's proportions, not the photo's.",
+            "Place the eyes, nose and mouth as simple shapes on those lines.",
+            "Draw the face outline and the hair's outline in one even line.",
+            "Draw the eyes: heavy upper lid, crease, iris and pupil with a white catchlight, "
+            "lashes sweeping out from the outer half. Then the brows, hair by hair.",
+            "Draw the nose as a curl round each wing and a curve under the tip, then the mouth.",
+            "Add strands of hair, following the way it falls.",
+            "Hatch the shadow side in short parallel strokes, all one direction, and stop early.",
+        ],
+    },
+    "car_lines": {
+        "what": "The same cartoon as Light Hatching, with no shading at all: the lines "
+                "alone have to carry it.",
+        "pencils": "HB for the shapes, 2B or a fine liner for the final lines.",
+        "pressure": "Light for the shapes; one even, confident weight for every final line.",
+        "steps": [
+            "Draw the head shape and the hair mass as simple outlines, with the centre line.",
+            "Mark the eye, nose and mouth lines where the guide puts them.",
+            "Place the features as simple shapes on those lines.",
+            "Draw the face outline and the hair's outline.",
+            "Draw the eyes and brows, then the nose and mouth.",
+            "Add a few long strands of hair, and erase the shapes underneath.",
+        ],
+    },
+    "car_shapes": {
+        "what": "The cartoon as the simple shapes it is built on: the head, the hair mass, "
+                "and an oval or a triangle for each feature. Get these right and the rest "
+                "follows.",
+        "pencils": "2H or HB, kept light.",
+        "pressure": "Light throughout: these shapes are scaffolding for the line drawing.",
+        "steps": [
+            "Draw the head shape and the outline of the hair mass.",
+            "Draw the centre line and the eye, nose and mouth lines across it.",
+            "Draw an oval for each eye on the eye line.",
+            "Draw a triangle for the nose down to the nose line.",
+            "Draw an oval for the mouth on the mouth line.",
+        ],
+    },
 }
 
 

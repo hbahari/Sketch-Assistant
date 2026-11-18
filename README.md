@@ -99,7 +99,8 @@ Measured against the photographs in `tests/fixtures/` (see `CREDITS.md` for sour
 | **Hands** | Strongest. Landmark models read 19 of 20 test photos, including a fist head-on, fingers round a mug and extreme foreshortening. The one miss falls back rather than guessing. |
 | **Portrait** | Solid. A face was found in all 27 test portraits, 26 with landmarks, and every one produces the full nine-stage sequence. Where MediaPipe's face mesh is available the guide oval is fitted to the face's own outline: on 15 hand-marked close-up faces it runs through the chin with the face inside on 10, against 2 when scaled from the detector box. See below. |
 | **Object** | The user draws a box round the object they want; see below for why. |
-| **Nose** | Newest. The face detector, given room by padding the photo, anchors the nose; the nostrils (face-on) or the nose's outline (side-on) are then read locally. On 16 hand-marked tester photos -- close-ups, three-quarter and side views -- found on 13, against 1 for the first version. The box picker starts on the nose; where MediaPipe's face mesh is available the wings and the line down the bridge come from it. See below. |
+| **Cartoon** (key `caricature`) | Newest. Portraits only: the face mesh is compared, in 3D, with MediaPipe's average face, and this face's differences are pushed as far as the slider says, then drawn as clean lines from the mesh (no tracing) with hair from the person segmentation. On 8 faces, 26 of 29 distinctive proportions move the face's own way at full strength. Glasses aren't drawn, beards are rough, side profiles weak. See below. |
+| **Nose** | Recent. The face detector, given room by padding the photo, anchors the nose; the nostrils (face-on) or the nose's outline (side-on) are then read locally. On 16 hand-marked tester photos -- close-ups, three-quarter and side views -- found on 13, against 1 for the first version. The box picker starts on the nose; where MediaPipe's face mesh is available the wings and the line down the bridge come from it. See below. |
 | **Eyes** | Two halves. On a photo with a face, MediaPipe's face mesh and iris model find the eye and the box starts on it: on ten hand-marked eyes the iris size is within 21% every time, where reading a loose box alone was 2.7 to 4 times too big on six. Close-ups of one eye (no face) are still read by a circle search and a lid template: right on 10 of 19 close-ups. See below. |
 | **Posture** | Figures found by MediaPipe Pose. Tap one, or several -- two people interacting are one composition, so choosing both gives a region spanning them and the gap. |
 
@@ -195,6 +196,95 @@ when a face is really there: the detector "finds" a face inside five of the clos
 it must agree with itself across most of its paddings (support 3.0; invented faces reached
 2.7, real ones 3.6 and up) and the face mesh must say a face is present. Both thresholds
 were set on these photos.
+
+### Cartoon (Caricature), specifically
+
+Shown in the app as **Cartoon**: the first version was called Caricature, and the tester
+found it stripped too much from the face and asked for "a more cartoonized version" with
+"some soul" -- lashes, brow lines and nose lines like the app icon, and more hair. The
+internal key is still `caricature`, and the slider still runs from no exaggeration to a
+full caricature; it starts a third of the way up.
+
+**The second pass, for expression.** Eyes: a grey iris with a dark rim, fibres, a shadow
+from the upper lid, a big pupil and a catchlight; a heavy upper lid, heavier over its
+outer two-thirds; a crease above it; six lashes sweeping out from the outer half, longest
+at the corner; three short lower lashes; the tear duct. Brows: a soft tapered shape (thin
+outside, full and rounded inside) filled with thirty short hair strokes leaning outwards.
+Nose: face-on, the mesh's lower edge of the nose is nearly straight and drew as two
+dashes, so the nose is now a cartoonist's -- a curl round each wing and a curve under the
+tip, placed and sized from the mesh's wings, tip and base and turned with the head -- plus
+one line down the side away from the light. Mouth and chin (a third pass, on request): the
+whole lower lip, a tick at each corner, the philtrum ridges to the peaks of the upper lip,
+three strokes across the lower lip, the dip under it and the chin's curve above its
+outline; a hair outline running within 3% of a face height of the jaw is dropped, as it
+drew a second chin line. Hair: up to 26 strands, closer together and
+shorter at the minimum. Hatching is clipped to inside the drawing's outline. Measured:
+round the eyes and nose, half as much ink again as the plain version at least (tested),
+and still under a third of Portrait's Cross-Hatch overall.
+
+
+A tester asked for a mode that turns a portrait into a simple caricature: head only, no
+surroundings, far simpler to draw than Photorealism, light hatching at most, in the
+style of the app icon, with a slider for how far to exaggerate.
+
+**What's exaggerated, and how.** A caricature is recognisable because it pushes what is
+already distinctive about one face, not because every face gets the same big head. So
+(`core/caricature.py`):
+
+1. The face mesh gives 468 points in 3D (`landmarks.face_mesh(..., with_z=True)`).
+2. MediaPipe's canonical face (`core/face_average.py`) is fitted to them by rotation,
+   uniform scale and translation only (Umeyama), so it sits in the same pose.
+3. The leftover difference -- this face's shape -- is smoothed over each point's eight
+   neighbours (three passes; unsmoothed, the mesh's jitter made every outline wavy),
+   multiplied by the slider (0 to 2.5) and added back. In 3D, so a turned head is not
+   taken for a lopsided face.
+
+Anything off the mesh (hair, hatching) moves by inverse-distance blending of the nearest
+24 mesh points' movement. Measured on 8 near face-on faces, for four proportions a
+caricaturist pushes (face width to height, nose width and mouth width to eye span,
+eye-to-mouth to face height): of the 29 that differ from the average by more than 3%,
+26 move further the face's own way at full strength. A fixed cartoon push (every
+proportion 10% larger) agrees 21 times -- the control in the test.
+
+**Drawn from the points, not traced.** Every line is a mesh contour: the jaw (only where
+it isn't under the hair; above the eyes only against the background; always below the
+mouth, so a beard doesn't erase the chin), the lids, an iris circle from the iris model
+clipped to the lids, brows as tapered shapes, two hooks for the nostrils, the top of the
+upper lip, the line between the lips and a short curve under the lower one. Corner-cut
+smoothing turns the few points per feature into curves. That is what keeps it as clean
+as the icon.
+
+**Hair and head.** MediaPipe's person segmentation (`selfie_segmentation.tflite`, 0.25 MB)
+gives the person; less the face and, below the eyes, skin-coloured pixels (ears, neck),
+it is the hair. Above the eyes everything beyond the face counts: colour alone mistook
+blonde and pink hair for skin. Below the mouth hair is kept only within a quarter of a
+face width of the face, and a patch must reach eye level (collars don't). Its outline is
+drawn except along the photo's edge and the cut just under the chin. A bald head is
+skin-coloured above the face *and* smoother than the cheek (fine texture under 0.8 of the
+cheek's: 0.43 and 0.73 on the two bald test heads, hair 0.91 and up; set on those
+photos): it keeps its outline but gets no hairline. Strands are traced along the hair's
+direction -- the structure tensor where the hair has texture, parallel to its outline
+where it doesn't -- deepest first, at most 14, each stopping short of its ends.
+
+**Light hatching.** One layer of parallel strokes over the darkest fifth of the face
+(away from the features) and the darkest 30% of the hair, angled from the lit side,
+stopping short of each edge. Light Hatching puts down under a third of the ink of
+Portrait's Cross-Hatch on the same crop; Clean Lines less again (tested).
+
+**Portraits only, said up front.** `Mode.note` is shown on the status line as soon as the
+mode is chosen ("Cartoon works on portraits only - add a photo of a face"), and the found,
+not-found and hint lines repeat it.
+
+**Styles and steps.** Light Hatching (default), Clean Lines, Shapes. The slider is the
+exaggeration in all three -- its ends say so (`Mode.slider_labels`). Steps: head shape
+and guide lines, features as shapes, then over the fading shapes the outline, eyes and
+brows, nose and mouth, strands, the hatching, the finish. The guides are the
+caricature's own proportions, not the photo's.
+
+**Where it falls short.** Glasses aren't drawn (the eyes behind them are). Beards are
+outlined only where they show beside the jaw. Side profiles keep their mesh outline,
+which is weak there; a hat is drawn as hair. Measuring takes about 0.3-0.9 s per photo on
+a desktop, once per photo; the slider re-draws without re-measuring.
 
 ### Nose, specifically
 

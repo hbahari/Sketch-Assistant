@@ -88,7 +88,7 @@ because OpenCV is compiled from source; later runs reuse the cache and are much 
 
 When it finishes, download the `sketch-assistant-release` artifact. It contains:
 
-- `app-1.5.0-arm64-v8a-release.aab` → upload this
+- `app-1.6.0-arm64-v8a-release.aab` → upload this
 - `sketch-assistant-universal.apk` → install this on a phone to check the release build
 
 The workflow fails loudly if the bundle comes out unsigned, so a green run means it is ready.
@@ -132,12 +132,13 @@ accounts are exempt. Plan for this — it is the slowest part of a first release
 Every upload needs a higher version code. In `buildozer.spec`:
 
 ```ini
-version = 1.5.0              # the version name users see
-android.numeric_version = 8  # must increase on EVERY upload (1.0.0 shipped as 1)
+version = 1.6.0              # the version name users see
+android.numeric_version = 9  # must increase on EVERY upload (1.0.0 shipped as 1)
 ```
-Both are already set to the values above for this release. Code 7 was a 1.5.0 build that
-Play Console wouldn't send for review (the portrait-screen requirement, below); a code
-that has been uploaded once can't be reused, hence 8. For the next release, raise it to 9.
+Both are already set to the values above for this release (Caricature mode). 1.5.0 went
+up as code 8; code 7 was a 1.5.0 build Play Console wouldn't send for review (the
+portrait-screen requirement, below), and a code that has been uploaded once can't be
+reused. For the next release, raise it to 10.
 
 **"Required hardware feature declarations are restricting your app's availability" /
 `android.hardware.screen.portrait`.** Locking the app to portrait makes Android treat a

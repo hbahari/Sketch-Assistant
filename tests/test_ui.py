@@ -542,3 +542,46 @@ def test_a_tour_of_every_mode_and_back_renders_each_time():
             assert app.style_key == style
     finally:
         EventLoop.window.remove_widget(home)
+
+
+def test_caricature_mode_draws_a_tapped_face_and_the_slider_says_exaggeration():
+    """Caricature works on portraits: a face is found and tapped as in Portrait mode, a
+    caricature is drawn, and on the guide page the slider's ends read "Less exaggerated"
+    and "More exaggerated" -- then back to "detail" in any other mode. Control: without
+    the per-mode labels (the slider set once at start-up) the second check fails."""
+    from sketch_assistant.core import caricature, landmarks
+    if not landmarks.mesh_available() or caricature._seg_net() is None:
+        pytest.skip("face models not downloaded")
+    from sketch_assistant.ui.guide import GuideScreen
+    app, home = _loaded_home("caricature", _fixture("portraits_close", "close_09.jpg"))
+    try:
+        regions = home.regions.get("caricature")
+        assert regions, "no face offered to tap"
+        home.on_face(0, regions[0])
+        assert app.style_key == "car_hatch" and app.sketch is not None
+        ink = (app.sketch.min(axis=2) < 200).mean()
+        assert 0.005 < ink < 0.2, f"caricature ink {ink:.3f}"
+        guide = GuideScreen(app, name="guide")
+        guide.on_pre_enter()
+        assert (guide.slider.low.text, guide.slider.high.text) == ("Less exaggerated", "More exaggerated")
+        app.mode = "portrait"
+        app.style_key = "line_art"
+        guide.on_pre_enter()
+        assert (guide.slider.low.text, guide.slider.high.text) == ("Less detail", "More detail")
+    finally:
+        EventLoop.window.remove_widget(home)
+
+
+def test_cartoon_mode_says_it_works_on_portraits_only():
+    """A tester asked for a label saying Cartoon mode only works for portraits. It is on
+    the status line from the moment the mode is chosen, before any photo, and stays in
+    the line after a photo is loaded. Control: other modes say nothing of the kind."""
+    from sketch_assistant.app import SketchApp
+    from sketch_assistant.ui.home import HomeScreen
+    app = SketchApp()
+    home = HomeScreen(app, name="home")
+    home.set_mode("caricature")
+    assert "portraits only" in home.status.text
+    home.set_mode("object")
+    assert "portraits only" not in home.status.text
+    assert "portraits only" in MODES["caricature"].found_fmt and "portraits only" in MODES["caricature"].none_fmt

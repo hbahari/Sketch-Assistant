@@ -50,6 +50,14 @@ shadow will go; the real outline; the brow; flat values; the same tones in hatch
 hatching blended smooth; the brightest lights and darkest darks; the iris fibres; the
 lids and corners; and only then the lashes.
 
+CARTOON MODE
+Turn a portrait into a cartoon you can draw: just the head, in clean, even lines like the
+app's icon, with expressive eyes and lashes, brows drawn hair by hair, flowing strands of
+hair and a little light hatching, and nothing in the background. Want a caricature? The
+slider pushes exactly what makes this face different from an average one, from not at
+all to a lot. Then it walks you through it: the head shape, the features as simple
+shapes, and the lines one feature at a time.
+
 NOSE MODE
 A nose is drawn mostly with shading, not lines, which is why it so often comes out as a
 hook and two dots. Load a photo and the app finds the nose and frames it for you — face-on,

@@ -116,7 +116,7 @@ class HomeScreen(Screen):
         if self.photo_loaded:
             self._prepare_photo()
         else:
-            self.status.text = "Add a photo to begin"
+            self.status.text = mode_of(key).note or "Add a photo to begin"
 
     def _prepare_photo(self):
         """Set the photo card up for this mode: a detector's boxes, a drawn box, or neither."""
@@ -143,6 +143,9 @@ class HomeScreen(Screen):
         picker.set_photo(a.photo, regions)
         n = len(regions)
         self.status.text = m.found_fmt.format(n=n) if n else m.none_fmt
+        reason = m.requires() if m.requires else None
+        if reason:                       # a missing model, not a missing face: say so
+            self.status.text = reason
         if m.multi and n:
             picker.chosen = [0]              # start on the first figure so something renders
             picker._redraw()

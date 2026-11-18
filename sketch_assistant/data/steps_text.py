@@ -480,6 +480,66 @@ STEPS = {
                 "upper lip: darkest and sharpest right under the nose, softer and lighter as it "
                 "spreads away.",
     },
+    # ---- caricature -----------------------------------------------------------------
+    "car_head": {
+        "pencil": "HB, held lightly",
+        "technique": "Ghosting: swing the hand over each shape before the pencil touches.",
+        "text": "Draw the head shape, then the outline of the hair as one simple mass round it. "
+                "Add the centre line and the eye, nose and mouth lines. These are the "
+                "caricature's proportions -- already pushed -- so copy them as the guide shows "
+                "rather than from the photo.",
+    },
+    "car_features": {
+        "pencil": "HB",
+        "technique": "Shapes before detail: if an oval is in the wrong place, the finished eye "
+                     "will be too.",
+        "text": "Draw an oval for each eye on the eye line, a triangle for the nose from between "
+                "the eyes down to the nose line, and an oval for the mouth. Keep them light.",
+    },
+    "car_outline": {
+        "pencil": "2B or a fine liner",
+        "technique": "One even line weight, drawn from the elbow for the long curves. The icon's "
+                     "style is clean: a line, not a sketchy cloud of them.",
+        "text": "Draw the jaw and chin, then the outline of the hair, including the hairline "
+                "across the forehead. Where hair falls over the face, the face's outline stops. "
+                "Add the soft curve of the chin just above its outline, and a lighter one under "
+                "where the lower lip will be.",
+    },
+    "car_eyes": {
+        "pencil": "2B or a fine liner",
+        "technique": "The upper lid is the heaviest line of the face; the lower one lighter and "
+                     "shorter.",
+        "text": "The eyes carry the expression, so this is the step to take slowly. Draw the "
+                "iris, a big dark pupil with a white catchlight left as paper, and a few short "
+                "lines from the pupil out. Then the heavy upper lid over it (the lids cover the "
+                "top and bottom of the iris), the crease above, and the lower lid lighter. Sweep "
+                "the lashes out from the outer half, longest at the corner. For the brows, a "
+                "light tapered shape, then short hair strokes leaning from the inner end out.",
+    },
+    "car_nose_mouth": {
+        "pencil": "2B or a fine liner",
+        "technique": "Curves, not dots: a nose drawn as two dots looks like a mask.",
+        "text": "Draw a round curl for each nostril wing, from above the wing, out and down into "
+                "the nostril, a soft curve under the tip between them, and one line down the "
+                "side of the nose away from the light. For the mouth, draw the top edge of the "
+                "upper lip, the line between the lips a little heavier, and a short curve under "
+                "the lower lip.",
+    },
+    "car_strands": {
+        "pencil": "A sharp 2B or a fine liner, lighter than the outline",
+        "technique": "Long strokes in the direction the hair falls, each one tapering off at both "
+                     "ends. A few strands say hair; many say a mess.",
+        "text": "Add the strands the picture shows, following the hair's flow from the parting "
+                "outwards and down. Then erase the shapes underneath.",
+    },
+    "car_hatch": {
+        "pencil": "HB, sharp",
+        "technique": "Short parallel strokes in one direction per patch, evenly spaced, stopping "
+                     "short of the outline. One layer only.",
+        "text": "Hatch the shadow side of the face and the darkest parts of the hair, where the "
+                "picture shows. Keep it light and sparse: the lines carry this drawing, the "
+                "hatching only hints at the light.",
+    },
 }
 
 # `finish` depends on the style family you chose, so it gets its own table
@@ -534,6 +594,20 @@ FINISH = {
 
 # Where one subject's finishing advice genuinely differs from its family's.
 FINISH_OVERRIDE = {
+    "car_hatch": {
+        "pencil": "2B or a fine liner; HB for the hatching",
+        "technique": "Erase the shapes before the hatching goes in, so the hatching doesn't "
+                     "get smudged.",
+        "text": "Check the lines against the picture, erase the construction, and leave it. A "
+                "caricature in this style is finished when it reads, and it reads early: more "
+                "hatching makes it heavier, not better.",
+    },
+    "car_shapes": {
+        "pencil": "2H or HB",
+        "technique": "Compare shapes, not details: is this oval as wide as that one?",
+        "text": "Check the shapes against the picture. These are the stage to get right -- the "
+                "Clean Lines and Light Hatching styles are drawn over exactly these shapes.",
+    },
     "body_formhatch": {
         "pencil": "A sharp 2B or a fine liner",
         "technique": "Strokes that wrap the form. A line drawn straight across an arm "

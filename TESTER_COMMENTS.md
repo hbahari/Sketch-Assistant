@@ -14,6 +14,124 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 23 — say that Cartoon mode is for portraits
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "Also, add a text label saying that Cartoon mode only works for portraits."
+
+**What changed.** As soon as Cartoon is chosen, before any photo is loaded, the line under
+the photo reads "Cartoon works on portraits only - add a photo of a face". After a photo is
+loaded the same words stay: "1 face(s) found - tap a box (Cartoon works on portraits
+only)", or "No face found - Cartoon works on portraits only". Once a face is tapped, the
+hint starts with "Portraits only".
+
+---
+
+## Round 22 — more to the lips, and the chin
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "Can we add more details to the lips, and an outline of the chin as well?"
+
+**What changed.** The mouth now has the whole lower lip, not just a short curve; a small
+tick at each corner that turns up or down with the mouth; the two short ridges from the
+nose down to the peaks of the upper lip; and a few light strokes across the lower lip to
+show its fullness. The chin has a soft curve just above its outline, with a lighter line
+in the dip under the lower lip. The steps now include the chin with the face outline.
+Where the hair's edge ran right alongside the jaw (beside the neck), it used to draw a
+second line just under the chin. That second line is gone now.
+
+---
+
+## Round 21 — the caricature needed more soul
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "I think we're removing too many facial features when drawing the caricature. Maybe
+> caricature isn't even the right name for it; I'm looking for a more cartoonized
+> version. Let's add a few hair lines to show more of the flow of the hair. The eyes could
+> use a bit more detail to express the feeling of the face. Right now they look creepy
+> with these simple eyes. Maybe add a few feature lines for the eyebrows and eyelashes,
+> similar to the app icon. Same with the nose: it looks too simple. Add a few nose lines?
+> Let's give it some soul."
+
+**What changed.** The mode is now called **Cartoon**. The slider still turns it into a
+caricature if you push it, and it now starts lower. The eyes are where the change shows
+most. Each has a shaded iris with a big dark pupil and a white catchlight, a heavier upper
+lid with a crease above it, lashes sweeping out from the outer corner, a few small lower
+lashes, and the inner corner. The brows are drawn hair by hair, full at the inner end and
+thinning outwards, like the icon's. The nose is a curl round each nostril wing and a soft
+curve under the tip, plus a line down the side in shadow, instead of two small dashes.
+The hair has about twice as many strands, following its flow. Hatching no longer hangs
+loose past the edge of the drawing.
+
+**Process note.** The first version was built to be easy to draw, and it overshot. The
+"simpler than photorealism" brief was read as "as few lines as possible". The icon,
+which was the reference, is simple but not sparse: its eyes and brows carry most of
+its detail.
+
+---
+
+## Round 20 — "No face found" on a face Caricature mode had just found
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "It's buggy. When I upload a photo, even though it detects the face, the second screen
+> says no face detected, try Portrait mode."
+
+**What changed.** The face *was* found. What the app couldn't use was the face-mapping
+piece Caricature mode draws from. It's a separate download, and on a computer it has to
+be fetched once with the model download script. When it was missing, the app said "No
+face found", which sent you looking at the photo when the problem was the setup. Now
+the picture and the status line both say which piece is missing and how to get it, or
+that the computer's image library is too old to read it. The message is also larger and
+wraps to fit the picture instead of running off in tiny grey text. The app also reads
+these models' results in a way that doesn't depend on the version of that image library.
+On a phone the pieces come with the app, so this only shows on a computer.
+
+**Process failure, owned.** Two different failures, "nothing to work with" and "no face
+here", shared one message. The tests always ran with every model in place, so nothing
+ever showed what a missing one looked like. The same silent fallback probably explains
+the earlier report that eye detection felt "hit and miss" on the tester's computer. That
+can't be confirmed from here.
+
+---
+
+## Round 19 — a caricature mode
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "I think the next mode we add is going to be something like a caricature mode. I want
+> it to only work for portraits and turn a portrait into a simple caricature with no
+> surroundings — just the portrait itself. It should be a lot simpler than photorealism
+> for the user to draw, shouldn't have too many shadings and shouldn't look too crowded:
+> something in line with the app icon's art style."
+
+Asked before building: how far to exaggerate (a slider), how much shading (light
+hatching) and how much of the person (the head only).
+
+**What changed.** A Caricature mode was added. Load a portrait, tap the face, and the
+app draws just the head in clean, even lines like the app icon: the outline of the face
+and hair, the eyes, brows, a small nose, the lips, and a few long strands of hair, with
+nothing from the background. The caricature isn't a fixed cartoon face. The app works
+out what makes this particular face different from an average one (a wider nose, a
+longer chin, closer eyes) and pushes exactly that. The slider runs from no exaggeration
+to strong, and its ends say so. There are three styles: Light Hatching, which adds a
+single layer of hatching in the shadows; Clean Lines, which has no shading at all; and
+Shapes, the simple shapes it's all built on. The steps go from the head shape and the
+features as simple shapes to the lines, one feature at a time.
+
+On eight test faces, when a feature stood out from the average, the caricature pushed it
+the right way 26 times out of 29. It uses far less ink than Portrait mode's cross-hatch
+on the same photo.
+
+**Left as is, for now.** Glasses aren't drawn, though the eyes behind them are. Beards
+are only outlined where they show beside the jaw. Side profiles come out weaker than
+face-on photos, and a hat is drawn as if it were hair.
+
+---
+
 ## Round 18 — Play Console wouldn't send 1.5.0 for review
 
 *Shipped in: 1.5.0, version code 8 (not yet uploaded)*
@@ -565,6 +683,9 @@ missed.
   one strict profile in the tester's photos no face is found at all. The face's outline
   can't be read reliably from the side. Of the 15 measurable close-up faces, 5 still don't
   fit well, mostly heads tilted or turned well to one side.
+- **Cartoon mode doesn't draw glasses**, outlines beards only beside the jaw, is weak on
+  side profiles, and draws a hat as hair. A bald head is told from short light hair by
+  how smooth it is, which was set on just two bald test photos.
 - **Eye guides on side profiles** now take their size from the face, but how well that
   works on a profile couldn't be measured: in the tester's two profiles the iris is
   hidden by lids and lashes.

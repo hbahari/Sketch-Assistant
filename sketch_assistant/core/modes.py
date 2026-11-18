@@ -24,12 +24,19 @@ from . import steps as _steps
 from .faces import detect_faces
 
 
+def _mesh_reason():
+    """Caricature can't fall back to anything without the face mesh; say why up front."""
+    from .landmarks import unavailable_reason
+    reason = unavailable_reason()
+    return None if reason is None else "Cartoon can't work here: " + reason
+
+
 def _detect_people(img):
     """Figures, as tappable boxes. Imported lazily so the pose models are only loaded
     when Posture mode is actually used."""
     from .bodies import detect
     return detect(img)
-from .styles import BODY_STYLES, EYE_STYLES, HAND_STYLES, NOSE_STYLES, OBJECT_STYLES, STYLES
+from .styles import BODY_STYLES, CARICATURE_STYLES, EYE_STYLES, HAND_STYLES, NOSE_STYLES, OBJECT_STYLES, STYLES
 
 
 @dataclass(frozen=True)
@@ -48,6 +55,9 @@ class Mode:
     none_fmt: str = ""               # ...and after an unsuccessful one
     locate: Optional[Callable] = None        # photo -> a box to start the box picker on, or None
     on_crop: Optional[Callable] = None       # (photo, crop, origin) -> None, told about every crop
+    slider_labels: tuple = ("Less detail", "More detail")   # what the slider's two ends say
+    requires: Optional[Callable] = None      # () -> why the mode can't work here, or None
+    note: str = ""                   # shown whenever the mode is chosen, before any photo too
 
     @property
     def default_style(self):
@@ -117,6 +127,22 @@ MODES = {m.key: m for m in (
         guide=_guides.hand_guides,
         stages=_steps.hand_stages,
         hint="Pick a style (one hand, plain background)",
+    ),
+    Mode(
+        # Portraits only: the face is found and tapped as in Portrait mode, and the slider
+        # sets how far the face's own differences from an average face are pushed.
+        key="caricature",
+        label="Cartoon",          # shown as Cartoon: a tester found "caricature" promised the wrong thing
+        styles=CARICATURE_STYLES,
+        detect=detect_faces,
+        guide=_guides.caricature_guides,
+        stages=_steps.caricature_stages,
+        hint="Portraits only - pick a style; the slider sets how far to exaggerate",
+        found_fmt="{n} face(s) found - tap a box (Cartoon works on portraits only)",
+        none_fmt="No face found - Cartoon works on portraits only",
+        note="Cartoon works on portraits only - add a photo of a face",
+        slider_labels=("Less exaggerated", "More exaggerated"),
+        requires=_mesh_reason,
     ),
     Mode(
         key="body",

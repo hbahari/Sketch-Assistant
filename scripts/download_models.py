@@ -9,7 +9,8 @@ All three come from OpenCV Zoo and are Apache 2.0 licensed. Note the host: the m
 stored with Git LFS, so `github.com/.../raw/...` returns a small text pointer rather than
 the model. `media.githubusercontent.com/media/...` serves the real file.
 
-The two TFLite models (Eyes and Nose modes) are MediaPipe's own iris model and face mesh,
+The TFLite models (Eyes, Nose and Caricature) are MediaPipe's own iris model, face mesh
+and person segmentation,
 also Apache 2.0, from Google's MediaPipe asset store. They are checked against a SHA-256
 as well as a size, because the same names have been reused for other versions over the
 years. If the store is unreachable they are taken out of the `mediapipe==0.10.14` wheel,
@@ -51,7 +52,9 @@ TFLITE = [
     (f"{MP}/iris_landmark.tflite", "iris_landmark.tflite",
      "d1744d2a09c25f501d39eba4faff47e53ecca8852c5ce19bce8eeac39357521f", "eye lids and iris (Eyes)"),
     (f"{MP}/face_landmark.tflite", "face_landmark.tflite",
-     "1055cb9d4a9ca8b8c688902a3a5194311138ba256bcc94e336d8373a5f30c814", "468-point face mesh (Eyes, Nose)"),
+     "1055cb9d4a9ca8b8c688902a3a5194311138ba256bcc94e336d8373a5f30c814", "468-point face mesh (Eyes, Nose, Caricature)"),
+    (f"{MP}/selfie_segmentation.tflite", "selfie_segmentation.tflite",
+     "9ee168ec7c8f2a16c56fe8e1cfbc514974cbbb7e434051b455635f1bd1462f5c", "person and hair outline (Caricature)"),
 ]
 WHEEL = "mediapipe==0.10.14"
 

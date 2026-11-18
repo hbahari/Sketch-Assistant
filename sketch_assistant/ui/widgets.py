@@ -368,11 +368,15 @@ class DetailSlider(BoxLayout):
     def __init__(self, on_commit, **kw):
         super().__init__(size_hint_y=None, height=dp(34), spacing=dp(8), **kw)
         self.on_commit, self._down = on_commit, False
-        lab = lambda t: Label(text=t, size_hint_x=None, width=dp(78), color=theme.MUTED, font_size=sp(11))
+        lab = lambda t: Label(text=t, size_hint_x=None, width=dp(78), color=theme.MUTED, font_size=sp(11),
+                              halign="center", valign="middle")
         self.slider = Slider(min=0, max=1, value=0.5, step=0.05, value_track=True, value_track_color=theme.AMBER,
                              value_track_width=dp(4), background_width=dp(4), cursor_size=(dp(22), dp(22)), disabled=True)
-        for w in (lab("Less detail"), self.slider, lab("More detail")):
+        self.low, self.high = lab("Less detail"), lab("More detail")
+        for w in (self.low, self.slider, self.high):
             self.add_widget(w)
+        for w in (self.low, self.high):
+            w.bind(size=lambda w, v: setattr(w, "text_size", v))
         self.slider.bind(on_touch_down=self._dn, on_touch_up=self._up)
 
     def _dn(self, s, t):
@@ -386,6 +390,10 @@ class DetailSlider(BoxLayout):
     def set_value(self, v, enabled=True):
         self.slider.value, self.slider.disabled = v, not enabled
         self.opacity = 1 if enabled else 0.5
+
+    def set_labels(self, low, high):
+        """What the two ends mean in this mode: detail, or (Caricature) exaggeration."""
+        self.low.text, self.high.text = low, high
 
 
 _fade = {}

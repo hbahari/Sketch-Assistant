@@ -11,9 +11,9 @@ source.include_exts = py,png,jpg,kv,xml,onnx,tflite,txt
 source.exclude_dirs = tests,scripts,bin,.buildozer,venv,.venv,.github,.idea,shots,android_manifest
 
 # versionName shown in the Play listing
-version = 1.5.0
+version = 1.6.0
 # versionCode: MUST increase on every upload to the Play Console
-android.numeric_version = 8
+android.numeric_version = 9
 
 # Versions come from the pinned python-for-android below, which ships a tested set:
 # Python 3.14.2, Kivy 2.3.1, numpy 2.3.0, OpenCV 4.12.0, pyjnius 1.7.0.

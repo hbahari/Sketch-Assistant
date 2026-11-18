@@ -400,9 +400,44 @@ def nose_guides(ov, w, h, th, ctx):
 
 # Modes that draw no thirds grid. The grid is a composition aid; on a close-up of a
 # single eye it says nothing useful and ran straight through the eye's own measurements.
-NO_GRID = {"eyes", "nose"}
+def caricature_guides(ov, w, h, th, ctx):
+    """Caricature: the centre line and the eye, nose and mouth lines of the *exaggerated*
+    face, with where each sits -- the proportions to copy are the caricature's, not the
+    photo's."""
+    from . import caricature                   # local: keeps the import graph one-way
+    src = ctx.source_img
+    if src is None:
+        return []
+    D = caricature._last.get(caricature._key(src)) or caricature.drawing(src, 0.5)
+    if not D.found:
+        return []
+    sx, sy = w / D.shape[1], h / D.shape[0]
+    P = lambda p: np.array([p[0] * sx, p[1] * sy])
+    c = D.construct
+    root, chin = P(c["centre"][0]), P(c["centre"][1])
+    down = (chin - root) / (np.linalg.norm(chin - root) + 1e-6)
+    (hx, hy), (ha, hb), _ = c["head"]
+    top = P((hx, hy)) - down * hb * sy / 2
+    dashed(ov, top - down * 0.04 * h, chin + down * 0.04 * h, LINE, th)
+    labels = [(at("centre", root[0], w), root[0] + 6, top[1] - 0.02 * h)]
+    across = np.array([down[1], -down[0]])
+    half = 0.5 * ha * sx
+    rows = []
+    if len(c["eye_line"]) == 2:
+        e0, e1 = P(c["eye_line"][0]), P(c["eye_line"][1])
+        rows.append(("eyes", (e0 + e1) / 2))
+    rows += [("nose", P(c["nose"])), ("mouth", P(c["mouth"])), ("chin", chin)]
+    for name, q in rows:
+        a = q - across * half * (1.15 if name == "eyes" else 0.8)
+        b = q + across * half * (1.15 if name == "eyes" else 0.8)
+        dashed(ov, a, b, LINE, th)
+        labels.append((at(name, q[1], h), min(a[0], b[0]), q[1]))
+    return labels
 
-GUIDES = {"portrait": face_guides, "object": frame_guides, "hands": hand_guides,
+
+NO_GRID = {"eyes", "nose", "caricature"}
+
+GUIDES = {"caricature": caricature_guides, "portrait": face_guides, "object": frame_guides, "hands": hand_guides,
           "body": body_guides, "eyes": eye_guides, "nose": nose_guides}
 
 
