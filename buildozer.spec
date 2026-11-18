@@ -49,6 +49,9 @@ android.presplash_color = #FFFFFF
 # Google Play requires new apps and updates to target API 36 (since 31 Aug 2026).
 android.api = 36
 android.minapi = 24
+# The NDK p4a v2026.05.09 recommends, pinned so that the workflows' checked download
+# ("Fetch the Android NDK, checked") and buildozer agree on the folder name. Change both.
+android.ndk = 28c
 android.accept_sdk_license = True
 
 # ONE architecture only, deliberately. python-for-android's run_pymodules_install()

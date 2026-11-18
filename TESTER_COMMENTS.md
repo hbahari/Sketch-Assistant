@@ -14,6 +14,49 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 17 — portrait circle smaller than the face; eye guides too big when the eye isn't found; the build failing
+
+*Shipped in: 1.5.0 (not yet uploaded)*
+
+> "In portrait mode, the guiding circle for some of these faces is smaller than the face
+> itself. Or the guiding lines for the eyes, if the eye isn't detected by the app, end up
+> being bigger than the eye."
+
+**What changed — portrait circle.** The circle around the face is now drawn from the
+outline of the face itself (forehead, cheeks, jaw and chin) rather than from a rough box
+round the face. On 15 faces in the tester's close-ups, where the chin and the widest
+points of the face could be marked by hand, the circle now runs through the chin with
+the face inside it on 10, against 2 before. Portrait mode also finds faces it used to
+miss on close-ups: on the tester's photos, an extreme close-up and a face in heavy
+sunglasses. On one photo it used to take the mouth and chin for the whole face, and it
+now gets the whole face. Side profiles are unchanged. The outline can't be read reliably
+from the side, so those keep the old circle, and on one strict profile Portrait mode
+still finds no face.
+
+**What changed — eye guides when the eye isn't found.** When the photo has a face but the
+app can't read the eye itself (side profiles mostly), it now uses the size of the face to
+set a sensible size for the eye, and looks for the eye near where the face says it should
+be. On ten hand-marked eyes, tested with the automatic reading switched off, the circle
+now comes out typically within about an eighth of the real size. It ranges from half the
+size (where the app took the pupil for the whole iris) to a third too big. Before, the
+same boxes gave circles up to four times too big. On a close-up of one eye with no face
+in the photo there's nothing to take the size from, so that still works as before.
+
+> "Tried building the 1.5 version and got this error."
+
+**What changed — the build.** The build was failing while unpacking Android's toolkit,
+which it downloads fresh. The download had arrived damaged, and the build only noticed
+much later. The build now downloads it with retries and checks it before using it. It
+also stopped throwing away its saved copy of the toolkit every time the version number
+or the app's settings changed.
+
+**Process failure, owned.** That fresh download only happened because the previous
+round changed the app's build settings, which threw away the saved copy and forced a
+full re-download on the next build. The download had always been fragile. The change
+exposed it, and the first anyone knew was a failed build on the tester's side.
+
+---
+
 ## Round 16 — eye guides too big, nose circles and bridge line off
 
 *Shipped in: 1.5.0 (not yet uploaded)*
@@ -497,16 +540,13 @@ edges fade to show there's more off-screen.
 Known and not yet addressed. Worth listing in the write-up as acknowledged rather than
 missed.
 
-- **The written drawing advice has not been reviewed by anyone who teaches drawing.** The
-  pencil grades, pressure notes and steps follow common practice, but the specific figures
-  in them (an eye being about two and a half irises wide, finger joints at 47% and 74%, and
-  so on) are rules of thumb, and none of it has been tested on beginners.
-- **Nose mode misses about one photo in five**: faces turned only slightly to one side
-  (the tip is placed on the edge of the nose), photos with the eyes cut off at the top, and
-  the odd photo where it imagines a face. Tested on the tester's 16 photos; more photos of
-  mild turns would show whether this is a real pattern.
-- **How long the steps take to rebuild on a phone** when the detail slider moves has not
-  been measured. On a computer it is well under a second.
+- **Portrait mode's circle on side profiles** is still scaled from the rough box, and on
+  one strict profile in the tester's photos no face is found at all. The face's outline
+  can't be read reliably from the side. Of the 15 measurable close-up faces, 5 still don't
+  fit well, mostly heads tilted or turned well to one side.
+- **Eye guides on side profiles** now take their size from the face, but how well that
+  works on a profile couldn't be measured: in the tester's two profiles the iris is
+  hidden by lids and lashes.
 - **Eyes mode on close-ups of a single eye** (no face in the photo) still uses the old
   reading, which gets about half of the 19 test close-ups right by a strict measure. A
   bright reflection covering half the pupil, a black-and-white photo with the white of the

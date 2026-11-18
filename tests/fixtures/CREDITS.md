@@ -2,7 +2,7 @@
 
 The hand photographs were supplied by the project owner.
 
-The portraits in `portraits/`, the still lifes in `objects/`, the figures in `bodies/`, the
+The portraits in `portraits/` and `portraits_close/`, the still lifes in `objects/`, the figures in `bodies/`, the
 eyes in `eyes/` and `eyes_in_faces/` and the noses in `noses/` (crops of face photographs) are from
 [Pexels](https://www.pexels.com/), used under the
 [Pexels licence](https://www.pexels.com/license/), which permits free use and modification
@@ -19,6 +19,25 @@ Photographers, by the original filename:
 | `portraits/no_landmarks_haar.jpg` | kenzero14 |
 | `portraits/front_pale_lowcontrast.jpg` | minan1398 |
 | `portraits/older_weathered.jpg` | shuttercraftsman |
+| `portraits_close/close_00.jpg` | akoonie |
+| `portraits_close/close_01.jpg` | avery-arwood |
+| `portraits_close/close_02.jpg` | chris-black |
+| `portraits_close/close_03.jpg` | didsss |
+| `portraits_close/close_04.jpg` | eyupcan-timur |
+| `portraits_close/close_05.jpg` | joseph-walker |
+| `portraits_close/close_06.jpg` | kindelmedia |
+| `portraits_close/close_07.jpg` | krivitskiy |
+| `portraits_close/close_08.jpg` | krivitskiy |
+| `portraits_close/close_09.jpg` | mahdi-chaghari |
+| `portraits_close/close_10.jpg` | mayaramombellifotografias |
+| `portraits_close/close_11.jpg` | michael-obstoj |
+| `portraits_close/close_12.jpg` | mikewiz |
+| `portraits_close/close_13.jpg` | myatezhny39 |
+| `portraits_close/close_14.jpg` | necon |
+| `portraits_close/close_15.jpg` | reza-shahriari |
+| `portraits_close/close_16.jpg` | ron-lach |
+| `portraits_close/close_17.jpg` | wallan-vilgelinas-haberzatas |
+| `portraits_close/close_18.jpg` | zulfugarkarimov |
 | `objects/two_objects_touching.jpg` | Cup of Couple |
 | `objects/single_on_plain.jpg` | Mikhail Nilov |
 | `objects/many_objects_cluttered.jpg` | tkirkgoz |

@@ -181,8 +181,11 @@ def _recentre_on_pupil(g, cx, cy, r, sd, mean, a, full):
     return best[2], best[3], best[4]
 
 
-def _find_iris(g):
+def _find_iris(g, r_range=None, near=None):
     """Best circle for the iris on a smoothed grey image. Returns (cx, cy, r, score).
+    `r_range` is (lo, hi) in pixels where the face has said how big the iris must be;
+    by default any size from R_RANGE of the width. `near` is ([points], reach): the face
+    detector's eye points and how far from one the iris may be.
 
     Reads only the arcs to the left and right of each candidate. The lids cut across the
     top and bottom of nearly every iris, so a full-circle fit is dragged about by them;
@@ -200,12 +203,17 @@ def _find_iris(g):
     full = np.deg2rad(np.arange(0, 360, 20))
     cxs, cys = np.meshgrid(np.arange(w * 0.15, w * 0.85, 3.0), np.arange(h * 0.15, h * 0.85, 3.0))
     best = (-1e9, 0.0, 0.0, 0.0)
-    for r in np.arange(w * R_RANGE[0], w * R_RANGE[1], 3.0):
+    lo, hi = r_range if r_range is not None else (w * R_RANGE[0], w * R_RANGE[1])
+    step = 3.0 if r_range is None else max(0.5, (hi - lo) / 12)
+    for r in np.arange(lo, hi + 1e-6, step):
         s, _ = _limbus_score(g, cxs, cys, r, sd, mean, a, full)
         # Both side arcs have to be on the image. Off the edge the samples repeat the
         # border pixel, and a patch of deep shadow in a corner then scores as a perfect
         # dark disc -- which is what the first version chose on one test photograph.
         s = np.where((cxs - 1.18 * r < 0) | (cxs + 1.18 * r > w - 1), -1e9, s)
+        if near is not None:
+            d = np.min([np.hypot(cxs - q[0], cys - q[1]) for q in near[0]], axis=0)
+            s = np.where(d > near[1], -1e9, s)
         i = int(np.argmax(s))
         if s.flat[i] > best[0]:
             best = (float(s.flat[i]), float(cxs.flat[i]), float(cys.flat[i]), float(r))
@@ -224,7 +232,7 @@ def _find_iris(g):
     e0 = local(cx, cy, r, 2.0)[0]
     cand = (e0, score, cx, cy, r)
     rings = []
-    for rr in np.arange(r * 1.5, min(r * 5.0, w * R_RANGE[1]) + 0.5, 2.0):
+    for rr in np.arange(r * 1.5, min(r * 5.0, hi) + 0.5, 2.0):
         e, sc, x, y = local(cx, cy, rr, max(2.0, r * 0.35))
         # Judged against the image, not only against the first circle: a black pupil in
         # an amber iris is so strong an edge that a perfectly clear limbus is under half
@@ -265,6 +273,8 @@ def _find_iris(g):
         # the score stays as it was: it is the evidence that there is an eye here at
         # all, and moving the circle does not make that evidence weaker
         cx, cy, r = alt
+    if r_range is not None:
+        r = float(np.clip(r, lo, hi))           # re-centring may grow it; the face says not past this
     return cx, cy, r, max(score, cand[1])
 
 
@@ -468,9 +478,21 @@ def analyze(img):
     s, small, g, sharp = _work(img)
     h, w = g.shape
 
-    cx, cy, r, score = _find_iris(g)
+    prior = _scale_from_context(img)           # (iris radius, eye points) in crop pixels
+    r_range = near = None
+    if prior is not None:
+        r_range = (prior[0] * s * PRIOR_RANGE[0], prior[0] * s * PRIOR_RANGE[1])
+        pts = [q * s for q in prior[1] if 0 <= q[0] * s < w and 0 <= q[1] * s < h]
+        near = (pts, PRIOR_REACH * prior[0] * s) if pts else None
+    cx, cy, r, score = _find_iris(g, r_range, near)
     found = score >= MIN_IRIS_SCORE
-    if not found:
+    if not found and prior is not None:
+        # the face gives the size even where the iris can't be seen; it sits on the
+        # detector's eye point if one is in the box
+        r = prior[0] * s
+        inside = [q * s for q in prior[1] if 0 <= q[0] * s < w and 0 <= q[1] * s < h]
+        cx, cy = min(inside, key=lambda q: np.hypot(q[0] - w / 2, q[1] - h / 2)) if inside else (w * 0.5, h * 0.5)
+    elif not found:
         # nothing circular and dark: a closed eye, a squint, a crop that missed. Assume
         # an eye in the middle of the frame, sized so the whole of it would fit.
         cx, cy, r = w * 0.5, h * 0.5, min(w * 0.14, h * 0.3)
@@ -482,7 +504,7 @@ def analyze(img):
         highlight=None, left=tuple(A / s), right=tuple(B / s),
         upper=upper / s, lower=lower / s, tilt=float(tilt), inner=None,
         found=bool(found), score=float(score),
-        notes=dict(lid_evidence=float(evidence), params=p),
+        notes=dict(lid_evidence=float(evidence), params=p, **({"source": "face scale"} if prior else {})),
     )
     if found:
         _details(eye, s, g, sharp)
@@ -585,11 +607,40 @@ def photo_eyes(photo):
     return eyes
 
 
+# Where the eye itself can't be read from the face -- side profiles, where the face mesh
+# declines, or no iris and face-mesh models -- the face still says roughly how big the
+# iris is: its radius runs 0.078 to 0.105 of the eye-to-mouth length (0.09 typically) on
+# the ten hand-marked eyes, and that length is not foreshortened by a turned head. The
+# rules then look for an iris no bigger than 1.15 times that and within 1.5 of it of one
+# of the detector's eye points, so a loose box can no longer blow the guides up. Smaller
+# is allowed down to half: on a profile or a half-closed eye the visible iris is smaller,
+# and how much can't be measured on these photos (the irises in the two profiles are
+# hidden by lids and lashes). Measured with the face path switched off, through boxes two
+# and three eye-widths across: iris size within 14% typically, from 51% too small (a
+# pupil taken for the iris) to 33% too big, against the rules alone at 28-168% typically
+# and up to four times the size; centre within 0.94 iris radii, against 5.7 for the rules
+# on the looser box. The limits were chosen on those same ten eyes. Where no iris is found the guides are drawn
+# at the face's size, on the eye point.
+IRIS_PER_FACE = 0.09
+PRIOR_RANGE = (0.5, 1.15)
+PRIOR_REACH = 1.5            # iris radii from the detector's eye point
+
+
+def photo_scale(photo):
+    """(iris radius, [eye points]) in the photo's pixels from the face alone, or None."""
+    from . import noses
+    face = noses.find_face(photo)
+    if face is None or face.score < EYE_FACE_SUPPORT:
+        return None
+    return IRIS_PER_FACE * face.d_em, [face.pts[0].copy(), face.pts[1].copy()]
+
+
 def note_crop(photo, crop, origin):
     """The app has cut `crop` out of `photo`, with its top-left corner at `origin`."""
     global _context
     eyes = photo_eyes(photo)
-    _context = (_thumb(crop), crop.shape[:2], tuple(origin), eyes) if eyes else None
+    scale = photo_scale(photo) if not eyes else None
+    _context = (_thumb(crop), crop.shape[:2], tuple(origin), eyes, scale) if eyes or scale else None
 
 
 def forget_crop():
@@ -607,9 +658,9 @@ def _moved(e, ox, oy, s):
 def _from_context(img):
     """The face's reading of the eye in this image, if this image is the noted crop: the
     eye whose iris is in it, the one nearest the middle if both are."""
-    if _context is None:
+    if _context is None or not _context[3]:
         return None
-    thumb, (ch, cw), (ox, oy), eyes = _context
+    thumb, (ch, cw), (ox, oy), eyes, _ = _context
     h, w = img.shape[:2]
     # the aspect ratio, allowing for a pixel's rounding when a small crop is resized
     if abs(w / h - cw / ch) > 0.02 + 2.0 / min(h, w) or float(np.abs(_thumb(img) - thumb).mean()) > 6.0:
@@ -619,6 +670,19 @@ def _from_context(img):
     if not inside:
         return None                    # the box was drawn somewhere else: read it on its own
     return min(inside, key=lambda m: np.hypot(m.iris[0] - w / 2, m.iris[1] - h / 2))
+
+
+def _scale_from_context(img):
+    """The face's iris size and eye points moved into this crop, when it is the noted crop
+    of a photo whose face gave no eye reading. None otherwise."""
+    if _context is None or _context[4] is None:
+        return None
+    thumb, (ch, cw), (ox, oy), _, (r, pts) = _context
+    h, w = img.shape[:2]
+    if abs(w / h - cw / ch) > 0.02 + 2.0 / min(h, w) or float(np.abs(_thumb(img) - thumb).mean()) > 6.0:
+        return None
+    k = w / cw
+    return r * k, [np.array([(q[0] - ox) * k, (q[1] - oy) * k]) for q in pts]
 
 
 def propose_box(photo):

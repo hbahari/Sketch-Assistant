@@ -398,3 +398,27 @@ def test_a_box_drawn_away_from_the_eyes_is_read_on_its_own():
         assert eyes.analyze(crop).notes.get("source") != "face"
     finally:
         eyes.forget_crop()
+
+
+def test_where_the_face_gives_no_eye_it_still_sets_the_size(monkeypatch):
+    """A tester: where the eye isn't found, "the guiding lines end up bigger than the
+    eye". With the face path switched off (as on a side profile, where the face mesh
+    declines), the face's eye-to-mouth length still caps the iris size and the detector's
+    eye point anchors where to look. Ten eyes, boxes of two and three eye-widths: size
+    within 55% every time and within 20% typically, centre within an iris radius.
+
+    Control, run here: the rules alone on the same boxes are typically 28-168% out and
+    up to four times the size. Reintroducing the bug (no scale noted with the crop) fails
+    the first assertion."""
+    _models()
+    monkeypatch.setattr(eyes, "photo_eyes", lambda photo: [])
+    sizes, centres, rules = [], [], []
+    for photo, i in FACE_EYES:
+        for k in (2.0, 3.0):
+            c, r, e = _boxed_reading(photo, i, k)
+            assert e.notes.get("source") == "face scale"
+            sizes.append(abs(r)); centres.append(c)
+            rules.append(abs(_boxed_reading(photo, i, k, note=False)[1]))
+    assert max(sizes) <= 0.55, np.round(sizes, 2)
+    assert np.median(sizes) <= 0.20 and max(centres) <= 1.0, (np.median(sizes), max(centres))
+    assert max(rules) >= 2.0 and np.median(rules) >= 2 * np.median(sizes)

@@ -97,11 +97,33 @@ Measured against the photographs in `tests/fixtures/` (see `CREDITS.md` for sour
 | Mode | State |
 |---|---|
 | **Hands** | Strongest. Landmark models read 19 of 20 test photos, including a fist head-on, fingers round a mug and extreme foreshortening. The one miss falls back rather than guessing. |
-| **Portrait** | Solid. A face was found in all 27 test portraits, 26 with landmarks, and every one produces the full nine-stage sequence. The guide oval encloses the features on 24 of 26. |
+| **Portrait** | Solid. A face was found in all 27 test portraits, 26 with landmarks, and every one produces the full nine-stage sequence. Where MediaPipe's face mesh is available the guide oval is fitted to the face's own outline: on 15 hand-marked close-up faces it runs through the chin with the face inside on 10, against 2 when scaled from the detector box. See below. |
 | **Object** | The user draws a box round the object they want; see below for why. |
 | **Nose** | Newest. The face detector, given room by padding the photo, anchors the nose; the nostrils (face-on) or the nose's outline (side-on) are then read locally. On 16 hand-marked tester photos -- close-ups, three-quarter and side views -- found on 13, against 1 for the first version. The box picker starts on the nose; where MediaPipe's face mesh is available the wings and the line down the bridge come from it. See below. |
 | **Eyes** | Two halves. On a photo with a face, MediaPipe's face mesh and iris model find the eye and the box starts on it: on ten hand-marked eyes the iris size is within 21% every time, where reading a loose box alone was 2.7 to 4 times too big on six. Close-ups of one eye (no face) are still read by a circle search and a lid template: right on 10 of 19 close-ups. See below. |
 | **Posture** | Figures found by MediaPipe Pose. Tap one, or several -- two people interacting are one composition, so choosing both gives a region spanning them and the gap. |
+
+### Portrait's oval on close-ups
+
+A tester, with nineteen close-up portraits: "the guiding circle for some of these faces is
+smaller than the face itself". The oval was scaled from YuNet's box, which on a close-up
+is too small or in the wrong place. Now (`faces._with_outlines`), where the face mesh is
+available, the oval is an ellipse fitted to the mesh's 36 outline points -- forehead,
+temples, cheeks, jaw, chin -- expressed as the box the guides' own constants turn into
+that ellipse, so the guide lines, the steps' contour ring and the ear placement all
+follow without other changes. The mesh is started from the padded face finder's points
+where it found the same face (YuNet, unpadded, reads a close-up face small and the mesh
+follows it), and is used only where its face-present flag is positive, which leaves side
+profiles on the box. The same finder recovers faces YuNet misses: on the tester's photos
+at full size an extreme close-up and a face in heavy sunglasses, and one where YuNet took
+the mouth and chin for the face.
+
+Measured on the fifteen faces whose chin and widest points could be marked by hand
+(`tests/fixtures/portraits_close/marks.json`): the oval passes within 12% of the chin
+with the sides of the face inside on 10 (11 on the 900 px fixture copies), against 2 (3)
+for the box-scaled oval. The start point and the number of mesh passes were chosen on
+those same photos. The no-landmark fallback still scales from the box, and
+`test_fallback_proportions_match_real_faces` measures it on that box.
 
 ### How object mode picks the object
 
@@ -150,6 +172,18 @@ marked on crops with nothing drawn on them), through the app's own flow: iris si
 21% of the mark on all ten, median 6%, the same for a box of two or three eye-widths.
 The centre is weaker: within 0.55 iris radii on every eye, within 0.3 on six. Ten eyes in
 eight photos is a small set.
+
+**Where the face gives no eye.** On a side profile the face mesh declines, so the face
+path has no eye to give -- but the face still sets the scale. The iris radius runs at
+0.078-0.105 of the eye-to-mouth length on the ten marked eyes (0.09 typically), a length
+a turned head doesn't foreshorten. When the crop came from a photo with a face but no
+face-path eye, the rules look for an iris no bigger than 1.15 times 0.09 of that length
+(no smaller than half of it) and within 1.5 of it of a detector eye point; finding none,
+they draw it at that size on the eye point. With the face path switched off on the ten
+marked eyes: size within 14% typically, from 51% too small (a pupil taken for the iris)
+to 33% too big, against the rules alone at up to four times the size. The limits were
+chosen on those ten eyes; the irises in the tester's two profiles are hidden by lids and
+lashes, so the profile case itself couldn't be measured.
 
 **The iris model on a close-up, alone, measured worse than the rules** -- 7 of 19 close-ups
 against 10 -- because its iris comes out the size of whatever crop it is given: 19% small

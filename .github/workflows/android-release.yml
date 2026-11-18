@@ -73,7 +73,31 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: android-sdk-ndk-${{ hashFiles('buildozer.spec') }}
+          # keyed on the toolchain, not the whole spec: a version bump or a new file type
+          # used to throw the cache away and re-download the SDK and NDK
+          key: android-sdk-ndk-r28c-api36-p4a-v2026.05.09
+
+      # Buildozer downloads the ~700 MB NDK itself and never checks it: a truncated
+      # download fails much later as "unzip ... Error code: 9" (it did, on 1.5.0, the first
+      # build after the cache key changed). Fetched here with retries and a full integrity
+      # test instead; buildozer finds the folder and skips its own download.
+      - name: Fetch the Android NDK, checked
+        run: |
+          NDK=r28c   # keep in step with android.ndk in buildozer.spec
+          DIR="$HOME/.buildozer/android/platform"
+          if [ ! -x "$DIR/android-ndk-$NDK/ndk-build" ]; then
+            mkdir -p "$DIR" && cd "$DIR" && rm -rf "android-ndk-$NDK" ndk.zip
+            for i in 1 2 3; do
+              curl -fL --retry 5 --retry-all-errors -o ndk.zip \
+                "https://dl.google.com/android/repository/android-ndk-$NDK-linux.zip" \
+                && unzip -tq ndk.zip > /dev/null && break
+              echo "NDK download damaged or incomplete, retrying ($i of 3)"
+              rm -f ndk.zip; sleep 15
+            done
+            [ -f ndk.zip ] || { echo "::error::Could not download a complete Android NDK $NDK."; exit 1; }
+            unzip -q ndk.zip && rm ndk.zip
+          fi
+          test -x "$DIR/android-ndk-$NDK/ndk-build"
 
       - name: Start from a clean build tree
         run: rm -rf .buildozer
