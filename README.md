@@ -15,7 +15,9 @@ Everything reported against the app since v1.0.0, in the tester's own words, is 
 ## Layout
     main.py                      entry point
     sketch_assistant/app.py      App + screen manager
-    sketch_assistant/ui/         home.py (main page), guide.py (tips page), widgets.py
+    sketch_assistant/ui/         home.py (main page), guide.py (tips page), widgets.py,
+                                 settings.py (gear page), textpage.py (privacy / licences)
+    sketch_assistant/purchases.py   Pro unlock -- a placeholder until billing is built
     sketch_assistant/core/       modes.py (the subject registry), faces.py (detect/crop),
                                  hands.py (hand structure from a silhouette), styles.py
                                  (renderers), guides.py (construction lines), steps.py (stage ladders)
@@ -78,6 +80,28 @@ are not lines (the palm circle, finger joints) carry no number. See `guides.at`.
 - **Save PNG** writes to `Pictures/SketchAssistant` (Windows/macOS/Linux and Android) and shows where, with an "Open folder" button on desktop.
 - **Basic Shapes** (object mode) cuts out the main object with GrabCut, then draws its angular silhouette, shadow shapes, bounding box and W:H proportion.
 - **Material guide** (object guide page): Matte, Glossy, Glass, Fabric, Wood - labelled example images (`scripts/make_material_examples.py`) plus steps, pencils and common mistakes (`data/materials.py`).
+
+## Settings page
+- A small grey gear at the top right of the main page (in the logo bar, not a subject tab)
+  opens **Settings**: Send feedback, Rate Sketch Assistant, Restore purchase, Privacy
+  policy, Licences and the version number.
+- **Send feedback** opens the user's email app (a `mailto:` link) addressed to
+  golemapps1@gmail.com, with the app version, phone model, Android version and current
+  mode under a line at the bottom. The app sends nothing itself; with no email app it
+  shows the address and copies it.
+- **Restore purchase** calls `purchases.restore()`, which says there is nothing to restore
+  until Pro exists (`PRO_AVAILABLE = False`). The billing code goes in that module.
+- The privacy policy shown in the app is `assets/privacy_policy.txt`, a copy of
+  `PRIVACY_POLICY.md`. After editing the policy, copy it over:
+  a test fails if the two differ.
+- Text pages are one label per paragraph: a single label for the licences is a texture
+  taller than many phones can make, which shows as a blank page.
+- The version name is `__version__` in `sketch_assistant/__init__.py`; `buildozer.spec`
+  reads it from there.
+- The styles that will stay free once Pro exists are listed in `styles.FREE`: one per mode,
+  its contour (Line Art in Portrait, Clean Lines in Cartoon). See MONETIZATION_PLAN.md.
+  Nothing is locked yet. The style tiles run in the order a drawing is built, with
+  construction before contour, so the free style isn't always first.
 
 ## Look & feel
 - Theme in `ui/theme.py`: black ink, white paper, amber accent (matches the icon). Change colours there.
@@ -286,7 +310,7 @@ The hair's outline is inked at the upper lids' weight, the heaviest line on the 
 mode is chosen ("Cartoon works on portraits only - add a photo of a face"), and the found,
 not-found and hint lines repeat it.
 
-**Styles and steps.** Light Hatching (default) and Clean Lines; a Shapes style was taken
+**Styles and steps.** Clean Lines (default) and Light Hatching; a Shapes style was taken
 out on a tester's say-so (the shapes remain the first two steps). The slider is the
 exaggeration in both -- its ends say so (`Mode.slider_labels`). Steps: head shape
 and guide lines, features as shapes, then over the fading shapes the outline, eyes and

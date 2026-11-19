@@ -456,3 +456,16 @@ def test_a_value_finish_keeps_its_key():
     st = build_stages("object", img, "obj_value", 0.6, *extra)
     plain = __import__("sketch_assistant.core.styles", fromlist=["render"]).render("obj_value", img, 0.6)
     assert st[-1].image.shape[0] > plain.shape[0]
+
+
+
+def test_every_mode_has_exactly_one_free_style():
+    """Every name in the free set is a real style, and each mode has exactly one -- its
+    contour -- so no mode will be wholly locked once Pro exists, and none gives away more."""
+    from sketch_assistant.core.modes import MODES
+    from sketch_assistant.core.styles import ALL, FREE
+    assert FREE <= set(ALL), FREE - set(ALL)
+    for key, m in MODES.items():
+        free = FREE & set(m.styles)
+        assert len(free) == 1, f"{key}: free styles {sorted(free)}"
+        assert ALL[next(iter(free))].family == "line", f"{key}: the free style isn't the line style"

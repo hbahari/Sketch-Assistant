@@ -68,7 +68,7 @@ through the shading in small steps, through hatching, to a finished nose.
 
 OBJECT MODE
 The same idea for still life. Drag a box round the object you want to draw -- useful when
-there is more than one thing in the shot -- and pick from Contour, Basic Shapes, Value
+there is more than one thing in the shot -- and pick from Basic Shapes, Contour, Value
 Study, Cross-Hatch and Photorealism.
 
 HANDS MODE

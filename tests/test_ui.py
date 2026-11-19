@@ -347,7 +347,7 @@ def test_eyes_mode_frames_the_eye_with_the_box_picker():
     app, home = _loaded_home("eyes", _fixture("eyes", "blue_macro.jpg"))
     try:
         assert home.box_picker.parent is home.photo_card, "box picker not shown"
-        assert app.source_img is not None and app.style_key == "eye_contour"
+        assert app.source_img is not None and app.style_key == MODES["eyes"].default_style
         assert all(not home.tiles[k].disabled for k in MODES["eyes"].styles)
     finally:
         EventLoop.window.remove_widget(home)
@@ -416,7 +416,7 @@ def test_nose_mode_frames_the_nose_with_the_box_picker():
     app, home = _loaded_home("nose", _fixture("noses", "front_clear.jpg"))
     try:
         assert home.box_picker.parent is home.photo_card, "box picker not shown"
-        assert app.source_img is not None and app.style_key == "nose_contour"
+        assert app.source_img is not None and app.style_key == MODES["nose"].default_style
         assert all(not home.tiles[k].disabled for k in MODES["nose"].styles)
     finally:
         EventLoop.window.remove_widget(home)
@@ -560,7 +560,7 @@ def test_caricature_mode_draws_a_tapped_face_and_the_slider_says_exaggeration():
         regions = home.regions.get("caricature")
         assert regions, "no face offered to tap"
         home.on_face(0, regions[0])
-        assert app.style_key == "car_hatch" and app.sketch is not None
+        assert app.style_key == "car_lines" and app.sketch is not None
         ink = (app.sketch.min(axis=2) < 200).mean()
         assert 0.005 < ink < 0.2, f"caricature ink {ink:.3f}"
         guide = GuideScreen(app, name="guide")

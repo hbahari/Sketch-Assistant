@@ -14,6 +14,98 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 30 — construction before contour; one free style per mode
+
+*Shipped in: 1.7.0 (not yet uploaded)*
+
+> "Change Cartoon to Lines and then Hatched. Posture can stay Gesture, Mannequin, Contour
+> and the rest. Make Hands have Construct first and then Contour, and the same for Nose and
+> Eyes. In Objects, make Shapes first and then Contour. I think we can make Contour the
+> free style for all of them (Lines for Cartoon, Line Art for Portrait), and it doesn't
+> need to be the first one."
+
+**What changed.** The style tiles now follow the order you'd actually draw in: block in
+the shapes first, then the outline.
+
+- **Eyes, Nose, Hands:** Construct, Contour, then Value, Hatch, Realistic.
+- **Object:** Shapes, Contour, then the rest.
+- **Cartoon:** Lines, then Hatched.
+- **Posture** (Gesture, Mannequin, Contour…) and **Portrait** are unchanged.
+
+Each mode opens on its first tile, so Eyes, Nose, Hands and Object now open on the
+construction drawing, and Cartoon on clean lines.
+
+For Pro later, one style per mode stays free: the contour (Line Art in Portrait, Lines in
+Cartoon). Nothing is locked yet.
+
+---
+
+## Round 29 — free styles first, taken back
+
+*Shipped in: 1.7.0 (not yet uploaded)*
+
+> "I don't think the reorder was a good idea. It kind of ruins the natural flow of drawing
+> we came up with. Revert the reorder change."
+
+**What changed.** The styles are back in their original order. Posture runs Gesture,
+Mannequin, Contour, then the rest, and Cartoon opens on Light Hatching again. Users never
+saw the reordered version.
+
+What this means for Pro later: a free style won't always be the first tile. When Pro is
+built, a mode should open on its free style for someone who hasn't bought Pro. (The order
+was then set again in Round 30.)
+
+---
+
+## Round 28 — a settings page: feedback, restore purchase, licences
+
+*Shipped in: 1.7.0 (not yet uploaded)*
+
+> "Let's add a settings and feedback page. I want it to be a subtle gear icon somewhere,
+> not an entire tab. Add a feedback button, and a button for restoring a purchase — we'll
+> make that work when we add the Pro version."
+
+**What changed.** There's now a small grey gear at the top right of the main page, next to
+the logo. It opens a Settings page with:
+
+- **Send feedback.** Opens your email app with a new message already addressed to the
+  developer. The phone model, Android version, app version and the mode you were in are
+  filled in under a line at the bottom, in plain sight, so you can see what's being sent
+  and delete it. If the phone has no email app, it shows the address and copies it so you
+  can paste it somewhere else.
+- **Rate Sketch Assistant.** Opens the app's page in the Play Store.
+- **Restore purchase.** There for when Pro arrives. For now it just says there's nothing to
+  restore yet.
+- **Privacy policy** and **Licences**, readable inside the app, with no internet needed.
+- The app's version number at the bottom.
+
+The app itself still sends nothing. The email is written and sent (or not) by your own
+email app. The privacy policy now says so, in a new "Feedback and ratings" section.
+
+Deliberately left out: a profile page. The app has no accounts and doesn't need one. A Pro
+purchase will belong to your Google account, which Google Play already keeps track of.
+
+The Licences page fixes the "no visible credits screen" item that was in Still open.
+
+---
+
+## Round 27 — free styles first (taken back before release)
+
+*Shipped in: never. Reverted in Round 29, before 1.7.0 went out.*
+
+> "Not a bad idea to move all the free styles to be the first ones on the left. It'll feel
+> more natural."
+
+**What changed.** In every mode, the styles that will stay free once Pro exists now come
+first, on the left, so each mode opens on one of them. Only two modes changed:
+
+- **Posture** now runs Gesture, Contour, Mannequin, then the rest. Contour used to be third.
+- **Cartoon** now opens on Clean Lines, with Light Hatching second.
+
+Nothing is locked yet. Every style still works for everyone.
+
+---
+
 ## Round 26 — tab order
 
 *Shipped in: 1.6.0 (not yet uploaded)*
@@ -754,9 +846,9 @@ missed.
   instructions describe it instead.
 - **The nose wing correction was tuned on the same six face-on photos it was tested on.**
   More face-on photos would show whether it holds.
-- **No visible credits screen.** The licence text for the face-tracking pieces (and the
-  other open-source parts) ships inside the app, but nothing in the app shows it. An
-  "About" or "Open-source licences" screen would be the tidy way to show it.
+- **The Licences page lists only the Apache-licensed parts** (the face, hand and body
+  models and OpenCV). Kivy, NumPy and Python are under other open-source licences (MIT,
+  BSD, PSF) that ask for their notices to ship too, and those aren't on the page yet.
 - **One hand photo can't be read at all** — a hand mostly out of frame gripping a phone.
   It falls back to the rougher method rather than failing, but the result is poor.
 - **Dark backgrounds confuse posture mode's outline.** On one test photo of a figure

@@ -10,10 +10,12 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,xml,onnx,tflite,txt
 source.exclude_dirs = tests,scripts,bin,.buildozer,venv,.venv,.github,.idea,shots,android_manifest
 
-# versionName shown in the Play listing
-version = 1.6.0
+# versionName shown in the Play listing. It is read from sketch_assistant/__init__.py so the
+# app can show the same number on its settings page: change it THERE, not here.
+version.regex = __version__ = ['"](.*)['"]
+version.filename = %(source.dir)s/sketch_assistant/__init__.py
 # versionCode: MUST increase on every upload to the Play Console
-android.numeric_version = 9
+android.numeric_version = 10
 
 # Versions come from the pinned python-for-android below, which ships a tested set:
 # Python 3.14.2, Kivy 2.3.1, numpy 2.3.0, OpenCV 4.12.0, pyjnius 1.7.0.

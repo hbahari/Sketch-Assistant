@@ -184,3 +184,88 @@ def reveal(path):
             subprocess.Popen(["xdg-open", folder])
     except Exception:
         pass
+
+
+# --------------------------------------------------------------------------- other apps
+# The settings page hands these off to apps the user already has. The app itself still makes
+# no network request: the email is written and sent (or not) by the user's own email app.
+PLAY_URL = "https://play.google.com/store/apps/details?id={}"
+PACKAGE = "golemapps.sketchassistant.app"      # buildozer: package.domain + "." + package.name
+
+
+def mailto_uri(to, subject, body):
+    """A mailto: link carrying the subject and body, encoded so any email app can read it."""
+    from urllib.parse import quote
+    return f"mailto:{to}?subject={quote(subject)}&body={quote(body)}"
+
+
+def device_summary():
+    """One line per fact a bug report needs, readable by the person sending it."""
+    act = _activity()
+    if act is not None:
+        try:
+            from jnius import autoclass
+            Build = autoclass("android.os.Build")
+            Version = autoclass("android.os.Build$VERSION")
+            return f"Device: {Build.MANUFACTURER} {Build.MODEL}\nAndroid: {Version.RELEASE} (API {Version.SDK_INT})"
+        except Exception:
+            return "Device: Android"
+    import platform
+    return f"Device: {platform.system()} {platform.release()} ({platform.machine()})"
+
+
+def send_email(to, subject, body):
+    """Open the user's email app on a new message. Returns False if no app could take it."""
+    uri = mailto_uri(to, subject, body)
+    act = _activity()
+    if act is None:
+        import webbrowser
+        try:
+            return bool(webbrowser.open(uri))
+        except Exception:
+            return False
+    try:
+        from jnius import autoclass
+        Intent = autoclass("android.content.Intent")
+        Uri = autoclass("android.net.Uri")
+        String = autoclass("java.lang.String")
+        intent = Intent(Intent.ACTION_SENDTO, Uri.parse(uri))
+        # Gmail reads the subject and body from the link; some apps only from the extras
+        intent.putExtra(Intent.EXTRA_SUBJECT, String(subject))
+        intent.putExtra(Intent.EXTRA_TEXT, String(body))
+        act.startActivity(Intent.createChooser(intent, String("Send feedback")))
+        return True
+    except Exception:                    # no email app (ActivityNotFoundException) or no jnius
+        return False
+
+
+def open_store_page():
+    """Show this app's Play Store page, in the Play Store app if there is one."""
+    act = _activity()
+    if act is None:
+        import webbrowser
+        try:
+            return bool(webbrowser.open(PLAY_URL.format(PACKAGE)))
+        except Exception:
+            return False
+    from jnius import autoclass
+    Intent = autoclass("android.content.Intent")
+    Uri = autoclass("android.net.Uri")
+    pkg = act.getPackageName()
+    for url in (f"market://details?id={pkg}", PLAY_URL.format(pkg)):
+        try:
+            act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            return True
+        except Exception:
+            continue
+    return False
+
+
+def copy_text(text):
+    """Put `text` on the clipboard (the fallback when there is no email app)."""
+    try:
+        from kivy.core.clipboard import Clipboard
+        Clipboard.copy(text)
+        return True
+    except Exception:
+        return False

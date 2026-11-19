@@ -11,6 +11,7 @@ from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.slider import Slider
+from kivy.uix.widget import Widget
 
 from . import theme
 
@@ -324,14 +325,57 @@ class Card(BoxLayout):
 
 
 class LogoBar(BoxLayout):
-    """Slim top bar with the app logo (replaces the old text banner)."""
+    """Slim top bar with the app logo, and the settings gear at the far right if wanted."""
 
-    def __init__(self, **kw):
+    def __init__(self, on_settings=None, **kw):
         from pathlib import Path
-        super().__init__(size_hint_y=None, height=dp(62), padding=(dp(18), dp(10), dp(18), 0), **kw)
+        super().__init__(size_hint_y=None, height=dp(62), padding=(dp(18), dp(10), dp(8), 0), **kw)
         logo = Path(__file__).resolve().parent.parent / "assets" / "brand" / "logo.png"
         self.add_widget(Image(source=str(logo), fit_mode="contain", size_hint_x=None, width=dp(215), mipmap=True))
         self.add_widget(Label())  # spacer pushes the logo to the left
+        self.gear = None
+        if on_settings is not None:
+            from kivy.uix.anchorlayout import AnchorLayout
+            box = AnchorLayout(size_hint_x=None, width=dp(48))
+            self.gear = GearButton(on_release=lambda *_: on_settings())
+            box.add_widget(self.gear)
+            self.add_widget(box)
+
+
+class GearButton(ButtonBehavior, Widget):
+    """A small outlined gear in the muted grey: there when wanted, easy to overlook otherwise.
+
+    The touch target is the full 48dp Android asks for; only the drawing is small.
+    """
+    TEETH = 8
+
+    def __init__(self, **kw):
+        super().__init__(size_hint=(None, None), size=(dp(48), dp(48)), **kw)
+        self.bind(pos=self._d, size=self._d, state=self._d)
+        self._d()
+
+    def gear_points(self):
+        """The outline as a flat [x0, y0, x1, y1, ...] list, centred on the widget."""
+        import math
+        cx, cy = self.center
+        r_out, r_in = dp(11), dp(8.2)
+        pitch = 2 * math.pi / self.TEETH
+        pts = []
+        for k in range(self.TEETH):
+            a = k * pitch
+            for frac, r in ((-0.30, r_in), (-0.17, r_out), (0.17, r_out), (0.30, r_in)):
+                pts += [cx + r * math.cos(a + frac * pitch), cy + r * math.sin(a + frac * pitch)]
+        return pts
+
+    def _d(self, *_):
+        self.canvas.before.clear()
+        cx, cy = self.center
+        with self.canvas.before:
+            if self.state == "down":
+                Color(*theme.SURFACE_HI); Ellipse(pos=(cx - dp(20), cy - dp(20)), size=(dp(40), dp(40)))
+            Color(*theme.MUTED)
+            Line(points=self.gear_points(), close=True, width=dp(1.4), joint="round")
+            Line(circle=(cx, cy, dp(3.6)), width=dp(1.4))
 
 
 class TitleBar(BoxLayout):
@@ -342,6 +386,7 @@ class TitleBar(BoxLayout):
         self.back = BackButton(on_release=lambda *_: on_back())
         lb = Label(text=title, bold=True, font_size=sp(20), color=theme.TEXT, halign="left", valign="middle")
         lb.bind(size=lambda w, v: setattr(w, "text_size", v))
+        self.title = lb
         self.add_widget(self.back); self.add_widget(lb)
 
 

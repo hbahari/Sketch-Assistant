@@ -32,7 +32,8 @@ class HomeScreen(Screen):
         # as a figure, and back the other way, offering figures to tap as faces.
         self.photo_loaded, self.regions, self.tiles = False, {}, {}
         root = BoxLayout(orientation="vertical", spacing=dp(6))
-        root.add_widget(LogoBar())
+        self.logo_bar = LogoBar(on_settings=lambda: self.manager.go("settings"))
+        root.add_widget(self.logo_bar)
         body = BoxLayout(orientation="vertical", spacing=dp(8), padding=(0, 0, 0, dp(14)))
 
         # the subject bar spans the full width so it can scroll under the page margins

@@ -902,8 +902,8 @@ STYLES = {s.key: s for s in (           # portrait mode
     Style("photoreal", "Photorealism", photorealistic, "Realistic", family="real"),
 )}
 OBJECT_STYLES = {s.key: s for s in (    # object mode: whole image, no detection
-    Style("obj_contour", "Contour", line_art, "Contour", family="line"),
     Style("obj_shapes", "Basic Shapes", shapes, "Shapes", family="construct"),
+    Style("obj_contour", "Contour", line_art, "Contour", family="line"),
     Style("obj_value", "Value Study", value_study, "Value", 0.3, family="value"),
     Style("obj_hatch", "Cross-Hatch", crosshatch, "Hatch", family="hatch"),
     Style("obj_realistic", "Photorealism", photorealistic, "Realistic", family="real"),
@@ -911,8 +911,8 @@ OBJECT_STYLES = {s.key: s for s in (    # object mode: whole image, no detection
 HAND_STYLES = {s.key: s for s in (      # hands mode: every style is masked to the hand
     # a lower default than the other modes: skin creases, knuckle folds and hair all read
     # as edges, so a hand at the usual 0.5 comes back as a thicket of interior lines
-    Style("hand_contour", "Contour", on_hand(line_art, outline=True), "Contour", 0.3, "line"),
     Style("hand_construct", "Construction", construction, "Construct", family="construct"),
+    Style("hand_contour", "Contour", on_hand(line_art, outline=True), "Contour", 0.3, "line"),
     Style("hand_value", "Value Study", on_hand(value_study), "Value", 0.3, family="value"),
     Style("hand_hatch", "Cross-Hatch", on_hand(crosshatch), "Hatch", family="hatch"),
     Style("hand_realistic", "Photorealism", on_hand(photorealistic), "Realistic", family="real"),
@@ -926,15 +926,15 @@ BODY_STYLES = {s.key: s for s in (      # posture mode: abstract first, rendered
     Style("body_realistic", "Photorealism", on_body(photorealistic), "Realistic", 0.5, "real"),
 )}
 EYE_STYLES = {s.key: s for s in (       # eyes mode: one eye, framed by the user
-    Style("eye_contour", "Contour", line_art, "Contour", 0.4, "line"),
     Style("eye_construct", "Construction", eye_construction, "Construct", 1.0, "construct"),
+    Style("eye_contour", "Contour", line_art, "Contour", 0.4, "line"),
     Style("eye_value", "Value Study", value_study, "Value", 0.4, "value"),
     Style("eye_hatch", "Cross-Hatch", crosshatch, "Hatch", 0.5, "hatch"),
     Style("eye_realistic", "Photorealism", photorealistic, "Realistic", 0.6, "real"),
 )}
 NOSE_STYLES = {s.key: s for s in (      # nose mode: one nose, framed by the user
-    Style("nose_contour", "Contour", line_art, "Contour", 0.4, "line"),
     Style("nose_construct", "Construction", nose_construction, "Construct", 1.0, "construct"),
+    Style("nose_contour", "Contour", line_art, "Contour", 0.4, "line"),
     Style("nose_value", "Value Study", value_study, "Value", 0.4, "value"),
     Style("nose_hatch", "Cross-Hatch", crosshatch, "Hatch", 0.5, "hatch"),
     Style("nose_realistic", "Photorealism", photorealistic, "Realistic", 0.6, "real"),
@@ -952,9 +952,15 @@ def _car(name):
 # Light Hatching is a line drawing with a little line hatching, not a tonal style -- it has
 # no value study or blending on its way -- so it is in the line family.
 CARICATURE_STYLES = {s.key: s for s in (
-    Style("car_hatch", "Light Hatching", _car("caricature_hatched"), "Hatched", 0.35, "line"),
     Style("car_lines", "Clean Lines", _car("caricature_lines"), "Lines", 0.35, "line"),
+    Style("car_hatch", "Light Hatching", _car("caricature_hatched"), "Hatched", 0.35, "line"),
 )}
+# The styles that stay free once Sketch Assistant Pro exists: one per mode, the contour (Line
+# Art in Portrait, Clean Lines in Cartoon). Nothing is locked yet. The tiles follow the order
+# a drawing is built in, construction before contour, so the free style isn't always first:
+# see MONETIZATION_PLAN.md.
+FREE = frozenset({"line_art", "eye_contour", "nose_contour", "hand_contour", "body_contour",
+                  "car_lines", "obj_contour"})
 ALL = {**STYLES, **OBJECT_STYLES, **HAND_STYLES, **BODY_STYLES, **EYE_STYLES, **NOSE_STYLES,
        **CARICATURE_STYLES}
 
