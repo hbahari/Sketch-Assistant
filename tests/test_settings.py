@@ -74,6 +74,19 @@ def test_text_pages_avoid_characters_the_app_font_lacks():
         assert not missing, f"{f.name}: {missing}"
 
 
+def test_settings_are_remembered_and_a_damaged_file_means_defaults(tmp_path):
+    from sketch_assistant import prefs
+    f = tmp_path / "prefs.json"
+    prefs.use_file(f)
+    assert prefs.get("keep_screen_on") is False, "off until the user turns it on"
+    prefs.set("keep_screen_on", True)
+    assert prefs.get("keep_screen_on") is True
+    f.write_text("{not json")
+    assert prefs.get("keep_screen_on") is False
+    prefs.set("keep_screen_on", True)                 # and a damaged file is replaced, not fatal
+    assert prefs.get("keep_screen_on") is True
+
+
 # --------------------------------------------------------------------------- with a window
 kivy = pytest.importorskip("kivy")
 os.environ.setdefault("KIVY_NO_ARGS", "1")
@@ -87,7 +100,9 @@ from kivy.clock import Clock  # noqa: E402
 
 
 @pytest.fixture(scope="module")
-def app():
+def app(tmp_path_factory):
+    from sketch_assistant import prefs
+    prefs.use_file(tmp_path_factory.mktemp("prefs") / "prefs.json")   # never the real settings
     EventLoop.ensure_window()
     from sketch_assistant.app import SketchApp
     a = SketchApp()
@@ -170,3 +185,40 @@ def test_licences_and_privacy_open_as_readable_pages(app, row, title, needle):
     assert a._back_key(sm, 27) is True
     _tick()
     assert sm.current == "settings"
+
+
+def test_keep_screen_on_switch_saves_and_applies(app, monkeypatch):
+    """The switch flips on a tap, is saved, and is applied straight away. On the desktop
+    'applied' means the screensaver is blocked (the Android flag needs a phone)."""
+    from kivy.core.window import Window
+    from sketch_assistant import prefs
+    a, sm = app
+    from kivy.graphics import RoundedRectangle
+    sm.current = "settings"
+    _tick()
+    row = sm.get_screen("settings").rows["screen_on"]
+    assert row.value is False
+    track = [c for c in row.canvas.after.children if isinstance(c, RoundedRectangle)]
+    assert track, "no switch drawn"
+    right_edge = row.x + row.width
+    assert right_edge - kivy.metrics.dp(90) < track[0].pos[0] < right_edge, \
+        f"switch at x={track[0].pos[0]:.0f}, row runs {row.x:.0f}-{right_edge:.0f}"
+    _tap(row)
+    assert row.value is True and prefs.get("keep_screen_on") is True
+    assert Window.allow_screensaver is False
+    _tap(row)
+    assert row.value is False and prefs.get("keep_screen_on") is False
+    assert Window.allow_screensaver is True
+
+
+def test_a_saved_keep_screen_on_is_applied_at_start(app):
+    """Turned on last time means on from the moment the app opens, without visiting Settings."""
+    from kivy.core.window import Window
+    from sketch_assistant import prefs
+    a, sm = app
+    prefs.set("keep_screen_on", True)
+    Window.allow_screensaver = True
+    a.on_start()
+    assert Window.allow_screensaver is False
+    prefs.set("keep_screen_on", False)
+    Window.allow_screensaver = True

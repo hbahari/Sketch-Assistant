@@ -7,7 +7,7 @@ about drawing.
 """
 from pathlib import Path
 
-from kivy.graphics import Color, Line
+from kivy.graphics import Color, Ellipse, Line, RoundedRectangle
 from kivy.metrics import dp, sp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -15,8 +15,8 @@ from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 
-from .. import __version__, purchases
-from ..platform_utils import copy_text, device_summary, open_store_page, send_email
+from .. import __version__, prefs, purchases
+from ..platform_utils import copy_text, device_summary, keep_screen_on, open_store_page, send_email
 from . import theme
 from .widgets import RoundButton, TitleBar
 
@@ -62,6 +62,40 @@ class Row(RoundButton):
                  width=dp(1.6), cap="round", joint="round")
 
 
+class ToggleRow(Row):
+    """A settings row with an on/off switch at the right instead of a chevron. Tapping
+    anywhere on the row flips it."""
+
+    def __init__(self, title, subtitle, value, on_change, **kw):
+        self.value, self.on_change = bool(value), on_change
+        super().__init__(title, subtitle, **kw)
+        self.padding = (dp(18), 0, dp(78), 0)
+
+    def on_release(self):
+        self.value = not self.value
+        self._draw()
+        self.on_change(self.value)
+
+    def _draw(self, *_):
+        RoundButton._draw(self)
+        if not hasattr(self, "value"):
+            return
+        w, h = dp(46), dp(26)
+        # from x/width/y/height, not right/center_y: those aliases update after the pos and
+        # size events that call this, so the first laid-out draw put the switch at the left
+        x, y = self.x + self.width - dp(18) - w, self.y + (self.height - h) / 2
+        knob = h - dp(6)
+        with self.canvas.after:
+            Color(*(theme.AMBER if self.value else theme.SURFACE_HI))
+            RoundedRectangle(pos=(x, y), size=(w, h), radius=[h / 2])
+            Color(*theme.WHITE)
+            kx = x + w - dp(3) - knob if self.value else x + dp(3)
+            Ellipse(pos=(kx, y + dp(3)), size=(knob, knob))
+            if not self.value:
+                Color(*theme.MUTED[:3], 0.35)
+                Line(ellipse=(kx, y + dp(3), knob, knob), width=dp(1))
+
+
 def _section(text):
     lb = Label(text=text.upper(), bold=True, font_size=sp(11), color=theme.MUTED, size_hint_y=None,
                height=dp(30), halign="left", valign="bottom", padding=(dp(6), dp(4)))
@@ -81,6 +115,8 @@ class SettingsScreen(Screen):
         col.bind(minimum_height=col.setter("height"))
 
         self.rows = {
+            "screen_on": ToggleRow("Keep screen on", "While the app is open, so it won't dim as you draw",
+                                   prefs.get("keep_screen_on"), self.set_screen_on),
             "feedback": Row("Send feedback", "Report a problem or suggest an idea",
                             on_release=lambda *_: self.send_feedback()),
             "rate": Row("Rate Sketch Assistant", "Leave a review on Google Play",
@@ -92,6 +128,8 @@ class SettingsScreen(Screen):
             "licences": Row("Licences", "Open-source software in the app",
                             on_release=lambda *_: self.show_text("Licences", _read(LICENSES_FILE))),
         }
+        col.add_widget(_section("While drawing"))
+        col.add_widget(self.rows["screen_on"])
         col.add_widget(_section("Help us improve"))
         col.add_widget(self.rows["feedback"]); col.add_widget(self.rows["rate"])
         col.add_widget(_section("Purchases"))
@@ -106,6 +144,10 @@ class SettingsScreen(Screen):
         self.add_widget(root)
 
     # actions
+    def set_screen_on(self, on):
+        prefs.set("keep_screen_on", on)
+        keep_screen_on(on)
+
     def send_feedback(self):
         from ..core.modes import mode_of
         try:

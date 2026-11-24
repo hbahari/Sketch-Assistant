@@ -14,6 +14,99 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 33 — keep the screen on while drawing
+
+*Shipped in: — (not yet built; see the note below about the version number)*
+
+> "I want to add an option in Settings to keep the phone screen on while the user is using
+> the app. It'll help them use it without having to tap their phone while they're drawing
+> or following the guides."
+
+**What changed.** Settings now opens with a **Keep screen on** switch, under the heading
+"While drawing". When it's on, the screen doesn't dim or lock while Sketch Assistant is open,
+so you can keep your eyes on the paper. As soon as you switch to another app or press the
+power button, the phone sleeps as usual, so it won't drain the battery in the background.
+The app remembers the choice, so once it's on, it's on every time you open the app.
+
+It starts off. Some people won't want it, and a phone that never sleeps would surprise
+anyone who hasn't chosen it.
+
+The first version drew the switch in the wrong place when it was off: a grey sliver at the
+left edge of the row instead of a switch on the right. It was the same kind of mistake as
+the smudge on the Portrait tab in Round 31, where the position was worked out before the
+page had finished laying itself out. The screenshot check caught it before it reached
+anyone, and a test now checks where the switch is drawn.
+
+---
+
+## Round 32 — screenshots that show the realistic and hatched drawings
+
+*Shipped in: listing assets, not an app version.*
+
+> "I don't like that all the screenshots mostly capture the first one or two styles of each
+> section, and not the realistic or hatched styles. I think those are the strong points. Can
+> you add a few more screenshots, maybe for portrait and posture or hands, to capture the
+> realistic and hatched finished product and guides?"
+
+**What changed.** Google Play allows at most eight phone screenshots, so the new ones
+replace some of the old rather than adding to them. The set now leads with the finished,
+rendered drawings:
+
+- the photo next to its realistic pencil study
+- a realistic portrait with the proportion lines over it
+- the finished portrait as the last of its twelve shading steps
+- cross-hatching
+- a realistic eye
+- a realistic hand
+- figure drawing in cross-contour hatching
+- the cartoon
+
+Out went the line-art steps, the construction-only Hands and Posture shots, the plain
+proportion guide and the materials guide. The video still shows those. Tablets now get
+eight screenshots each instead of five: the same set, with a realistic nose in place of
+cross-hatching.
+
+---
+
+## Round 31 — new store screenshots, description and walkthrough video
+
+*Shipped in: listing assets, not an app version. The bar fix below is in 1.7.0 (not yet uploaded).*
+
+> "I need to update the Play Store listing assets. I want the screenshots to be more
+> specific: feature-rich screenshots that highlight specific features, and screenshots of
+> the interface in action. Make an optimized app description with the right keywords, with
+> bullet points for the features. We also need a video that walks through the app's main
+> functions so people properly understand what it does."
+
+**What changed.**
+
+- **Screenshots.** There are now eight phone screenshots and five each for 7- and 10-inch
+  tablets. Each shows one feature (turning a photo into a lesson, proportion guides, the
+  steps, eyes, hands, cartoon, posture, shading materials) under a one-line caption. Every
+  screen is the real app, not a mock-up.
+- **Description.** The listing is rewritten around what people search for when they want
+  to learn to draw: "learn to draw", "how to draw", "step by step", "drawing lesson",
+  "portrait drawing", and drawing eyes and hands. It has bullet points for how the app
+  works and for what every step tells you, plus a short section per mode. The title on
+  Play becomes "Sketch Assistant–Learn to Draw". Following Google's rules, keywords appear
+  only in ordinary sentences, never in lists.
+- **Feature graphic.** It now reads "Learn to draw from any photo, step by step".
+- **Video.** A 1:51 guided tour. A caption says what you're doing, the phone shows the app
+  doing it, and an amber ring marks each tap. It covers adding a photo, picking a style,
+  the drawing guide and slider, and the steps, then each mode in turn.
+
+Deliberately left out: the violin keywords in the original request, which came from
+another app's brief. Google rejects listings with keywords that don't describe the app.
+
+**Found while doing it.** When the app was captured at phone resolution, the left end of
+the selected Portrait tab showed a pale smear. The faded edge at the right-hand end of
+the mode bar was placed before the page had finished laying out, so on a wide screen it
+landed on top of the first tab and stayed there. That's fixed. My first explanation of
+the cause (a graphics glitch) was wrong; checking the fix against the screen showed the
+smear was still there, which is how the real cause was found.
+
+---
+
 ## Round 30 — construction before contour; one free style per mode
 
 *Shipped in: 1.7.0 (not yet uploaded)*

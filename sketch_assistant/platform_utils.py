@@ -269,3 +269,36 @@ def copy_text(text):
         return True
     except Exception:
         return False
+
+
+# --------------------------------------------------------------------------- screen
+def keep_screen_on(on):
+    """Stop (or let) the screen dimming and locking while the app is on screen.
+
+    Android's FLAG_KEEP_SCREEN_ON only holds while this app is in front: once the user
+    switches away or presses power, the phone sleeps as normal, so it can't drain the
+    battery in the background. The flag must be set on Android's UI thread.
+    """
+    act = _activity()
+    if act is None:
+        try:
+            from kivy.core.window import Window
+            Window.allow_screensaver = not on        # the desktop equivalent
+        except Exception:
+            pass
+        return
+    try:
+        from android.runnable import run_on_ui_thread
+        from jnius import autoclass
+        flag = autoclass("android.view.WindowManager$LayoutParams").FLAG_KEEP_SCREEN_ON
+
+        @run_on_ui_thread
+        def apply():
+            window = act.getWindow()
+            if on:
+                window.addFlags(flag)
+            else:
+                window.clearFlags(flag)
+        apply()
+    except Exception:
+        pass

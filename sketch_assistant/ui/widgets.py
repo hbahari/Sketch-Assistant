@@ -529,7 +529,11 @@ class ModeBar(ScrollView):
                                       texture=fade_texture(theme.BG)))
         if self.scroll_x < 0.99:
             self._fades.add(Color(1, 1, 1, 1))
-            self._fades.add(Rectangle(pos=(self.right - f, self.y), size=(f, self.height),
+            # x + width, not self.right: `right` is an alias Kivy updates *after* the size
+            # event that calls this, so on a wide screen the fade was placed where the
+            # 100px-wide bar's edge had been -- over the left end of the Portrait pill --
+            # and stayed there.
+            self._fades.add(Rectangle(pos=(self.x + self.width - f, self.y), size=(f, self.height),
                                       texture=fade_texture(theme.BG, reverse=True)))
 
 

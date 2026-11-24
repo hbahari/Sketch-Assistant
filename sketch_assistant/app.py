@@ -57,6 +57,12 @@ class SketchApp(App):
         Window.bind(on_keyboard=lambda w, key, *a: self._back_key(sm, key))
         return sm
 
+    def on_start(self):
+        from . import prefs
+        from .platform_utils import keep_screen_on
+        if prefs.get("keep_screen_on"):              # the Settings switch, remembered
+            keep_screen_on(True)
+
     @staticmethod
     def _back_key(sm, key):
         """Android back button / Esc: leave the current page instead of quitting the app."""

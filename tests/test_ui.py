@@ -597,3 +597,31 @@ def test_the_mode_tabs_are_in_the_tester_s_order():
     home = HomeScreen(SketchApp(), name="home")
     shown = [b.text for b in reversed(home.mode_bar.children[0].children)]    # Kivy lists children last-first
     assert shown == ["Portrait", "Eyes", "Nose", "Hands", "Posture", "Cartoon", "Object"], shown
+
+
+
+def test_the_end_fade_sits_at_the_end_of_the_bar():
+    """The right-hand fade must hug the bar's right edge once the page is laid out. It was
+    placed from `self.right`, which Kivy updates only after the size event that redraws the
+    fade, so it stayed where the edge of the 100px-wide unlaid-out bar had been: over the
+    Portrait pill, as a pale smear. Seen to fail with `self.right` (fade ending at x=100)."""
+    from kivy.core.window import Window
+    from kivy.graphics import Rectangle
+    from sketch_assistant.app import SketchApp
+    app = SketchApp()
+    sm = app.build()
+    Window.add_widget(sm)
+    try:
+        for _ in range(6):
+            Clock.tick()
+            EventLoop.idle()
+        bar = sm.get_screen("home").mode_bar
+        assert bar.row.width > bar.width and bar.scroll_x < 0.01, "needs an overflowing bar at its start"
+        rects = [c for c in bar._fades.children if isinstance(c, Rectangle)]
+        assert len(rects) == 1, "at the start only the right-hand fade belongs"
+        r = rects[0]
+        assert abs(r.pos[0] + r.size[0] - (bar.x + bar.width)) < 1, f"fade ends at {r.pos[0] + r.size[0]}"
+        first = bar.btns["portrait"]
+        assert r.pos[0] > first.to_window(first.right, 0)[0], "fade drawn over the first pill"
+    finally:
+        Window.remove_widget(sm)

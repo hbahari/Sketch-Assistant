@@ -7,119 +7,104 @@ matches what the app actually does, so it should survive review.
 
 ## Store listing
 
-**App name** (30 characters max)
+Rewritten 19 Nov 2026 for search: see "Keywords" below for what it targets and why.
+
+**App name** (30 characters max — this is the field Google weighs most for search)
 
 ```
-Sketch Assistant
+Sketch Assistant–Learn to Draw
 ```
 
-**Short description** (80 characters max — this is the line people see in search results)
+Exactly 30 characters, with an en dash and no spaces around it. This only changes the
+name on the Play listing; the name under the icon on the phone stays "Sketch Assistant".
+If you'd rather keep the plain name, the short description still carries "drawing lesson".
+
+**Short description** (80 characters max — the line people see in search results)
 
 ```
-Turn any photo into a pencil sketch and a step-by-step drawing guide.
+Turn any photo into a step-by-step drawing lesson. Faces, eyes, hands and more.
 ```
 
-**Full description** (4000 characters max)
+**Full description** (4000 characters max; this one is about 3,200)
 
 ```
-Sketch Assistant turns a photo into something you can actually draw from.
+Learn to draw from your own photos. Sketch Assistant turns any picture into a sketch you can actually copy, then teaches you how to draw it step by step: what to draw first, which pencil to pick up, how hard to press and where the shading goes. It's made for beginners and anyone getting back into drawing, not for people who already know how.
 
-Pick a photo, choose a sketch style, and the app gives you a clean reference plus a
-step-by-step guide: which pencil grades to use, how much pressure to apply, what to draw
-first, and where the shading goes. Built for people learning to draw, not for people who
-already know how.
+HOW IT WORKS
+• Take a photo or choose one from your gallery
+• The app finds the face, hand, person or object for you
+• Pick a sketch style and see your drawing reference straight away
+• Open the drawing guide for proportion lines you can measure on paper
+• Tap "Generate drawing steps" and follow the lesson one stage at a time
 
-PORTRAIT MODE
-Point it at a photo of a person and the app finds the faces for you. Tap the one you want
-and pick a style:
+WHAT YOU CAN LEARN TO DRAW
 
-• Line Art — clean outlines only, nothing else to distract you
-• Technical — light construction lines, proportion guides and gentle hatching
-• Value Study — the face reduced to flat tones, so you can see the big shapes
-• Cross-Hatch — shading built from layered pen strokes
-• Photorealism — smooth graphite shading with real pencil texture
+Portraits and faces
+Five sketch styles for portrait drawing: Line Art, Technical (construction lines and proportion guides), Value Study, Cross-Hatch and Photorealism. The steps go from the first construction line to the eyes, nose, mouth and ears, then the outline and the shading.
 
-EYES MODE
-The eye is the part of a portrait everyone looks at first and most people get wrong, so it
-has a mode to itself and the longest guide in the app. Load a portrait and the app finds
-the eye for you; load a close-up of one eye and drag a box round it -- and the app takes
-you from an empty page to a
-finished eye in fourteen steps: the width, height and tilt; the eyeball and the lids wrapped
-over it; the iris, pupil and the thickness of the lids; where the highlight and the lid's
-shadow will go; the real outline; the brow; flat values; the same tones in hatching; the
-hatching blended smooth; the brightest lights and darkest darks; the iris fibres; the
-lids and corners; and only then the lashes.
+Eyes
+The part of a portrait people look at first, with a mode of its own. Load a portrait and the app finds the eye; load a close-up and drag a box round it. Then build it step by step: the eyeball and lids, the iris and pupil, where the highlight goes, the brow, the shading, and the lashes last.
 
-CARTOON MODE
-Turn a portrait into a cartoon you can draw: just the head, in clean, even lines like the
-app's icon, with expressive eyes and lashes, brows drawn hair by hair, flowing strands of
-hair and a little light hatching, and nothing in the background. Want a caricature? The
-slider pushes exactly what makes this face different from an average one, from not at
-all to a lot. Then it walks you through it: the head shape, the features as simple
-shapes, and the lines one feature at a time.
+Nose
+How to draw a nose that looks solid rather than a hook and two dots. The app frames the nose for you, face-on or turned, then builds it from simple planes and balls before shading it.
 
-NOSE MODE
-A nose is drawn mostly with shading, not lines, which is why it so often comes out as a
-hook and two dots. Load a photo and the app finds the nose and frames it for you — face-on,
-three-quarter or side-on — then builds it the way a drawing class does: its length, width and tilt; a wedge of flat planes for the bridge, the sides and the
-underside; a ball for the tip and one for each wing, with the nostrils tucked underneath;
-then where the light falls and where the shadows go. After the outline it walks you
-through the shading in small steps, through hatching, to a finished nose.
+Hands
+Hands are where most people give up. The app works out the structure of the hand in your photo, from the palm block to the knuckles and every finger joint, and draws the construction lines for you.
 
-OBJECT MODE
-The same idea for still life. Drag a box round the object you want to draw -- useful when
-there is more than one thing in the shot -- and pick from Basic Shapes, Contour, Value
-Study, Cross-Hatch and Photorealism.
+Posture and figure drawing
+Figure drawing the way a life class teaches it: the line of action, the tilt of the shoulders and hips, the mannequin, then the real outline. Tap one person, or several if they belong together.
 
-HANDS MODE
-Hands are the thing most people give up on, so they get their own mode. The app finds the
-hand in your photo and works out its structure -- the palm block, the curve of the knuckles,
-and every joint of every finger, even the ones that are curled or half hidden. The guides
-are built from that, the way a figure-drawing class would teach it, and the Construction
-style shows the block-in on its own. All of it runs on your phone.
+Cartoon
+Turn a portrait into a cartoon you can draw, in clean lines with expressive eyes and flowing hair, and nothing in the background. Push the slider and the cartoon becomes a caricature.
 
-POSTURE MODE
-Figure drawing, taught the way a life class teaches it. The app finds the people in your
-photo -- tap one, or tap several if they belong together -- and starts you with the line of
-action, the thirty-second drawing that catches the whole pose. Then the shoulder and hip
-bars whose opposing tilt makes a figure look alive, then the ribcage and pelvis as solid
-masses, then the limbs as volumes, and only then the real outline. It measures the figure
-in head heights as you go, and shows you how to build the shading in strokes that curve
-around the body rather than lying flat across it. Hands and faces stay as simple shapes here on purpose; they have
-modes of their own.
+Objects and still life
+Drag a box round the object you want to draw. A material guide shows how matte, glossy, glass, fabric and wood each take the light, and how to shade them.
 
-STEP BY STEP
-Tap "Generate drawing steps" and the app rebuilds the sketch the way you would actually draw
-it. For a portrait: construction lines first, then the eyes, nose, mouth and ears one at a
-time, then the outline, the values and the finish. For a hand: the palm block and axes, then
-the knuckles and joints, then the finger volumes, then the real outline. Every step tells you
-which pencil to pick up, the technique to use, and what to put on the paper. For the
-realistic style, the steps take you there through hatching: hatch the tones in, blend
-them smooth, then lift the lights and deepen the shadows, with each kind of light and
-shadow explained. Change the detail right there on the steps page, and save the whole
-sequence as one sheet to print.
+EVERY STEP TELLS YOU
+• Which pencil to use, from 2H to 6B
+• The technique, and how much pressure to apply
+• Exactly what to put on the paper next
+• The common mistakes to avoid
 
-THE DRAWING GUIDE
-Tap through to the guide and you get the sketch enlarged, with optional proportion lines
-over it — eye line, nose line, mouth line, centre axis and a rule-of-thirds grid, each
-marked with how far down or across the page it sits so you can measure it out on paper — plus:
-
-• which pencils to reach for, from 2H through 6B
-• how hard to press, and when to build up layers instead
-• numbered steps, in order, from first construction line to final detail
-• common mistakes for each style
-• a material guide for objects: matte, glossy, glass, fabric and wood each shade
-  differently, and the app shows how
-
-A detail slider lets you dial any style up or down, from a few guide lines for your first
-attempt to full detail once you are confident.
-
-Save any sketch to your gallery to print it, trace it, or work from it on screen.
+DRAWING TOOLS
+• A detail slider: start with a few guide lines, add more as your skills grow
+• Proportion guides for the eye line, nose line, mouth line and centre line, each marked with its distance so you can measure it on your page
+• Save any sketch, or the whole sequence of steps on one sheet, to print or trace
+• Pencil tips and shading advice for every style
 
 PRIVATE AND OFFLINE
-Everything runs on your phone. Your photos are never uploaded. There are no accounts, no
-ads, no trackers and no internet connection required — it works the same in aeroplane mode.
+Everything runs on your phone. Your photos are never uploaded, and there are no accounts, ads or trackers. The app works with no internet connection, even in airplane mode.
+
+Whether you want to learn how to draw portraits, practise pencil drawing and shading, or finally get hands right, Sketch Assistant turns the photos you already have into drawing lessons.
 ```
+
+### Keywords
+
+What people type when they want to learn to draw, taken from competing learn-to-draw apps'
+titles and descriptions and from ASO keyword data. Sources:
+[AppGoblin keyword pages for learn-to-draw apps](https://appgoblin.info/apps/com.artloop.artworkout.drawing/keywords/discovery),
+[a round-up of step-by-step drawing apps](https://freeappsforme.com/apps-to-draw-step-by-step/),
+[AppTweak on Play keyword placement](https://www.apptweak.com/en/aso-blog/play-store-keyword-research),
+and [Google's store listing best practices](https://support.google.com/googleplay/android-developer/answer/13393723).
+
+| Keyword | Where it's used |
+|---|---|
+| learn to draw | title, full description (3 times) |
+| how to draw | full description (3 times) |
+| step by step / step-by-step | short description, full description |
+| drawing lesson(s) | short description, full description |
+| sketch, sketch from photo | throughout |
+| portrait drawing, draw faces | full description |
+| draw eyes, draw a nose, draw hands | full description |
+| figure drawing | full description |
+| pencil drawing, shading | full description |
+| cartoon, caricature | full description |
+| beginners | full description |
+
+Google's rules, which the text follows: no keyword lists, no repeating the short
+description in the full one, no irrelevant terms, no "free"/"#1"/"best" claims, no
+emoji in the title, and no unattributed testimonials. Keywords appear 3-5 times at
+most, in ordinary sentences.
 
 ---
 
@@ -164,28 +149,53 @@ explicitly excluded.
 
 ## Graphics
 
-Already generated in `sketch_assistant/assets/brand/`:
-
 | Asset | File | Size |
 |---|---|---|
-| App icon (Play listing) | `play_store_icon.png` | 512 × 512 |
-| Feature graphic | `feature_graphic.png` | 1024 × 500 |
+| App icon (Play listing) | `sketch_assistant/assets/brand/play_store_icon.png` | 512 × 512 |
+| Feature graphic | `shots/feature_graphic.png` (new tagline: "Learn to draw from any photo, step by step") | 1024 × 500 |
+| Phone screenshots | `shots/phone/01…08_*.png` | 1080 × 1920 |
+| 7-inch tablet screenshots | `shots/tablet7/01…08_*.png` | 1080 × 1920 (9:16) |
+| 10-inch tablet screenshots | `shots/tablet10/01…08_*.png` | 1440 × 2560 (9:16) |
+| Walkthrough video | `shots/sketch_assistant_walkthrough.mp4` | 1920 × 1080, 1:51 |
+
+**Which file goes where.** The feature graphic is exactly 1024 × 500, the one size Play
+accepts, and goes only in Store listing → Graphics → **Feature graphic**. Put it in a
+screenshot slot and Play rejects it as too small: the tablet slots need at least 1080 px on
+every side. Tablet screenshots must also be exactly 9:16.
 
 Upload **`play_store_icon.png`**, not `icon.png`. The listing icon must be a full opaque
 square: Google masks the corners at a 30% radius and adds its own drop shadow, so a
 pre-rounded asset gets double-rounded and transparent corners show the Play UI through.
 `icon.png` is the pre-rounded in-app launcher icon and is used by `buildozer.spec` instead.
 
-**Phone screenshots — you still need these.** Google requires at least 2 (up to 8), between
-320 px and 3840 px on the shorter side. Take them on the phone once the APK installs:
+**Screenshots, in upload order** (phone): 1 photo to lesson (photo beside its realistic
+study), 2 realistic portrait with proportion lines, 3 the finished portrait as the last of
+twelve shading steps, 4 cross-hatching, 5 a realistic eye, 6 a realistic hand, 7 figure
+drawing in cross-contour hatching, 8 cartoon. Play allows 8 per device, so they lead with
+the rendered styles (realism and hatching), which are the app's strongest results. The
+tablets get the same eight, with a realistic nose in place of cross-hatching. Every one is a
+real screen from version 1.7.0, framed under a one-line caption. Google shows the first
+three in search results, so those carry the main message.
 
-1. Main page with a photo loaded and a sketch showing beside it
-2. The drawing guide page with the proportion lines on
-3. The style tiles, to show the range
-4. Object mode with the material guide open
-5. Eyes mode with the step sequence open -- fourteen stages on one screen sells the mode
-6. Hands mode showing the Construction style, which is the clearest demonstration of
-   what the app does that a still image can carry
+**Video.** Play only takes a YouTube link. Upload the MP4 to YouTube as **Public** or
+**Unlisted** (not Private), turn **ads off** for it, and paste the URL into Store listing →
+Video. Once a video is set, Play draws a play button over the middle of the feature
+graphic, so nothing important sits there.
+
+`shots/` is git-ignored, so these files aren't committed: keep the delivered copies,
+or regenerate them. **Regenerating.** All of it is built from the app itself, so it can be remade after any
+change to the UI:
+
+```
+PYTHONPATH=. xvfb-run -a -s "-screen 0 1080x1920x24" python scripts/capture_listing.py /tmp/cap 1080 1920 2.625
+PYTHONPATH=. xvfb-run -a -s "-screen 0 1200x1920x24" python scripts/capture_listing.py /tmp/cap7 1200 1920 2.0
+PYTHONPATH=. xvfb-run -a -s "-screen 0 1600x2560x24" python scripts/capture_listing.py /tmp/cap10 1600 2560 2.0
+python scripts/make_listing_assets.py /tmp/cap /tmp/cap7 /tmp/cap10 shots
+python scripts/make_listing_video.py /tmp/cap shots/sketch_assistant_walkthrough.mp4
+```
+
+The photos are the test fixtures: Pexels photos, whose licence allows commercial use
+without attribution (see `tests/fixtures/CREDITS.md`), and the owner's own hand photos.
 
 ---
 
@@ -195,7 +205,8 @@ pre-rounded asset gets double-rounded and transparent corners show the Play UI t
 - [ ] Privacy policy published at a public URL and pasted into the console
 - [ ] Data safety form completed
 - [ ] Content rating questionnaire completed
-- [ ] At least 2 phone screenshots uploaded
+- [ ] Phone (8) and tablet (8 + 8) screenshots uploaded from `shots/`
+- [ ] Walkthrough video on YouTube (Public or Unlisted, ads off) and linked
 - [ ] App icon and feature graphic uploaded
 - [ ] Release tested from the signed `.apk` on a real phone
 - [ ] Uploaded to **Internal testing** first, never straight to production

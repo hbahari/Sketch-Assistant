@@ -83,8 +83,12 @@ are not lines (the palm circle, finger joints) carry no number. See `guides.at`.
 
 ## Settings page
 - A small grey gear at the top right of the main page (in the logo bar, not a subject tab)
-  opens **Settings**: Send feedback, Rate Sketch Assistant, Restore purchase, Privacy
-  policy, Licences and the version number.
+  opens **Settings**: Keep screen on, Send feedback, Rate Sketch Assistant, Restore
+  purchase, Privacy policy, Licences and the version number.
+- **Keep screen on** (off by default) stops the screen dimming while the app is in front,
+  using Android's `FLAG_KEEP_SCREEN_ON` (no extra permission; the phone sleeps as normal
+  once the user leaves the app). The choice is saved in `prefs.json` in the app's own
+  storage (`sketch_assistant/prefs.py`) and applied again at every start.
 - **Send feedback** opens the user's email app (a `mailto:` link) addressed to
   golemapps1@gmail.com, with the app version, phone model, Android version and current
   mode under a line at the bottom. The app sends nothing itself; with no email app it
