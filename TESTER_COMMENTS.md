@@ -16,7 +16,7 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ## Round 33 — keep the screen on while drawing
 
-*Shipped in: — (not yet built; see the note below about the version number)*
+*Shipped in: 1.8.0 (version code 11)*
 
 > "I want to add an option in Settings to keep the phone screen on while the user is using
 > the app. It'll help them use it without having to tap their phone while they're drawing
@@ -70,7 +70,7 @@ cross-hatching.
 
 ## Round 31 — new store screenshots, description and walkthrough video
 
-*Shipped in: listing assets, not an app version. The bar fix below is in 1.7.0 (not yet uploaded).*
+*Shipped in: listing assets, not an app version. The bar fix below is in 1.7.0.*
 
 > "I need to update the Play Store listing assets. I want the screenshots to be more
 > specific: feature-rich screenshots that highlight specific features, and screenshots of
@@ -109,7 +109,7 @@ smear was still there, which is how the real cause was found.
 
 ## Round 30 — construction before contour; one free style per mode
 
-*Shipped in: 1.7.0 (not yet uploaded)*
+*Shipped in: 1.7.0 (version code 10)*
 
 > "Change Cartoon to Lines and then Hatched. Posture can stay Gesture, Mannequin, Contour
 > and the rest. Make Hands have Construct first and then Contour, and the same for Nose and
@@ -135,7 +135,7 @@ Cartoon). Nothing is locked yet.
 
 ## Round 29 — free styles first, taken back
 
-*Shipped in: 1.7.0 (not yet uploaded)*
+*Shipped in: 1.7.0 (version code 10)*
 
 > "I don't think the reorder was a good idea. It kind of ruins the natural flow of drawing
 > we came up with. Revert the reorder change."
@@ -152,7 +152,7 @@ was then set again in Round 30.)
 
 ## Round 28 — a settings page: feedback, restore purchase, licences
 
-*Shipped in: 1.7.0 (not yet uploaded)*
+*Shipped in: 1.7.0 (version code 10)*
 
 > "Let's add a settings and feedback page. I want it to be a subtle gear icon somewhere,
 > not an entire tab. Add a feedback button, and a button for restoring a purchase — we'll
