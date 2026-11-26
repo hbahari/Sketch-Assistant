@@ -582,6 +582,83 @@ def eye_stages(job):
     return stages
 
 
+# --------------------------------------------------------------------------- noses
+# As long as the eye ladder, for the same reason, and with the same shape: structure in
+# four passes, the outline in two, then the tone. A nose is drawn far more with tone than
+# with line, so for Photorealism the tonal half carries most of the lesson.
+NOSE_LEVELS = ((0.20, "nose_envelope", "Length, width and tilt"),
+               (0.45, "nose_wedge", "The wedge: front, sides and base"),
+               (0.70, "nose_balls", "Tip, wings and nostrils"),
+               (1.00, "nose_plan", "Plan the light"))
+
+
+def _nose_masks(n, shape):
+    """Soft masks for the parts of a nose that are drawn at different times: the base
+    (nostrils, wings and the shadow under the nose) and the planes (bridge and sides)."""
+    H, W = shape[:2]
+    P = lambda q: (int(round(q[0])), int(round(q[1])))
+    w, s = n.width, n.spacing
+    base = np.zeros((H, W), np.uint8)
+    cv2.ellipse(base, P(n.along((n.half_right - n.half_left) / 2, 0.2 * s)),
+                (int(0.62 * w), int(0.55 * s)), n.tilt, 0, 360, 255, -1)
+    cv2.ellipse(base, P(n.along(0, -0.35 * s)), (int(0.55 * w), int(0.32 * s)), n.tilt, 0, 360, 255, -1)
+    planes = np.zeros((H, W), np.uint8)
+    up = lambda q, dy: (q[0] + dy * (n.along(0, 1)[0] - n.cx), q[1] + dy * (n.along(0, 1)[1] - n.base_y))
+    poly = [up(n.radix, 0), n.along(-n.half_left * 1.1, 0.3 * s), n.along(n.half_right * 1.1, 0.3 * s)]
+    poly = [(n.radix[0] - 0.25 * w, n.radix[1]), (n.radix[0] + 0.25 * w, n.radix[1])] + poly[2:] + poly[1:2]
+    cv2.fillPoly(planes, [np.round(poly).astype(np.int32)], 255)
+    planes = cv2.subtract(planes, base)
+    f = max(2.0, 0.12 * s)
+    return {"base": _feather(base, f), "planes": _feather(planes, f)}
+
+
+def nose_stages(job):
+    """Construction in four passes, the outline in two, then the tone.
+
+    For Photorealism: flat values, the shared bridge from hatching (hatch, blend, lights
+    and darks), then the bridge and side planes, then the nostrils and the shadow under
+    the nose, then the finish -- thirteen stages. Value Study and Cross-Hatch stop at their
+    own kind of tone, as in the other modes.
+    """
+    from .noses import analyze
+    from .styles import _prep
+    img, style_key, detail = job.source_img, job.style_key, job.detail
+    realistic = ALL[style_key].family == "real"
+    step = _progress(job.progress, len(NOSE_LEVELS) + (8 if realistic else 5))
+    stages = []
+    for d, key, title in NOSE_LEVELS:
+        stages.append(Stage(key, title, render("nose_construct", img, d)))
+        step()
+    scaffold = stages[-2].image                       # the structure, without the light plan
+    art = render("nose_contour", img, _outline_detail(style_key, detail, 0.4))
+    step()
+    if scaffold.shape[:2] != art.shape[:2]:
+        scaffold = cv2.resize(scaffold, (art.shape[1], art.shape[0]))
+    masks = _nose_masks(analyze(_prep(img)), art.shape)
+    # the lines a nose really has are round the nostrils and the wings; the sides of the
+    # bridge have none, which is the first thing this stage teaches
+    stages.append(Stage("nose_outline", "Nostrils and wings", _under(_fade(scaffold, .25), _apply(art, masks["base"]))))
+    stages.append(Stage("nose_surround", "Bridge, brows and cheeks", _under(_fade(scaffold, .12), art)))
+    step()
+    final = render(style_key, img, detail)
+    if _shades(style_key):
+        values = _under(_fade(art, .40), render("nose_value", img, 0.15))
+        stages.append(Stage("values", "Block in the values", _value_key(values, 0.15)))
+        step()
+    if realistic:
+        bridge, base = _hatch_to_real(img, "nose_hatch", final, detail, art=art)
+        stages += bridge
+        step()
+        with_planes = _blend(base, final, masks["planes"])
+        stages.append(Stage("nose_planes", "Model the bridge and sides", with_planes))
+        step()
+        stages.append(Stage("nose_base", "Nostrils and the shadow below", _blend(with_planes, final, masks["base"])))
+        step()
+    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", _finish(final, style_key, detail)))
+    step()
+    return stages
+
+
 def _finish(final, style_key, detail):
     """The finished drawing; a Value Study keeps its key, since that is where it is used."""
     return _value_key(final, detail) if ALL[style_key].family == "value" else final
@@ -611,3 +688,46 @@ def contact_sheet(stages, cell=420, cols=3):
         cv2.line(sheet, (x, y + head - 5), (x + cell, y + head - 5), (205, 205, 205), 1)
         sheet[y + head:y + head + cell, x:x + cell] = cv2.resize(st.image, (cell, cell))
     return sheet
+
+
+# --------------------------------------------------------------------------- caricature
+def caricature_stages(job):
+    """Shapes first, then the lines one feature at a time over the fading construction.
+
+    Light Hatching: head, features, outline, eyes, nose and mouth, hair, hatching, finish
+    -- eight stages. Clean Lines skips the hatching. (A Shapes style was taken out: a tester
+    found it no use on its own; the shapes are still the first two steps.) The
+    exaggeration (the slider) is the same in every stage, so the proportions the first
+    stage sets up are the ones the last one keeps.
+    """
+    from . import caricature as C
+    img, style_key, detail = job.source_img, job.style_key, job.detail
+    D = C.drawing(img, detail)
+    final = render(style_key, img, detail)
+    if not D.found:
+        return [Stage("finish", "No caricature", final)]
+    hatched = style_key == "car_hatch"
+    step = _progress(job.progress, 8 if hatched else 7)
+    head = C.paint_construction(D, level=1)
+    step()
+    feats = C.paint_construction(D, level=2)
+    step()
+    stages = [Stage("car_head", "Head shape and the guide lines", head),
+              Stage("car_features", "Place the features as shapes", feats)]
+    under = _fade(feats, .45)
+    order = [("car_outline", "Face, chin and hair outline", {"face", "chin", "hair"}),
+             ("car_eyes", "Eyes and brows", {"face", "chin", "hair", "eyes", "brows"}),
+             ("car_nose_mouth", "Nose, mouth, laugh lines and cheeks",
+              {"face", "chin", "hair", "eyes", "brows", "nose", "lips", "folds"}),
+             ("car_strands", "A few strands of hair",
+              {"face", "chin", "hair", "eyes", "brows", "nose", "lips", "folds", "strands"})]
+    for key, title, parts in order:
+        stages.append(Stage(key, title, C.paint(D, parts=parts, hatch=False, base=under)))
+        step()
+    if hatched:
+        stages.append(Stage("car_hatch", "Light hatching in the shadows",
+                            C.paint(D, hatch=True, base=_fade(feats, .2))))
+        step()
+    stages.append(Stage("finish", f"Finish in {ALL[style_key].label}", final))
+    step()
+    return stages

@@ -202,10 +202,16 @@ def test_every_mode_builds_a_usable_sequence(mode, hand_photo):
     step text for every stage - including stages that fall back to a family entry."""
     from sketch_assistant.core.modes import build_stages
     from sketch_assistant.data.steps_text import step_markup
-    h, w = hand_photo.shape[:2]
+    photo = hand_photo
+    if mode == "caricature":                 # draws faces only: a hand gives "no face found"
+        from pathlib import Path
+        from sketch_assistant.core.faces import crop_info, detect_faces, load_image
+        full = load_image(str(Path(__file__).resolve().parent / "fixtures" / "portraits_close" / "close_09.jpg"))
+        photo = crop_info(full, detect_faces(full)[0])[0]
+    h, w = photo.shape[:2]
     box = (w * .2, h * .2, w * .6, h * .6)
     for style in MODES[mode].styles:
-        st = build_stages(mode, hand_photo, style, 0.5, (), hand_photo.shape[:2], box)
+        st = build_stages(mode, photo, style, 0.5, (), photo.shape[:2], box)
         keys = [s.key for s in st]
         assert len(st) >= 3, f"{mode}/{style}: only {keys}"
         assert keys[-1] == "finish", f"{mode}/{style}: ends on {keys[-1]}"
@@ -287,12 +293,13 @@ def _line_job(mode):
     fx = Path(__file__).resolve().parent / "fixtures"
     path = {"portrait": fx / "portraits" / "front_adult.jpg", "object": fx / "objects" / "single_on_plain.jpg",
             "hands": fx / "open_palm.jpg", "body": fx / "bodies" / "kneeling.jpg",
-            "eyes": fx / "eyes" / "blue_macro.jpg"}[mode]
+            "eyes": fx / "eyes" / "blue_macro.jpg", "nose": fx / "noses" / "front_clear.jpg",
+            "caricature": fx / "portraits_close" / "close_09.jpg"}[mode]
     if not path.exists():
         pytest.skip(f"no fixture for {mode}")
     img = load_image(str(path))
     style = next(k for k, st in MODES[mode].styles.items() if st.family == "line")
-    if mode == "portrait":
+    if mode in ("portrait", "caricature"):
         faces = detect_faces(img)
         if not faces:
             pytest.skip("no face detector available")
@@ -320,7 +327,13 @@ def test_no_outline_step_holds_more_than_the_finished_outline(mode):
             f"{mode}: step '{st.key}' has {_dark(st.image)} dark pixels, the finish {finish}"
 
 
-@pytest.mark.parametrize("mode", list(MODES))
+# Caricature's slider is the exaggeration, not the detail: its premise doesn't apply there.
+DETAIL_MODES = [k for k, m in MODES.items() if m.slider_labels[0] == "Less detail"]
+# the realistic ladder's tests, for the modes that have a realistic style (all but Caricature)
+REAL_MODES = [k for k, m in MODES.items() if any(st.family == "real" for st in m.styles.values())]
+
+
+@pytest.mark.parametrize("mode", DETAIL_MODES)
 def test_the_outline_steps_follow_the_detail_slider(mode):
     from sketch_assistant.core.modes import build_stages
     img, style, extra = _line_job(mode)
@@ -333,7 +346,9 @@ def test_the_outline_steps_follow_the_detail_slider(mode):
 # steps that are diagrams, not partial outlines, and are not expected to be lighter
 CONSTRUCTION_STEPS = {"construction", "proportion", "hand_block", "hand_joints", "hand_volumes",
                       "body_action", "body_tilts", "body_masses", "body_limbs",
-                      "eye_envelope", "eye_ball", "eye_lids", "eye_plan"}
+                      "eye_envelope", "eye_ball", "eye_lids", "eye_plan",
+                      "nose_envelope", "nose_wedge", "nose_balls", "nose_plan",
+                      "car_head", "car_features"}
 
 
 # ---- the bridge from hatching to a realistic finish ---------------------------------
@@ -348,7 +363,7 @@ def _gray(img):
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).astype(np.float32)
 
 
-@pytest.mark.parametrize("mode", list(MODES))
+@pytest.mark.parametrize("mode", REAL_MODES)
 def test_realistic_ladders_go_through_hatching_and_blending(mode):
     """A tester found hatching easy and the realistic finish a leap. Every realistic
     ladder now goes values -> hatching -> blended hatching -> lights and darks -> finish.
@@ -363,7 +378,7 @@ def test_realistic_ladders_go_through_hatching_and_blending(mode):
     assert keys.index("lights_darks") < keys.index("finish")
 
 
-@pytest.mark.parametrize("mode", list(MODES))
+@pytest.mark.parametrize("mode", REAL_MODES)
 def test_the_blend_has_no_strokes_left_and_the_finish_s_tone(mode):
     """The blend is the hatching with the strokes merged, at the finished drawing's
     average tone. The tone match is a small correction (1 to 8 grey levels on these
@@ -392,7 +407,7 @@ def test_the_blend_has_no_strokes_left_and_the_finish_s_tone(mode):
     assert abs(blend.mean() - finish.mean()) < 6, f"{mode}: blend {blend.mean():.0f}, finish {finish.mean():.0f}"
 
 
-@pytest.mark.parametrize("mode", list(MODES))
+@pytest.mark.parametrize("mode", REAL_MODES)
 def test_lights_and_darks_mark_small_accents_from_the_finish(mode):
     """The marks come from the finished drawing's own brightest and darkest small
     shapes. Marking where finish and blend differed was tried first and, before the blend
@@ -417,7 +432,7 @@ def test_lights_and_darks_mark_small_accents_from_the_finish(mode):
     assert F[near_dark].mean() < F.mean() - 20, f"{mode}: red marks are not round dark parts of the finish"
 
 
-@pytest.mark.parametrize("mode", list(MODES))
+@pytest.mark.parametrize("mode", REAL_MODES)
 def test_the_value_step_carries_a_key_of_its_greys(mode):
     """'What does Value even mean, and how do I use the value step?' The step now prints
     a key underneath: every flat grey in the picture, with the pencil for it."""
@@ -429,7 +444,7 @@ def test_the_value_step_carries_a_key_of_its_greys(mode):
     values, finish = by["values"], by["finish"]
     assert values.shape[0] > finish.shape[0], "no key under the value step"
     strip = values[finish.shape[0]:, :, 0]
-    d = 0.15 if mode == "eyes" else 0.1
+    d = 0.15 if mode in ("eyes", "nose") else 0.1
     for v in value_levels(d):
         assert (strip == v).sum() > 200, f"{mode}: grey {v} is missing from the key"
     assert len(VALUE_PENCILS[len(value_levels(d))]) == len(value_levels(d))
@@ -441,3 +456,16 @@ def test_a_value_finish_keeps_its_key():
     st = build_stages("object", img, "obj_value", 0.6, *extra)
     plain = __import__("sketch_assistant.core.styles", fromlist=["render"]).render("obj_value", img, 0.6)
     assert st[-1].image.shape[0] > plain.shape[0]
+
+
+
+def test_every_mode_has_exactly_one_free_style():
+    """Every name in the free set is a real style, and each mode has exactly one -- its
+    contour -- so no mode will be wholly locked once Pro exists, and none gives away more."""
+    from sketch_assistant.core.modes import MODES
+    from sketch_assistant.core.styles import ALL, FREE
+    assert FREE <= set(ALL), FREE - set(ALL)
+    for key, m in MODES.items():
+        free = FREE & set(m.styles)
+        assert len(free) == 1, f"{key}: free styles {sorted(free)}"
+        assert ALL[next(iter(free))].family == "line", f"{key}: the free style isn't the line style"

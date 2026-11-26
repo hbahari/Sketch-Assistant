@@ -1,6 +1,6 @@
 # Privacy Policy — Sketch Assistant
 
-**Last updated: 26 October 2026**
+**Last updated: 19 November 2026**
 
 Sketch Assistant turns a photo into a pencil sketch and a step-by-step drawing guide.
 Everything it does happens on your device. The app has no accounts, no servers and no
@@ -39,12 +39,25 @@ nothing is stored: the detection result exists only while the photo is open in t
 The app does not identify or recognise anyone. It only locates where a face sits in the
 picture so it can crop and sketch it.
 
+## Feedback and ratings
+
+The settings page (the gear at the top right) has a **Send feedback** button. It opens
+your own email app with a new message to the developer, already addressed, with a few
+details filled in underneath: the app version, your phone's make and model, the Android
+version, and which drawing mode you were in. The app does not send that message; you see
+all of it in your email app, can change or delete any of it, and decide whether to send.
+If you do, the developer receives your email address and whatever the message says, and
+uses them only to reply and to improve the app.
+
+**Rate Sketch Assistant** opens the app's page in the Google Play Store app. Anything you
+do there is between you and Google Play.
+
 ## Other data
 
 Sketch Assistant contains no analytics SDKs, no advertising networks and no trackers. It
 shows no ads. It does not collect your name, email address, location, contacts, device
 identifiers or any other personal information, and it does not create an account or ask
-you to sign in.
+you to sign in. (The only exception is an email you choose to send, described above.)
 
 The app does not make network requests. It works fully offline, including in airplane mode.
 

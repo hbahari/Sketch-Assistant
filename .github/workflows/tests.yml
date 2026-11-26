@@ -36,14 +36,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install "opencv-python-headless<5" "numpy<3" kivy pytest
 
-      - name: Cache the ONNX models
+      - name: Cache the models
         # Restored before the download, which skips any file already present.
         uses: actions/cache@v4
         with:
           path: sketch_assistant/assets/models
           key: onnx-models-${{ hashFiles('scripts/download_models.py') }}
 
-      - name: Download the ONNX models
+      - name: Download the models
         # Hands mode runs on MediaPipe landmark models. Without them the hand tests skip
         # rather than fail, so fetch them here or the path that matters goes untested.
         run: python scripts/download_models.py

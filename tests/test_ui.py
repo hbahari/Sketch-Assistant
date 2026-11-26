@@ -7,6 +7,7 @@ context is unreliable: what matters is that the pills size to their labels, that
 scrolls by dragging and not by a scrollbar, that a tap still selects, and that switching
 subject swaps the style tiles.
 """
+import json
 import os
 
 import pytest
@@ -110,16 +111,18 @@ def test_there_is_no_scrollbar():
 
 
 def test_tapping_a_pill_selects_it():
+    # a pill in view: since the tester's tab order, Object is last and off the edge of a
+    # phone-width bar until it is scrolled to (the scroll test covers that)
     bar, picked = make_bar(attach=True)
     try:
-        t = Touch(*window_pos(bar, "object"))
+        t = Touch(*window_pos(bar, "nose"))
         t.touch_down()
         t.touch_up()
         for _ in range(5):       # ButtonBehavior defers on_release by min_state_time
             Clock.tick()
-        assert picked == ["object"], f"tap did not select (got {picked})"
-        bar.select("object")
-        assert bar.btns["object"].active and not bar.btns["portrait"].active
+        assert picked == ["nose"], f"tap did not select (got {picked})"
+        bar.select("nose")
+        assert bar.btns["nose"].active and not bar.btns["portrait"].active
     finally:
         drop(bar)
 
@@ -344,7 +347,7 @@ def test_eyes_mode_frames_the_eye_with_the_box_picker():
     app, home = _loaded_home("eyes", _fixture("eyes", "blue_macro.jpg"))
     try:
         assert home.box_picker.parent is home.photo_card, "box picker not shown"
-        assert app.source_img is not None and app.style_key == "eye_contour"
+        assert app.source_img is not None and app.style_key == MODES["eyes"].default_style
         assert all(not home.tiles[k].disabled for k in MODES["eyes"].styles)
     finally:
         EventLoop.window.remove_widget(home)
@@ -407,3 +410,218 @@ def test_quick_slider_moves_build_once_more_not_once_each():
         assert app.detail["eye_realistic"] == 0.9
     finally:
         EventLoop.window.remove_widget(home)
+
+
+def test_nose_mode_frames_the_nose_with_the_box_picker():
+    app, home = _loaded_home("nose", _fixture("noses", "front_clear.jpg"))
+    try:
+        assert home.box_picker.parent is home.photo_card, "box picker not shown"
+        assert app.source_img is not None and app.style_key == MODES["nose"].default_style
+        assert all(not home.tiles[k].disabled for k in MODES["nose"].styles)
+    finally:
+        EventLoop.window.remove_widget(home)
+
+
+def test_nose_mode_starts_the_box_on_the_nose():
+    """A tester found Nose mode "doing an awful job detecting the nose in the first place".
+    The box picker started on 85% of the photo, so a close-up handed the analysis the mouth
+    and chin as well. It now starts on the nose it found, says so, and the crop it makes is
+    read with the whole photo's analysis rather than on its own.
+
+    Control: with the mode's locate hook removed the box is back to 85% of the photo and
+    the first assertion fails."""
+    from sketch_assistant.core import noses
+    if noses._detector() is None:
+        pytest.skip("face detector model not downloaded")
+    path = _fixture("noses", "photos", "left_profile_dark.jpg")
+    app, home = _loaded_home("nose", path)
+    try:
+        H, W = app.photo.shape[:2]
+        x, y, w, h = home.box_picker.box
+        assert w * h < 0.35 * W * H, f"the box covers {w * h / (W * H):.0%} of the photo"
+        marks = json.loads(Path(_fixture("noses", "photos", "marks.json")).read_text())["left_profile_dark"]
+        tx, ty = marks["tip"][0] * W, marks["tip"][1] * H
+        assert x <= tx <= x + w and y <= ty <= y + h, "the box does not contain the nose tip"
+        assert home.status.text == MODES["nose"].found_fmt
+        n = noses.analyze(app.source_img)
+        assert n.notes.get("moved") and n.view == "profile"
+    finally:
+        EventLoop.window.remove_widget(home)
+
+
+def test_eyes_mode_starts_the_box_on_an_eye():
+    """A tester: the eye guides were "way bigger than the eye itself", and asked whether
+    the eye could be found automatically. On a photo with a face the box now starts on an
+    eye, says so, and the crop is read with the face's reading.
+
+    Control: with the mode's locate hook removed the box is back to 85% of the photo and
+    the first assertion fails."""
+    from sketch_assistant.core import eyes, landmarks
+    if not (landmarks.iris_available() and landmarks.mesh_available()):
+        pytest.skip("landmark models not downloaded")
+    path = _fixture("noses", "photos", "front_freckles_ring.jpg")
+    app, home = _loaded_home("eyes", path)
+    try:
+        H, W = app.photo.shape[:2]
+        x, y, w, h = home.box_picker.box
+        assert w * h < 0.2 * W * H, f"the box covers {w * h / (W * H):.0%} of the photo"
+        marks = json.loads(Path(_fixture("eyes_in_faces", "marks.json")).read_text())["noses/photos/front_freckles_ring.jpg"]
+        assert any(x <= m[0] * W <= x + w and y <= m[1] * H <= y + h for m in marks), "no eye in the box"
+        assert home.status.text == MODES["eyes"].found_fmt
+        e = eyes.analyze(app.source_img)
+        assert e.notes.get("moved") and e.notes.get("source") == "face"
+    finally:
+        EventLoop.window.remove_widget(home)
+
+
+@pytest.mark.parametrize("route", [
+    ("portrait", "nose", "body"),         # the tester's crash: draw a box in Nose, then Posture
+    ("portrait", "body"),                 # the same crash without Nose in between
+    ("body", "portrait"),                 # the other way round: figures offered as faces
+    ("hands", "body", "nose", "portrait"),
+])
+def test_switching_modes_detects_afresh_for_each_mode(route):
+    """A tester's crash: draw a box in Nose mode, switch to Posture, and the app fell over
+    with "'Face' object has no attribute 'box'". The detections were cached once per photo
+    rather than once per mode, so whichever of Portrait and Posture detected first had its
+    boxes handed to the other: Posture tried to frame a face as a figure and crashed, and
+    Portrait offered whole figures to tap as faces. Present since Posture got its own
+    detector, not something Nose mode introduced; Nose only made it easy to reach, because
+    its box sits between the two.
+
+    Control: with the cache keyed by photo alone again, the first two routes raise the
+    tester's AttributeError and the last two offer Body boxes in Portrait mode."""
+    from sketch_assistant.core import bodies, faces
+    if not bodies.models_available():
+        pytest.skip("detector models not downloaded")
+    kind = {"portrait": faces.Face, "body": bodies.Body}
+    app, home = _loaded_home(route[0], _fixture("bodies", "standing.jpg"))
+    try:
+        for mode in route[1:]:
+            if mode == "nose":
+                home.box_picker.box = (40, 40, 200, 200)       # as if the user dragged a box
+                home.on_box(home.box_picker.box)
+            home.set_mode(mode)
+            for _ in range(4):
+                Clock.tick()
+            if mode in kind:
+                picker = home.multi_selector if mode == "body" else home.selector
+                assert picker.faces, f"{mode}: nothing detected"
+                assert all(isinstance(r, kind[mode]) for r in picker.faces), \
+                    f"{mode} was handed {type(picker.faces[0]).__name__} boxes"
+    finally:
+        EventLoop.window.remove_widget(home)
+
+
+def test_a_tour_of_every_mode_and_back_renders_each_time():
+    """Every mode after every other, forwards and back, on one photo: draw a box where a
+    mode asks for one, tap the first face where it asks for that, then render a style.
+    The per-mode cache bug only showed between two particular modes; this is the check
+    that nothing else carried over from one mode to the next."""
+    from sketch_assistant.core import bodies
+    if not bodies.models_available():
+        pytest.skip("detector models not downloaded")
+    order = list(MODES)
+    app, home = _loaded_home(order[0], _fixture("bodies", "standing.jpg"))
+    try:
+        for mode in order[1:] + order[::-1][1:]:
+            home.set_mode(mode)
+            for _ in range(4):
+                Clock.tick()
+            m = MODES[mode]
+            if m.pick_box:
+                home.box_picker.box = (30, 30, 260, 260)
+                home.on_box(home.box_picker.box)
+            elif mode == "portrait" and home.selector.faces:
+                home.on_face(0, home.selector.faces[0])
+            for _ in range(2):
+                Clock.tick()
+            style = next(iter(m.styles))
+            home.on_style(style)
+            for _ in range(4):
+                Clock.tick()
+            assert app.sketch is not None, f"{mode}: nothing rendered after switching"
+            assert app.style_key == style
+    finally:
+        EventLoop.window.remove_widget(home)
+
+
+def test_caricature_mode_draws_a_tapped_face_and_the_slider_says_exaggeration():
+    """Caricature works on portraits: a face is found and tapped as in Portrait mode, a
+    caricature is drawn, and on the guide page the slider's ends read "Less exaggerated"
+    and "More exaggerated" -- then back to "detail" in any other mode. Control: without
+    the per-mode labels (the slider set once at start-up) the second check fails."""
+    from sketch_assistant.core import caricature, landmarks
+    if not landmarks.mesh_available() or caricature._seg_net() is None:
+        pytest.skip("face models not downloaded")
+    from sketch_assistant.ui.guide import GuideScreen
+    app, home = _loaded_home("caricature", _fixture("portraits_close", "close_09.jpg"))
+    try:
+        regions = home.regions.get("caricature")
+        assert regions, "no face offered to tap"
+        home.on_face(0, regions[0])
+        assert app.style_key == "car_lines" and app.sketch is not None
+        ink = (app.sketch.min(axis=2) < 200).mean()
+        assert 0.005 < ink < 0.2, f"caricature ink {ink:.3f}"
+        guide = GuideScreen(app, name="guide")
+        guide.on_pre_enter()
+        assert (guide.slider.low.text, guide.slider.high.text) == ("Less exaggerated", "More exaggerated")
+        app.mode = "portrait"
+        app.style_key = "line_art"
+        guide.on_pre_enter()
+        assert (guide.slider.low.text, guide.slider.high.text) == ("Less detail", "More detail")
+    finally:
+        EventLoop.window.remove_widget(home)
+
+
+def test_cartoon_mode_says_it_works_on_portraits_only():
+    """A tester asked for a label saying Cartoon mode only works for portraits. It is on
+    the status line from the moment the mode is chosen, before any photo, and stays in
+    the line after a photo is loaded. Control: other modes say nothing of the kind."""
+    from sketch_assistant.app import SketchApp
+    from sketch_assistant.ui.home import HomeScreen
+    app = SketchApp()
+    home = HomeScreen(app, name="home")
+    home.set_mode("caricature")
+    assert "portraits only" in home.status.text
+    home.set_mode("object")
+    assert "portraits only" not in home.status.text
+    assert "portraits only" in MODES["caricature"].found_fmt and "portraits only" in MODES["caricature"].none_fmt
+
+
+def test_the_mode_tabs_are_in_the_tester_s_order():
+    """A tester set the tab order: Portrait, Eyes, Nose, Hands, Posture, Cartoon, Object."""
+    from sketch_assistant.app import SketchApp
+    from sketch_assistant.ui.home import HomeScreen
+    assert [m.label for m in MODES.values()] == ["Portrait", "Eyes", "Nose", "Hands", "Posture", "Cartoon", "Object"]
+    home = HomeScreen(SketchApp(), name="home")
+    shown = [b.text for b in reversed(home.mode_bar.children[0].children)]    # Kivy lists children last-first
+    assert shown == ["Portrait", "Eyes", "Nose", "Hands", "Posture", "Cartoon", "Object"], shown
+
+
+
+def test_the_end_fade_sits_at_the_end_of_the_bar():
+    """The right-hand fade must hug the bar's right edge once the page is laid out. It was
+    placed from `self.right`, which Kivy updates only after the size event that redraws the
+    fade, so it stayed where the edge of the 100px-wide unlaid-out bar had been: over the
+    Portrait pill, as a pale smear. Seen to fail with `self.right` (fade ending at x=100)."""
+    from kivy.core.window import Window
+    from kivy.graphics import Rectangle
+    from sketch_assistant.app import SketchApp
+    app = SketchApp()
+    sm = app.build()
+    Window.add_widget(sm)
+    try:
+        for _ in range(6):
+            Clock.tick()
+            EventLoop.idle()
+        bar = sm.get_screen("home").mode_bar
+        assert bar.row.width > bar.width and bar.scroll_x < 0.01, "needs an overflowing bar at its start"
+        rects = [c for c in bar._fades.children if isinstance(c, Rectangle)]
+        assert len(rects) == 1, "at the start only the right-hand fade belongs"
+        r = rects[0]
+        assert abs(r.pos[0] + r.size[0] - (bar.x + bar.width)) < 1, f"fade ends at {r.pos[0] + r.size[0]}"
+        first = bar.btns["portrait"]
+        assert r.pos[0] > first.to_window(first.right, 0)[0], "fade drawn over the first pill"
+    finally:
+        Window.remove_widget(sm)

@@ -3,15 +3,19 @@
 `analyze(img)` reads a close crop of one eye. Everything the Construction style, the
 guides and the step ladder draw comes from it.
 
-There is no detection step, on purpose. The first design found eyes through the face
-detector, and the first real test photographs ended it: seventeen of nineteen were macro
-shots of a single eye, where there is no face to find, and the face detector reported a
-"face" somewhere inside ten of them. So the user frames the eye with the same drag-a-box
-picker Object mode uses, whose default already covers a close-up untouched.
+When the photo has a face in it, the face finds the eye: the face mesh frames each eye
+for MediaPipe's iris model, which then gives the iris and both lids, and the picker's box
+starts on the eye (see "the face" at the end). The reading is made once on the whole
+photo and moved into whatever box the user settles on.
 
-No landmark model is involved either -- OpenCV Zoo has nothing for the eye region -- so
-this is classical vision, and classical vision on an eye is fragile: lashes, reflections,
-make-up and a squint all break edge-following. The design answer is that nothing here
+Close-ups of a single eye -- seventeen of the nineteen test photographs -- have no face to
+find, and there the user frames the eye with the same drag-a-box picker Object mode uses
+and the crop is read by the rules below. The face detector reports a "face" somewhere
+inside several of those close-ups, so the face path has to pass two checks first.
+
+The iris model was tried on the close-ups too and measured worse than the rules (see
+the end), so on a crop read alone this is classical vision, and classical vision on an
+eye is fragile: lashes, reflections, make-up and a squint all break edge-following. The design answer is that nothing here
 follows edges. The iris is found with a circle search that reads only the left and right
 arcs (the lids cover the top and bottom), and the lids by fitting a *template*: an almond
 with a handful of parameters, each confined to the range real eyes occupy, scored against
@@ -177,8 +181,11 @@ def _recentre_on_pupil(g, cx, cy, r, sd, mean, a, full):
     return best[2], best[3], best[4]
 
 
-def _find_iris(g):
+def _find_iris(g, r_range=None, near=None):
     """Best circle for the iris on a smoothed grey image. Returns (cx, cy, r, score).
+    `r_range` is (lo, hi) in pixels where the face has said how big the iris must be;
+    by default any size from R_RANGE of the width. `near` is ([points], reach): the face
+    detector's eye points and how far from one the iris may be.
 
     Reads only the arcs to the left and right of each candidate. The lids cut across the
     top and bottom of nearly every iris, so a full-circle fit is dragged about by them;
@@ -196,12 +203,17 @@ def _find_iris(g):
     full = np.deg2rad(np.arange(0, 360, 20))
     cxs, cys = np.meshgrid(np.arange(w * 0.15, w * 0.85, 3.0), np.arange(h * 0.15, h * 0.85, 3.0))
     best = (-1e9, 0.0, 0.0, 0.0)
-    for r in np.arange(w * R_RANGE[0], w * R_RANGE[1], 3.0):
+    lo, hi = r_range if r_range is not None else (w * R_RANGE[0], w * R_RANGE[1])
+    step = 3.0 if r_range is None else max(0.5, (hi - lo) / 12)
+    for r in np.arange(lo, hi + 1e-6, step):
         s, _ = _limbus_score(g, cxs, cys, r, sd, mean, a, full)
         # Both side arcs have to be on the image. Off the edge the samples repeat the
         # border pixel, and a patch of deep shadow in a corner then scores as a perfect
         # dark disc -- which is what the first version chose on one test photograph.
         s = np.where((cxs - 1.18 * r < 0) | (cxs + 1.18 * r > w - 1), -1e9, s)
+        if near is not None:
+            d = np.min([np.hypot(cxs - q[0], cys - q[1]) for q in near[0]], axis=0)
+            s = np.where(d > near[1], -1e9, s)
         i = int(np.argmax(s))
         if s.flat[i] > best[0]:
             best = (float(s.flat[i]), float(cxs.flat[i]), float(cys.flat[i]), float(r))
@@ -220,7 +232,7 @@ def _find_iris(g):
     e0 = local(cx, cy, r, 2.0)[0]
     cand = (e0, score, cx, cy, r)
     rings = []
-    for rr in np.arange(r * 1.5, min(r * 5.0, w * R_RANGE[1]) + 0.5, 2.0):
+    for rr in np.arange(r * 1.5, min(r * 5.0, hi) + 0.5, 2.0):
         e, sc, x, y = local(cx, cy, rr, max(2.0, r * 0.35))
         # Judged against the image, not only against the first circle: a black pupil in
         # an amber iris is so strong an edge that a perfectly clear limbus is under half
@@ -261,6 +273,8 @@ def _find_iris(g):
         # the score stays as it was: it is the evidence that there is an eye here at
         # all, and moving the circle does not make that evidence weaker
         cx, cy, r = alt
+    if r_range is not None:
+        r = float(np.clip(r, lo, hi))           # re-centring may grow it; the face says not past this
     return cx, cy, r, max(score, cand[1])
 
 
@@ -425,41 +439,264 @@ _cache = {}
 MIN_IRIS_SCORE = 1.1          # below this the "iris" is noise; see tests/test_eyes.py
 
 
-def analyze(img):
-    """Read one eye crop. Always returns an Eye; `found` says whether the iris was real."""
-    key = (img.shape, hash(img.tobytes()[::97]))
-    if key in _cache:
-        return _cache[key]
+def _work(img):
+    """The copy everything is measured on: WORK_W wide, contrast-equalised and smoothed."""
     H, W = img.shape[:2]
     s = WORK_W / W
     small = cv2.resize(img, (WORK_W, max(8, int(round(H * s)))),
                        interpolation=cv2.INTER_AREA if s < 1 else cv2.INTER_CUBIC)
     g = cv2.GaussianBlur(cv2.createCLAHE(2.0, (4, 4)).apply(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)), (0, 0), 2.0)
+    return s, small, g, cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+
+
+def _details(eye, s, g, sharp):
+    """Pupil, catchlight and crease, measured round an iris already placed."""
+    cx, cy, r = eye.iris[0] * s, eye.iris[1] * s, eye.r * s
+    eye.pupil_r = _find_pupil(g, cx, cy, r) / s
+    hl = _find_highlight(sharp, cx, cy, r)
+    eye.highlight = None if hl is None else (hl[0] / s, hl[1] / s)
+    cr = _find_crease(g, eye.upper * s, cx, cy, r)
+    eye.crease = None if cr is None else cr / s
+
+
+def analyze(img):
+    """Read one eye crop. Always returns an Eye; `found` says whether the iris was real.
+
+    When the crop is the box the app cut from a photo with a face in it, the reading made
+    on the whole face (see "the face" below) is used, moved into the crop's pixels;
+    otherwise the crop is read on its own by the rules above.
+    """
+    key = (img.shape, hash(img.tobytes()[::97]), id(_context))
+    if key in _cache:
+        return _cache[key]
+    eye = _from_context(img)
+    if eye is not None:
+        s, small, g, sharp = _work(img)
+        _details(eye, s, g, sharp)
+        _cache[key] = eye
+        return eye
+    s, small, g, sharp = _work(img)
     h, w = g.shape
 
-    cx, cy, r, score = _find_iris(g)
+    prior = _scale_from_context(img)           # (iris radius, eye points) in crop pixels
+    r_range = near = None
+    if prior is not None:
+        r_range = (prior[0] * s * PRIOR_RANGE[0], prior[0] * s * PRIOR_RANGE[1])
+        pts = [q * s for q in prior[1] if 0 <= q[0] * s < w and 0 <= q[1] * s < h]
+        near = (pts, PRIOR_REACH * prior[0] * s) if pts else None
+    cx, cy, r, score = _find_iris(g, r_range, near)
     found = score >= MIN_IRIS_SCORE
-    if not found:
+    if not found and prior is not None:
+        # the face gives the size even where the iris can't be seen; it sits on the
+        # detector's eye point if one is in the box
+        r = prior[0] * s
+        inside = [q * s for q in prior[1] if 0 <= q[0] * s < w and 0 <= q[1] * s < h]
+        cx, cy = min(inside, key=lambda q: np.hypot(q[0] - w / 2, q[1] - h / 2)) if inside else (w * 0.5, h * 0.5)
+    elif not found:
         # nothing circular and dark: a closed eye, a squint, a crop that missed. Assume
         # an eye in the middle of the frame, sized so the whole of it would fit.
         cx, cy, r = w * 0.5, h * 0.5, min(w * 0.14, h * 0.3)
     p, tilt, evidence = _fit_lids(small, g, cx, cy, r)
     A, B, upper, lower = _lid_curves(cx, cy, r, p, tilt)
-    sharp = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
     eye = Eye(
         iris=(cx / s, cy / s), r=r / s,
         pupil_r=_find_pupil(g, cx, cy, r) / s if found else 0.42 * r / s,
         highlight=None, left=tuple(A / s), right=tuple(B / s),
         upper=upper / s, lower=lower / s, tilt=float(tilt), inner=None,
         found=bool(found), score=float(score),
-        notes=dict(lid_evidence=float(evidence), params=p),
+        notes=dict(lid_evidence=float(evidence), params=p, **({"source": "face scale"} if prior else {})),
     )
     if found:
-        hl = _find_highlight(sharp, cx, cy, r)
-        eye.highlight = None if hl is None else (hl[0] / s, hl[1] / s)
-        cr = _find_crease(g, upper, cx, cy, r)
-        eye.crease = None if cr is None else cr / s
+        _details(eye, s, g, sharp)
     _cache[key] = eye
     if len(_cache) > 24:
         _cache.pop(next(iter(_cache)))
     return eye
+
+
+
+# --------------------------------------------------------------------------- the face
+# When the photo has a face in it, the eye is found the way MediaPipe finds it: the face
+# detector, then the face mesh (core/landmarks.py), whose points round each eye frame a
+# crop for the iris model at the size it was trained on. The iris model on its own, shown
+# a close-up of one eye, was tried first and measured worse than the rules above (7 of 19
+# test close-ups against 10): its iris comes out the size of whatever crop it is given,
+# so it cannot set the scale itself. The face sets the scale. On ten eyes marked by hand
+# in face photos, the face path's iris was within 21% of the marked size every time
+# (median 6%), whatever box was drawn; the rules, shown a box three eye-widths across
+# round the same eye, read it 2.7 to 4 times too big on six of the ten -- the fault a
+# tester reported. Its centre is less good than its size: within 0.55 iris radii of the
+# mark on every eye, within 0.3 on six.
+#
+# The face detector also "finds" a face in some close-ups of a single eye (five of the
+# nineteen test close-ups). The detector must agree with itself across most of its
+# paddings to count (support 3.0): the invented faces reached 2.7 at most, real faces 3.6
+# and up wherever an eye was visible. That margin is not wide, so the face mesh must also
+# say a face is there; on its own that verdict rejected four of the five invented faces.
+# Both thresholds were set on these same photographs.
+EYE_FACE_SUPPORT = 3.0
+EYE_CROP = 2.3            # the iris model's crop, in eye widths, as MediaPipe crops it
+
+_photos = {}
+_context = None
+
+
+def _key(img):
+    return (img.shape, hash(img.tobytes()[::97]))
+
+
+def _thumb(img):
+    g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
+    return cv2.resize(g, (16, 16), interpolation=cv2.INTER_AREA).astype(np.float32)
+
+
+def _resample(curve, n=25):
+    d = np.r_[0, np.cumsum(np.hypot(*np.diff(curve, axis=0).T))]
+    t = np.linspace(0, d[-1], n)
+    return np.c_[np.interp(t, d, curve[:, 0]), np.interp(t, d, curve[:, 1])]
+
+
+def _model_eye(res, inner):
+    """An Eye from the iris model's points: 0 and 8 the corners, 1-7 one lid, 9-15 the other."""
+    lids = res["lids"]
+    a, b = lids[0], lids[8]
+    one, two = lids[1:8], lids[9:16]
+    if one[:, 1].mean() < two[:, 1].mean():
+        one, two = two, one                      # `one` is now the lower lid
+    left, right = (a, b) if a[0] <= b[0] else (b, a)
+    order = lambda pts: pts[np.argsort(pts[:, 0])]
+    upper = _resample(np.vstack([left, order(two), right]))
+    lower = _resample(np.vstack([left, order(one), right]))
+    tilt = float(np.degrees(np.arctan2(right[1] - left[1], right[0] - left[0])))
+    return Eye(iris=res["iris"], r=res["r"], pupil_r=0.42 * res["r"],
+               left=(float(left[0]), float(left[1])), right=(float(right[0]), float(right[1])),
+               upper=upper, lower=lower, tilt=tilt, inner=inner, found=True, score=float(res["score"]),
+               notes=dict(source="face"))
+
+
+def photo_eyes(photo):
+    """The eyes of the face in a whole photo, read once per photo: a list of up to two
+    Eyes in the photo's pixels, image-left eye first. Empty if there is no face, or the
+    models are missing, or the eyes lie outside the picture."""
+    k = _key(photo)
+    if k in _photos:
+        return _photos[k]
+    from . import landmarks, noses
+    eyes = []
+    face = noses.find_face(photo) if landmarks.iris_available() else None
+    if face is not None and face.score >= EYE_FACE_SUPPORT:
+        mesh, flag = landmarks.face_mesh(photo, face.eye_mid, face.mouth_mid, with_flag=True)
+        H, W = photo.shape[:2]
+        for n, (i, j) in enumerate(landmarks.MESH_EYES if mesh is not None and flag > 0 else ()):
+            a, b = mesh[i], mesh[j]
+            if not all(0 <= q[0] < W and 0 <= q[1] < H for q in (a, b)):
+                continue                         # an eye off the edge of the photo
+            c, w = (a + b) / 2, float(np.linalg.norm(b - a))
+            if w < 12:
+                continue
+            # the model was trained on the eye on the image's left; the other is mirrored
+            res = landmarks.iris_landmarks(photo, start=(c[0], c[1], EYE_CROP * w), iterations=2, flip=n == 1)
+            if res is None:
+                continue
+            eye = _model_eye(res, inner="right" if n == 0 else "left")
+            eye.notes["mesh_width"] = w
+            eyes.append(eye)
+    _photos[k] = eyes
+    while len(_photos) > 4:
+        _photos.pop(next(iter(_photos)))
+    return eyes
+
+
+# Where the eye itself can't be read from the face -- side profiles, where the face mesh
+# declines, or no iris and face-mesh models -- the face still says roughly how big the
+# iris is: its radius runs 0.078 to 0.105 of the eye-to-mouth length (0.09 typically) on
+# the ten hand-marked eyes, and that length is not foreshortened by a turned head. The
+# rules then look for an iris no bigger than 1.15 times that and within 1.5 of it of one
+# of the detector's eye points, so a loose box can no longer blow the guides up. Smaller
+# is allowed down to half: on a profile or a half-closed eye the visible iris is smaller,
+# and how much can't be measured on these photos (the irises in the two profiles are
+# hidden by lids and lashes). Measured with the face path switched off, through boxes two
+# and three eye-widths across: iris size within 14% typically, from 51% too small (a
+# pupil taken for the iris) to 33% too big, against the rules alone at 28-168% typically
+# and up to four times the size; centre within 0.94 iris radii, against 5.7 for the rules
+# on the looser box. The limits were chosen on those same ten eyes. Where no iris is found the guides are drawn
+# at the face's size, on the eye point.
+IRIS_PER_FACE = 0.09
+PRIOR_RANGE = (0.5, 1.15)
+PRIOR_REACH = 1.5            # iris radii from the detector's eye point
+
+
+def photo_scale(photo):
+    """(iris radius, [eye points]) in the photo's pixels from the face alone, or None."""
+    from . import noses
+    face = noses.find_face(photo)
+    if face is None or face.score < EYE_FACE_SUPPORT:
+        return None
+    return IRIS_PER_FACE * face.d_em, [face.pts[0].copy(), face.pts[1].copy()]
+
+
+def note_crop(photo, crop, origin):
+    """The app has cut `crop` out of `photo`, with its top-left corner at `origin`."""
+    global _context
+    eyes = photo_eyes(photo)
+    scale = photo_scale(photo) if not eyes else None
+    _context = (_thumb(crop), crop.shape[:2], tuple(origin), eyes, scale) if eyes or scale else None
+
+
+def forget_crop():
+    global _context
+    _context = None
+
+
+def _moved(e, ox, oy, s):
+    P = lambda q: ((q[0] - ox) * s, (q[1] - oy) * s)
+    return Eye(iris=P(e.iris), r=e.r * s, pupil_r=e.pupil_r * s, left=P(e.left), right=P(e.right),
+               upper=(e.upper - (ox, oy)) * s, lower=(e.lower - (ox, oy)) * s, tilt=e.tilt,
+               inner=e.inner, found=e.found, score=e.score, notes=dict(e.notes, moved=True))
+
+
+def _from_context(img):
+    """The face's reading of the eye in this image, if this image is the noted crop: the
+    eye whose iris is in it, the one nearest the middle if both are."""
+    if _context is None or not _context[3]:
+        return None
+    thumb, (ch, cw), (ox, oy), eyes, _ = _context
+    h, w = img.shape[:2]
+    # the aspect ratio, allowing for a pixel's rounding when a small crop is resized
+    if abs(w / h - cw / ch) > 0.02 + 2.0 / min(h, w) or float(np.abs(_thumb(img) - thumb).mean()) > 6.0:
+        return None
+    moved = [_moved(e, ox, oy, w / cw) for e in eyes]
+    inside = [m for m in moved if 0 <= m.iris[0] < w and 0 <= m.iris[1] < h]
+    if not inside:
+        return None                    # the box was drawn somewhere else: read it on its own
+    return min(inside, key=lambda m: np.hypot(m.iris[0] - w / 2, m.iris[1] - h / 2))
+
+
+def _scale_from_context(img):
+    """The face's iris size and eye points moved into this crop, when it is the noted crop
+    of a photo whose face gave no eye reading. None otherwise."""
+    if _context is None or _context[4] is None:
+        return None
+    thumb, (ch, cw), (ox, oy), _, (r, pts) = _context
+    h, w = img.shape[:2]
+    if abs(w / h - cw / ch) > 0.02 + 2.0 / min(h, w) or float(np.abs(_thumb(img) - thumb).mean()) > 6.0:
+        return None
+    k = w / cw
+    return r * k, [np.array([(q[0] - ox) * k, (q[1] - oy) * k]) for q in pts]
+
+
+def propose_box(photo):
+    """A box round one eye for the box picker to start from, or None without a face.
+    The larger of the two (the nearer, on a turned head), with its brow above."""
+    eyes = photo_eyes(photo)
+    if not eyes:
+        return None
+    e = max(eyes, key=lambda e: e.width)
+    w = e.width
+    cx, cy = (e.left[0] + e.right[0]) / 2, (e.left[1] + e.right[1]) / 2
+    x0, x1, y0, y1 = cx - 1.0 * w, cx + 1.0 * w, cy - 0.85 * w, cy + 0.6 * w
+    H, W = photo.shape[:2]
+    x0, y0, x1, y1 = max(0.0, x0), max(0.0, y0), min(float(W), x1), min(float(H), y1)
+    if x1 - x0 < 16 or y1 - y0 < 16:
+        return None
+    return (x0, y0, x1 - x0, y1 - y0)

@@ -85,6 +85,7 @@ class GuideScreen(Screen):
         self.tabs_holder.clear_widgets()
         bar, self.tabs = segmented(m.styles, self.select)
         self.tabs_holder.add_widget(bar)
+        self.slider.set_labels(*m.slider_labels)
         if m.materials and self.material_guide.parent is None:
             self.col.add_widget(self.material_guide)
         elif not m.materials and self.material_guide.parent is not None:

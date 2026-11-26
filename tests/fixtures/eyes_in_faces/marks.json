@@ -1,0 +1,67 @@
+{
+ "_note": "iris centre (fraction of width, of height) and radius (fraction of width), marked by hand on a 1.5-eye-width crop of each eye, without any reading drawn on it",
+ "noses/photos/front_dark_nostrils.jpg": [
+  [
+   0.33,
+   0.4009,
+   0.0422
+  ],
+  [
+   0.7989,
+   0.4025,
+   0.0383
+  ]
+ ],
+ "noses/photos/front_eyes_to_mouth.jpg": [
+  [
+   0.2832,
+   0.1999,
+   0.0647
+  ]
+ ],
+ "noses/photos/front_freckles_ring.jpg": [
+  [
+   0.3319,
+   0.3766,
+   0.0336
+  ],
+  [
+   0.6884,
+   0.3837,
+   0.0329
+  ]
+ ],
+ "noses/photos/front_from_below.jpg": [
+  [
+   0.2993,
+   0.1203,
+   0.0496
+  ]
+ ],
+ "noses/photos/front_small_finger.jpg": [
+  [
+   0.5469,
+   0.3724,
+   0.0196
+  ]
+ ],
+ "eyes_in_faces/whole_face.jpg": [
+  [
+   0.2856,
+   0.4577,
+   0.0381
+  ],
+  [
+   0.6563,
+   0.4497,
+   0.0352
+  ]
+ ],
+ "noses/photos/right_wet_closeup.jpg": [
+  [
+   0.5013,
+   0.1832,
+   0.0691
+  ]
+ ]
+}

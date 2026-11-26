@@ -14,6 +14,602 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 34 — a walkthrough the first time the app opens
+
+*Shipped in: — (set up as 1.9.0, version code 12; not yet uploaded)*
+
+> "Let's go ahead and make this feature first: a first-launch walkthrough inside the app."
+> (Also the testers' report, item 3: "Implement an interactive walkthrough that guides
+> users through the main functionalities of the app.")
+
+**What changed.** The first time someone opens the app, a short tour runs over the main
+page. The page dims and each part lights up in turn, with a card explaining it:
+
+1. Welcome: what the app does.
+2. The subject bar: what you can draw.
+3. The photo card: add a photo, then tap the face, hand or person.
+4. The style tiles: from line art to realism.
+5. The guide button: proportion lines, then the step-by-step lesson.
+6. The gear: Settings, Keep screen on and feedback.
+
+There are Back, Skip and Next buttons, and the phone's back button closes the tour rather
+than the app. It shows only once. Settings has a new **Show the tour again** row for anyone
+who wants to see it again. While the tour is open, taps don't reach the page underneath,
+so nobody starts the camera by accident while reading.
+
+The first version lit things up backwards: the part being explained went dark and the
+rest of the page stayed bright. The screenshot check caught it before release, and a test
+now reads the screen to make sure the lit-up part really is lit. While checking the tests
+by putting each mistake back, one test turned out to be passing for the wrong reason (the
+back button); it was rewritten so that it now fails when it should.
+
+---
+
+## Round 33 — keep the screen on while drawing
+
+*Shipped in: 1.8.0 (version code 11)*
+
+> "I want to add an option in Settings to keep the phone screen on while the user is using
+> the app. It'll help them use it without having to tap their phone while they're drawing
+> or following the guides."
+
+**What changed.** Settings now opens with a **Keep screen on** switch, under the heading
+"While drawing". When it's on, the screen doesn't dim or lock while Sketch Assistant is open,
+so you can keep your eyes on the paper. As soon as you switch to another app or press the
+power button, the phone sleeps as usual, so it won't drain the battery in the background.
+The app remembers the choice, so once it's on, it's on every time you open the app.
+
+It starts off. Some people won't want it, and a phone that never sleeps would surprise
+anyone who hasn't chosen it.
+
+The first version drew the switch in the wrong place when it was off: a grey sliver at the
+left edge of the row instead of a switch on the right. It was the same kind of mistake as
+the smudge on the Portrait tab in Round 31, where the position was worked out before the
+page had finished laying itself out. The screenshot check caught it before it reached
+anyone, and a test now checks where the switch is drawn.
+
+---
+
+## Round 32 — screenshots that show the realistic and hatched drawings
+
+*Shipped in: listing assets, not an app version.*
+
+> "I don't like that all the screenshots mostly capture the first one or two styles of each
+> section, and not the realistic or hatched styles. I think those are the strong points. Can
+> you add a few more screenshots, maybe for portrait and posture or hands, to capture the
+> realistic and hatched finished product and guides?"
+
+**What changed.** Google Play allows at most eight phone screenshots, so the new ones
+replace some of the old rather than adding to them. The set now leads with the finished,
+rendered drawings:
+
+- the photo next to its realistic pencil study
+- a realistic portrait with the proportion lines over it
+- the finished portrait as the last of its twelve shading steps
+- cross-hatching
+- a realistic eye
+- a realistic hand
+- figure drawing in cross-contour hatching
+- the cartoon
+
+Out went the line-art steps, the construction-only Hands and Posture shots, the plain
+proportion guide and the materials guide. The video still shows those. Tablets now get
+eight screenshots each instead of five: the same set, with a realistic nose in place of
+cross-hatching.
+
+---
+
+## Round 31 — new store screenshots, description and walkthrough video
+
+*Shipped in: listing assets, not an app version. The bar fix below is in 1.7.0.*
+
+> "I need to update the Play Store listing assets. I want the screenshots to be more
+> specific: feature-rich screenshots that highlight specific features, and screenshots of
+> the interface in action. Make an optimized app description with the right keywords, with
+> bullet points for the features. We also need a video that walks through the app's main
+> functions so people properly understand what it does."
+
+**What changed.**
+
+- **Screenshots.** There are now eight phone screenshots and five each for 7- and 10-inch
+  tablets. Each shows one feature (turning a photo into a lesson, proportion guides, the
+  steps, eyes, hands, cartoon, posture, shading materials) under a one-line caption. Every
+  screen is the real app, not a mock-up.
+- **Description.** The listing is rewritten around what people search for when they want
+  to learn to draw: "learn to draw", "how to draw", "step by step", "drawing lesson",
+  "portrait drawing", and drawing eyes and hands. It has bullet points for how the app
+  works and for what every step tells you, plus a short section per mode. The title on
+  Play becomes "Sketch Assistant–Learn to Draw". Following Google's rules, keywords appear
+  only in ordinary sentences, never in lists.
+- **Feature graphic.** It now reads "Learn to draw from any photo, step by step".
+- **Video.** A 1:51 guided tour. A caption says what you're doing, the phone shows the app
+  doing it, and an amber ring marks each tap. It covers adding a photo, picking a style,
+  the drawing guide and slider, and the steps, then each mode in turn.
+
+Deliberately left out: the violin keywords in the original request, which came from
+another app's brief. Google rejects listings with keywords that don't describe the app.
+
+**Found while doing it.** When the app was captured at phone resolution, the left end of
+the selected Portrait tab showed a pale smear. The faded edge at the right-hand end of
+the mode bar was placed before the page had finished laying out, so on a wide screen it
+landed on top of the first tab and stayed there. That's fixed. My first explanation of
+the cause (a graphics glitch) was wrong; checking the fix against the screen showed the
+smear was still there, which is how the real cause was found.
+
+---
+
+## Round 30 — construction before contour; one free style per mode
+
+*Shipped in: 1.7.0 (version code 10)*
+
+> "Change Cartoon to Lines and then Hatched. Posture can stay Gesture, Mannequin, Contour
+> and the rest. Make Hands have Construct first and then Contour, and the same for Nose and
+> Eyes. In Objects, make Shapes first and then Contour. I think we can make Contour the
+> free style for all of them (Lines for Cartoon, Line Art for Portrait), and it doesn't
+> need to be the first one."
+
+**What changed.** The style tiles now follow the order you'd actually draw in: block in
+the shapes first, then the outline.
+
+- **Eyes, Nose, Hands:** Construct, Contour, then Value, Hatch, Realistic.
+- **Object:** Shapes, Contour, then the rest.
+- **Cartoon:** Lines, then Hatched.
+- **Posture** (Gesture, Mannequin, Contour…) and **Portrait** are unchanged.
+
+Each mode opens on its first tile, so Eyes, Nose, Hands and Object now open on the
+construction drawing, and Cartoon on clean lines.
+
+For Pro later, one style per mode stays free: the contour (Line Art in Portrait, Lines in
+Cartoon). Nothing is locked yet.
+
+---
+
+## Round 29 — free styles first, taken back
+
+*Shipped in: 1.7.0 (version code 10)*
+
+> "I don't think the reorder was a good idea. It kind of ruins the natural flow of drawing
+> we came up with. Revert the reorder change."
+
+**What changed.** The styles are back in their original order. Posture runs Gesture,
+Mannequin, Contour, then the rest, and Cartoon opens on Light Hatching again. Users never
+saw the reordered version.
+
+What this means for Pro later: a free style won't always be the first tile. When Pro is
+built, a mode should open on its free style for someone who hasn't bought Pro. (The order
+was then set again in Round 30.)
+
+---
+
+## Round 28 — a settings page: feedback, restore purchase, licences
+
+*Shipped in: 1.7.0 (version code 10)*
+
+> "Let's add a settings and feedback page. I want it to be a subtle gear icon somewhere,
+> not an entire tab. Add a feedback button, and a button for restoring a purchase — we'll
+> make that work when we add the Pro version."
+
+**What changed.** There's now a small grey gear at the top right of the main page, next to
+the logo. It opens a Settings page with:
+
+- **Send feedback.** Opens your email app with a new message already addressed to the
+  developer. The phone model, Android version, app version and the mode you were in are
+  filled in under a line at the bottom, in plain sight, so you can see what's being sent
+  and delete it. If the phone has no email app, it shows the address and copies it so you
+  can paste it somewhere else.
+- **Rate Sketch Assistant.** Opens the app's page in the Play Store.
+- **Restore purchase.** There for when Pro arrives. For now it just says there's nothing to
+  restore yet.
+- **Privacy policy** and **Licences**, readable inside the app, with no internet needed.
+- The app's version number at the bottom.
+
+The app itself still sends nothing. The email is written and sent (or not) by your own
+email app. The privacy policy now says so, in a new "Feedback and ratings" section.
+
+Deliberately left out: a profile page. The app has no accounts and doesn't need one. A Pro
+purchase will belong to your Google account, which Google Play already keeps track of.
+
+The Licences page fixes the "no visible credits screen" item that was in Still open.
+
+---
+
+## Round 27 — free styles first (taken back before release)
+
+*Shipped in: never. Reverted in Round 29, before 1.7.0 went out.*
+
+> "Not a bad idea to move all the free styles to be the first ones on the left. It'll feel
+> more natural."
+
+**What changed.** In every mode, the styles that will stay free once Pro exists now come
+first, on the left, so each mode opens on one of them. Only two modes changed:
+
+- **Posture** now runs Gesture, Contour, Mannequin, then the rest. Contour used to be third.
+- **Cartoon** now opens on Clean Lines, with Light Hatching second.
+
+Nothing is locked yet. Every style still works for everyone.
+
+---
+
+## Round 26 — tab order
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "Change the order of the tabs at the top to: Portrait, Eyes, Nose, Hands, Posture,
+> Cartoon, Object."
+
+**What changed.** The mode tabs now run in exactly that order. The app still opens on
+Portrait.
+
+---
+
+## Round 25 — laugh lines and cheek lines; Shapes style taken out
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "Hmm, not bad. I think it's still missing some cheek lines and nasolabial folds, or laugh
+> lines. Also remove the Shapes style from Cartoon; it's not useful."
+
+**What changed.** Cartoon drawings now have laugh lines running from beside each nostril
+down towards the corners of the mouth, curving out over the cheek and stopping just short
+of the mouth. There's also a short cheek line under the outer corner of each eye. They're
+always there, but they follow the photo: faint on a smooth face, darker where the face
+really has a deep fold, so a young face doesn't come out looking older. They're drawn in
+the nose-and-mouth step. The Shapes style is gone, so Cartoon now offers Light Hatching and
+Clean Lines. The simple shapes are still the first two steps of each.
+
+**Process failure, owned.** While adding these, it turned out that the written step
+for the nose and mouth had never been updated in Round 22: the change to it silently
+didn't apply, and nothing checked. It now describes the lips, the ridges, the corners, and
+the new laugh and cheek lines.
+
+---
+
+## Round 24 — more of the hair's outline, and a bigger box
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "Looks much better. Is there any way we could improve the hair a bit more, and make it
+> show the outline of the hair a bit more? Also, it's not a bad idea to increase the box
+> size by 10–20 percent to cover the entire hair and head."
+
+**What changed.** In Cartoon mode the box drawn round a face now takes in the whole head:
+it's 20% wider and about 30% taller, with most of the extra above the face, where the
+hair is. The picture is cut from that bigger box, so the outline of the hair no longer
+stops where the old crop sliced through it. On the 24 test portraits, the old crop cut
+through the head on 11 and the new one on 3, all long hair or a raised hand. The hair's
+outline is also drawn heavier, as heavy as the upper eyelids, so the shape of the hair is
+the first thing you see. Portrait mode's box is unchanged.
+
+---
+
+## Round 23 — say that Cartoon mode is for portraits
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "Also, add a text label saying that Cartoon mode only works for portraits."
+
+**What changed.** As soon as Cartoon is chosen, before any photo is loaded, the line under
+the photo reads "Cartoon works on portraits only - add a photo of a face". After a photo is
+loaded the same words stay: "1 face(s) found - tap a box (Cartoon works on portraits
+only)", or "No face found - Cartoon works on portraits only". Once a face is tapped, the
+hint starts with "Portraits only".
+
+---
+
+## Round 22 — more to the lips, and the chin
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "Can we add more details to the lips, and an outline of the chin as well?"
+
+**What changed.** The mouth now has the whole lower lip, not just a short curve; a small
+tick at each corner that turns up or down with the mouth; the two short ridges from the
+nose down to the peaks of the upper lip; and a few light strokes across the lower lip to
+show its fullness. The chin has a soft curve just above its outline, with a lighter line
+in the dip under the lower lip. The steps now include the chin with the face outline.
+Where the hair's edge ran right alongside the jaw (beside the neck), it used to draw a
+second line just under the chin. That second line is gone now.
+
+---
+
+## Round 21 — the caricature needed more soul
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "I think we're removing too many facial features when drawing the caricature. Maybe
+> caricature isn't even the right name for it; I'm looking for a more cartoonized
+> version. Let's add a few hair lines to show more of the flow of the hair. The eyes could
+> use a bit more detail to express the feeling of the face. Right now they look creepy
+> with these simple eyes. Maybe add a few feature lines for the eyebrows and eyelashes,
+> similar to the app icon. Same with the nose: it looks too simple. Add a few nose lines?
+> Let's give it some soul."
+
+**What changed.** The mode is now called **Cartoon**. The slider still turns it into a
+caricature if you push it, and it now starts lower. The eyes are where the change shows
+most. Each has a shaded iris with a big dark pupil and a white catchlight, a heavier upper
+lid with a crease above it, lashes sweeping out from the outer corner, a few small lower
+lashes, and the inner corner. The brows are drawn hair by hair, full at the inner end and
+thinning outwards, like the icon's. The nose is a curl round each nostril wing and a soft
+curve under the tip, plus a line down the side in shadow, instead of two small dashes.
+The hair has about twice as many strands, following its flow. Hatching no longer hangs
+loose past the edge of the drawing.
+
+**Process note.** The first version was built to be easy to draw, and it overshot. The
+"simpler than photorealism" brief was read as "as few lines as possible". The icon,
+which was the reference, is simple but not sparse: its eyes and brows carry most of
+its detail.
+
+---
+
+## Round 20 — "No face found" on a face Caricature mode had just found
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "It's buggy. When I upload a photo, even though it detects the face, the second screen
+> says no face detected, try Portrait mode."
+
+**What changed.** The face *was* found. What the app couldn't use was the face-mapping
+piece Caricature mode draws from. It's a separate download, and on a computer it has to
+be fetched once with the model download script. When it was missing, the app said "No
+face found", which sent you looking at the photo when the problem was the setup. Now
+the picture and the status line both say which piece is missing and how to get it, or
+that the computer's image library is too old to read it. The message is also larger and
+wraps to fit the picture instead of running off in tiny grey text. The app also reads
+these models' results in a way that doesn't depend on the version of that image library.
+On a phone the pieces come with the app, so this only shows on a computer.
+
+**Process failure, owned.** Two different failures, "nothing to work with" and "no face
+here", shared one message. The tests always ran with every model in place, so nothing
+ever showed what a missing one looked like. The same silent fallback probably explains
+the earlier report that eye detection felt "hit and miss" on the tester's computer. That
+can't be confirmed from here.
+
+---
+
+## Round 19 — a caricature mode
+
+*Shipped in: 1.6.0 (not yet uploaded)*
+
+> "I think the next mode we add is going to be something like a caricature mode. I want
+> it to only work for portraits and turn a portrait into a simple caricature with no
+> surroundings — just the portrait itself. It should be a lot simpler than photorealism
+> for the user to draw, shouldn't have too many shadings and shouldn't look too crowded:
+> something in line with the app icon's art style."
+
+Asked before building: how far to exaggerate (a slider), how much shading (light
+hatching) and how much of the person (the head only).
+
+**What changed.** A Caricature mode was added. Load a portrait, tap the face, and the
+app draws just the head in clean, even lines like the app icon: the outline of the face
+and hair, the eyes, brows, a small nose, the lips, and a few long strands of hair, with
+nothing from the background. The caricature isn't a fixed cartoon face. The app works
+out what makes this particular face different from an average one (a wider nose, a
+longer chin, closer eyes) and pushes exactly that. The slider runs from no exaggeration
+to strong, and its ends say so. There are three styles: Light Hatching, which adds a
+single layer of hatching in the shadows; Clean Lines, which has no shading at all; and
+Shapes, the simple shapes it's all built on (taken out again in Round 25). The steps go from the head shape and the
+features as simple shapes to the lines, one feature at a time.
+
+On eight test faces, when a feature stood out from the average, the caricature pushed it
+the right way 26 times out of 29. It uses far less ink than Portrait mode's cross-hatch
+on the same photo.
+
+**Left as is, for now.** Glasses aren't drawn, though the eyes behind them are. Beards
+are only outlined where they show beside the jaw. Side profiles come out weaker than
+face-on photos, and a hat is drawn as if it were hair.
+
+---
+
+## Round 18 — Play Console wouldn't send 1.5.0 for review
+
+*Shipped in: 1.5.0, version code 8 (not yet uploaded)*
+
+> "Can you address this issue that was raised while uploading to Play Console: required
+> hardware feature declarations are restricting your app's availability —
+> android.hardware.screen.portrait affects Phone, Tablet, Desktop, and Android XR users."
+
+**What changed.** The app still opens upright as before. Because it's locked upright,
+though, Android was treating an upright screen as something a device must have, so Play
+would have hidden the app from devices that don't report one (some tablets, Chromebooks
+and headsets) and refused to send the update for review. The app now says an upright
+screen is preferred but not required. The build number went up by one, because Play
+won't accept the same build number twice.
+
+**Process failure, owned.** The upright lock had always carried this requirement. Nothing
+in the build or the release checklist looked at what the finished app asks of a device,
+so the first warning was the store's.
+
+---
+
+## Round 17 — portrait circle smaller than the face; eye guides too big when the eye isn't found; the build failing
+
+*Shipped in: 1.5.0 (not yet uploaded)*
+
+> "In portrait mode, the guiding circle for some of these faces is smaller than the face
+> itself. Or the guiding lines for the eyes, if the eye isn't detected by the app, end up
+> being bigger than the eye."
+
+**What changed — portrait circle.** The circle around the face is now drawn from the
+outline of the face itself (forehead, cheeks, jaw and chin) rather than from a rough box
+round the face. On 15 faces in the tester's close-ups, where the chin and the widest
+points of the face could be marked by hand, the circle now runs through the chin with
+the face inside it on 10, against 2 before. Portrait mode also finds faces it used to
+miss on close-ups: on the tester's photos, an extreme close-up and a face in heavy
+sunglasses. On one photo it used to take the mouth and chin for the whole face, and it
+now gets the whole face. Side profiles are unchanged. The outline can't be read reliably
+from the side, so those keep the old circle, and on one strict profile Portrait mode
+still finds no face.
+
+**What changed — eye guides when the eye isn't found.** When the photo has a face but the
+app can't read the eye itself (side profiles mostly), it now uses the size of the face to
+set a sensible size for the eye, and looks for the eye near where the face says it should
+be. On ten hand-marked eyes, tested with the automatic reading switched off, the circle
+now comes out typically within about an eighth of the real size. It ranges from half the
+size (where the app took the pupil for the whole iris) to a third too big. Before, the
+same boxes gave circles up to four times too big. On a close-up of one eye with no face
+in the photo there's nothing to take the size from, so that still works as before.
+
+> "Tried building the 1.5 version and got this error."
+
+**What changed — the build.** The build was failing while unpacking Android's toolkit,
+which it downloads fresh. The download had arrived damaged, and the build only noticed
+much later. The build now downloads it with retries and checks it before using it. It
+also stopped throwing away its saved copy of the toolkit every time the version number
+or the app's settings changed.
+
+**Process failure, owned.** That fresh download only happened because the previous
+round changed the app's build settings, which threw away the saved copy and forced a
+full re-download on the next build. The download had always been fragile. The change
+exposed it, and the first anyone knew was a failed build on the tester's side.
+
+---
+
+## Round 16 — eye guides too big, nose circles and bridge line off
+
+*Shipped in: 1.5.0 (not yet uploaded)*
+
+> "Those sections where you draw a box, like Nose and Eyes, don't work very well —
+> especially the guiding lines, which are usually a bit off. Look at this example: the
+> guiding lines for the eye are way bigger than the eye itself. Is there a cost-efficient
+> way to detect these automatically, with good precision, instead of making the user draw
+> a box?"
+
+> "The guiding lines for the nose could use some improvement too: the circles don't always
+> land on the edges of the nose curvature, and the purple line doesn't always follow the
+> line of the nose."
+
+**What changed — eyes.** On a photo with a face in it, Eyes mode now finds the eye itself
+and the box starts round it, the same way Nose mode does. It reads the eye from the whole
+face, so the size of the eye comes from the face, not from the box you drew. That was the
+fault: the old reading judged the eye's size from the box, so a loose box gave a huge
+eye. On ten eyes marked by hand, the iris circle now comes out within about a fifth of
+its real size every time, typically within a twentieth, however big the box. Before, with
+a loose box, six of those ten were drawn between about three and four times too big. The
+lid outline comes from the same reading. Where the circle sits is less exact than its
+size: always within about half the iris's width of the middle, closer on most.
+
+Close-ups of a single eye, with no face in the photo, work as before. We tried the new
+method on those too and it did worse than the old one (right on 7 of 19 close-ups,
+against 10), so it isn't used there. You still draw the box on a close-up. The app is also
+careful not to "find" a face in an eye close-up: on five of the nineteen test close-ups
+the face finder thought it saw one, and none of them gets through now.
+
+**What changed — nose.** The wing circles and the line down the nose are now placed from
+a detailed map of the face rather than worked out by proportion. The line follows the
+ridge of the nose from between the eyes to the tip, curving where the nose does, instead
+of being one straight stroke. Face-on, the outer edges of the wings now typically land
+within a tenth of the nose's width of where they really are, against about an eighth
+before, and the worst case is noticeably better. On three-quarter views the far wing is
+never drawn inside the tip. Where the nose is found at all is unchanged (13 of the 16 test
+photos). On the three photos it already got wrong, the new wings are a little worse.
+
+Both use two small extra pieces from Google's free face-tracking toolkit. They run on the
+phone like everything else, and nothing leaves the device. The toolkit's licence allows
+use in a paid app, and its credit and licence text now ship inside the app.
+
+**Process failure, owned.** The eye tests checked the app against readings the app had
+made itself, all on close-ups, and none of them drew a box round an eye in a face photo
+the way a person does. So the size fault the tester found could never show up in a test.
+There are now hand-marked eyes in face photos, read through the same box-drawing steps a
+person uses. Separately, the first estimate that the new method would also help on
+close-ups was wrong; once it was measured properly it made close-ups worse, and it was
+left out there. And the first build of this change would have left the two new pieces out
+of the app itself (the packaging list didn't include their file type). That was caught
+before release.
+
+---
+
+## Round 15 — crash when switching modes
+
+*Shipped in: 1.5.0 (not yet uploaded)*
+
+> "The app crashes when I draw a box in Nose mode and then swap to other modes."
+
+**What changed.** The crash is fixed. When you switched modes with a photo loaded, the app
+kept the faces or figures it had already found and handed them to the next mode, instead
+of looking again. Portrait mode's faces were being passed to Posture mode, which tried to
+treat a face as a whole body and crashed. It also went wrong the other way, more quietly:
+Portrait mode offered whole figures from Posture to tap as if they were faces. Each mode
+now does its own looking, once per photo.
+
+Nose mode wasn't the cause. Drawing a box there just meant coming from Portrait to Posture
+by way of Nose, and the same crash happened going straight from Portrait to Posture.
+
+**Process failure, owned.** The problem had been there since Posture mode got its own way
+of finding people, through several releases. No test ever loaded a photo and then switched
+between modes, which is exactly what a person trying the app does. There are now tests
+for the switches that crashed, and one that tours every mode and back on the same photo.
+
+---
+
+## Round 14 — the nose wasn't being found
+
+*Shipped in: 1.5.0 (not yet uploaded)*
+
+> "Here are some test photos. The app is doing an awful job detecting the nose in the
+> first place!"
+
+**What changed.** The tester was right, and it was worse than awful: on the 16 photos sent,
+the app found the nose on one. Nose mode had been built assuming you would draw a box
+tightly round the nose, but it starts with a box over most of the photo, and on a close-up
+of a face it was mistaking the mouth or a beard for the nose. Even with a box drawn round
+each nose it only managed five. It now finds the face first and works out where the nose
+is from that, which also works on close-ups where only part of the face is in the photo.
+It found the nose on 13 of the 16.
+
+When you load a photo the box now starts on the nose instead of covering most of the
+picture, and the message underneath says it found the nose. If it picked the wrong spot,
+drag a new box. It gives the same result however tightly or loosely you draw that box.
+
+It also tells which way the nose is pointing. Side-on and three-quarter noses get a
+construction drawn the way drawing books do a side view — a triangle from the top of the
+nose to the tip and back to the wing, one wing behind the tip, the nostril under it —
+instead of the face-on version, which looked wrong on a turned head.
+
+**Still wrong on three of the sixteen.** Two faces turned only slightly to one side: the
+nose is found, but the tip is placed on the edge of the nose rather than its middle. On
+one of those the eyes are cut off by the top of the photo and the app gets the direction of
+the turn backwards. On the third it thinks it has found a face that isn't there, and the
+drawing lands beside the nose. In all three the box still lands on the nose, so dragging
+it a little fixes the framing, though not yet the misread tip.
+
+**Process failure, owned.** The first version was tested only on noses cut out of face
+photos and framed by hand, the easy case. Nobody had tried the box the app actually
+starts with, and the tests passed because they never asked the question the tester asked.
+
+---
+
+## Round 13 — a mode just for noses
+
+*Shipped in: 1.5.0 (not yet uploaded)*
+
+> "For the next version I want a nose mode. Very similar to the eyes tab, with similar
+> steps and guidelines, and as detailed as the eyes section."
+
+**What changed.** A Nose mode was added. You drag a box round the nose, from between the
+eyes down to the top lip. Like Eyes, it has a construction style and a long step-by-step
+guide — thirteen steps for the realistic style. It starts with the nose's length, width
+and tilt; then builds it as a wedge of flat planes (the bridge, the two sides and the
+underside, which most beginners forget); then a ball for the tip and one for each wing,
+with the nostrils tucked under the wings; then plans where the light and shadows go. The
+outline step deliberately shows only the nostrils and the creases round the wings,
+because the sides of a nose have no outline — they're drawn with shading. The shading
+then goes through the same hatch-and-blend route as the other modes, followed by steps
+for the bridge and sides and for the nostrils and the shadow under the nose. The guide
+lines show where the tip, wings, root and base of the nose sit, with the numbers kept in
+the margins as in Eyes.
+
+**Where it falls short, as tested on 25 noses cut from the face test photos.** The app
+reads the nose well on about 14. On 5 it can't see the nostrils at all (a finger over the
+nose, a wink, very soft lighting) and shows an average nose in the middle, which is
+roughly right on most. On about 5 it gets it wrong: a nose seen from the side, one behind
+glasses with a septum ring that it mistakes for a nostril, a broad nose where it picked a
+crease in the cheek, and two turned heads. The line down the bridge is always drawn
+straight, which is slightly off when the head is turned. Which side the light comes from
+is a guess from the photo, and the instructions say to check it.
+
+---
+
 ## Round 12 — the jump to realistic, what "Value" means, and the slider on the steps page
 
 *Shipped in: —*
@@ -351,20 +947,32 @@ edges fade to show there's more off-screen.
 Known and not yet addressed. Worth listing in the write-up as acknowledged rather than
 missed.
 
-- **The written drawing advice has not been reviewed by anyone who teaches drawing.** The
-  pencil grades, pressure notes and steps follow common practice, but the specific figures
-  in them (an eye being about two and a half irises wide, finger joints at 47% and 74%, and
-  so on) are rules of thumb, and none of it has been tested on beginners.
-- **How long the steps take to rebuild on a phone** when the detail slider moves has not
-  been measured. On a computer it is well under a second.
-- **Eyes mode places the eye corners too far in on some photos**, which makes the "irises
-  wide" figure too low (1.8 instead of about 2.3 on one tester photo).
-- **Eyes mode misreads about one close-up in six.** A bright reflection covering half the
-  pupil, a black-and-white photo with the white of the eye in shadow, and an eye turned far
-  to one side each throw off the construction steps (too small, or off-centre). The shaded
-  steps are unaffected.
-- **Eyes mode doesn't mark the tear duct.** It can't tell which corner is the inner one
-  from a close-up, so the instructions describe it instead of the picture showing it.
+- **Portrait mode's circle on side profiles** is still scaled from the rough box, and on
+  one strict profile in the tester's photos no face is found at all. The face's outline
+  can't be read reliably from the side. Of the 15 measurable close-up faces, 5 still don't
+  fit well, mostly heads tilted or turned well to one side.
+- **Cartoon mode doesn't draw glasses**, outlines beards only beside the jaw, is weak on
+  side profiles, and draws a hat as hair. A bald head is told from short light hair by
+  how smooth it is, which was set on just two bald test photos.
+- **Eye guides on side profiles** now take their size from the face, but how well that
+  works on a profile couldn't be measured: in the tester's two profiles the iris is
+  hidden by lids and lashes.
+- **Eyes mode on close-ups of a single eye** (no face in the photo) still uses the old
+  reading, which gets about half of the 19 test close-ups right by a strict measure. A
+  bright reflection covering half the pupil, a black-and-white photo with the white of the
+  eye in shadow, and an eye turned far to one side each throw off the construction steps,
+  and on some it places the corners too far in. The new face-based reading can't help
+  there: there's no face to take the eye's size from.
+- **Eyes mode on face photos was tested on only ten eyes**, in eight photos, and places
+  the iris less exactly than it sizes it (up to about half the iris's width off-centre).
+- **Eyes mode doesn't draw the tear duct.** On photos with a face it now knows which
+  corner is the inner one, but nothing draws it yet; on close-ups it can't tell, so the
+  instructions describe it instead.
+- **The nose wing correction was tuned on the same six face-on photos it was tested on.**
+  More face-on photos would show whether it holds.
+- **The Licences page lists only the Apache-licensed parts** (the face, hand and body
+  models and OpenCV). Kivy, NumPy and Python are under other open-source licences (MIT,
+  BSD, PSF) that ask for their notices to ship too, and those aren't on the page yet.
 - **One hand photo can't be read at all** — a hand mostly out of frame gripping a phone.
   It falls back to the rougher method rather than failing, but the result is poor.
 - **Dark backgrounds confuse posture mode's outline.** On one test photo of a figure

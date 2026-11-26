@@ -389,6 +389,162 @@ STEPS = {
                 "the brow: short hairs laid in its direction of growth, upward near the nose "
                 "and flattening outward, over the shape you blocked in.",
     },
+    # ---- noses ----------------------------------------------------------------------
+    "nose_envelope": {
+        "pencil": "2H, barely touching the paper",
+        "technique": "Measure before drawing. A nose is usually about as wide as the gap between "
+                     "the inner corners of the eyes, and from its root between the eyes to its "
+                     "base it is about a third of the face: the same as from the brows to the "
+                     "hairline, or from the base of the nose to the chin. Check both against the "
+                     "photo with your pencil held at arm's length.",
+        "text": "Mark three things and nothing else: the root of the nose between the eyes, the "
+                "base where the nostrils are, and the width across the wings. Draw a light box "
+                "through them and a centre line from root to base. The centre line follows the "
+                "tilt of the face; if the head is turned, the whole nose shifts toward the far "
+                "side, so line it up with the photo rather than with the middle of the box.",
+    },
+    "nose_wedge": {
+        "pencil": "2H",
+        "technique": "Think of the nose as a wedge of flat planes stuck onto the face: a narrow "
+                     "front plane down the bridge, a side plane on each side, and a base plane "
+                     "underneath where the nostrils are. Light falls differently on each plane, "
+                     "and those differences are what you will shade later.",
+        "text": "Draw the front plane as a long, narrow strip from the root to the tip, wider at "
+                "the tip. Join its edges out to the wings for the two side planes. Then draw the "
+                "base plane as a flat shape underneath, between the wings. The base plane is the "
+                "one most people forget: it faces down, so it is nearly always in shadow, and "
+                "without it the nose looks pasted on.",
+    },
+    "nose_balls": {
+        "pencil": "HB, lightly",
+        "technique": "The three-ball method: one ball for the fleshy tip, a smaller ball on each "
+                     "side for the wings. The nostrils sit under and inside the wings, not on the "
+                     "front of the nose.",
+        "text": "Draw a circle for the ball of the tip and a smaller one for each wing, resting "
+                "on the base line and just overlapping the tip. Place each nostril under its "
+                "wing as a small comma or kidney shape, angled toward the centre. Between them "
+                "is the columella, the strip of skin under the tip. From the front only part of "
+                "each nostril shows -- draw just the part you can see in the photo.",
+    },
+    "nose_plan": {
+        "pencil": "HB, very lightly -- these are notes to yourself",
+        "technique": "A nose is drawn mostly with tone, not lines, so plan the shadow shapes "
+                     "before any shading. The light direction decides all of them.",
+        "text": "Lightly outline the side plane facing away from the light, the base plane "
+                "underneath, and the shadow the nose throws onto the upper lip, on the side away "
+                "from the light. Mark the two highlights you will keep white: the strip down the "
+                "bridge and the spot on the tip. Note where the darkest accents go, deep inside "
+                "the nostrils. The app guesses the light from the photo and shades the side it "
+                "thinks is in shadow; check that against the photo.",
+    },
+    "nose_outline": {
+        "pencil": "HB, then 2B for the nostrils",
+        "technique": "Only a few lines on a nose are real lines: the nostril openings and the "
+                     "creases round the wings. The sides of the bridge have no outline at all -- "
+                     "they are a change of tone.",
+        "text": "Draw the nostrils, darkest at their inner, upper part and softer toward the "
+                "outside. Draw the crease where each wing meets the cheek, firm at the bottom "
+                "and fading as it rises. Resist drawing lines down the sides of the bridge; if "
+                "you need a reminder of where the side plane turns, make a mark so faint it will "
+                "disappear under the shading.",
+    },
+    "nose_surround": {
+        "pencil": "HB",
+        "technique": "A nose only reads as a nose with something around it. Draw the "
+                     "surroundings lightly, so they place the nose without competing with it.",
+        "text": "Place the inner corners of the eyes, the brows and the line of each cheek, and "
+                "the top of the upper lip with the groove that runs up to the nose. Then erase "
+                "the construction, keeping only the faintest trace of the planes to guide the "
+                "shading.",
+    },
+    "nose_planes": {
+        "pencil": "HB and 2B, blending stump",
+        "technique": "Shade plane by plane. The front plane is lit; the side plane away from the "
+                     "light is the darkest of the upper planes; the turn between them is soft "
+                     "over the fleshy tip and sharper over the bony bridge.",
+        "text": "Lay tone on the shadow side plane and soften it where it turns toward the "
+                "front. Keep the bridge strip light; it changes where the bone gives way to "
+                "cartilage, about halfway down, often a slight bump or a change in the width of "
+                "the highlight. Add the soft shadow at the root, where the nose meets the brow "
+                "and the corners of the eyes, and darken the side where the nose meets the "
+                "cheek.",
+    },
+    "nose_base": {
+        "pencil": "2B to 4B, kneaded eraser",
+        "technique": "The base plane and the cast shadow are what fix a nose to the face. Without "
+                     "them it floats.",
+        "text": "Shade the base plane under the tip, darker than the side planes. Fill the "
+                "nostrils, darkest deep inside; their edges are not pure black, because they "
+                "catch light bouncing up from the lip. Lift a touch of that reflected light on "
+                "the underside of the wings and the columella. Then draw the cast shadow on the "
+                "upper lip: darkest and sharpest right under the nose, softer and lighter as it "
+                "spreads away.",
+    },
+    # ---- caricature -----------------------------------------------------------------
+    "car_head": {
+        "pencil": "HB, held lightly",
+        "technique": "Ghosting: swing the hand over each shape before the pencil touches.",
+        "text": "Draw the head shape, then the outline of the hair as one simple mass round it. "
+                "Add the centre line and the eye, nose and mouth lines. These are the "
+                "caricature's proportions -- already pushed -- so copy them as the guide shows "
+                "rather than from the photo.",
+    },
+    "car_features": {
+        "pencil": "HB",
+        "technique": "Shapes before detail: if an oval is in the wrong place, the finished eye "
+                     "will be too.",
+        "text": "Draw an oval for each eye on the eye line, a triangle for the nose from between "
+                "the eyes down to the nose line, and an oval for the mouth. Keep them light.",
+    },
+    "car_outline": {
+        "pencil": "2B or a fine liner",
+        "technique": "One even line weight, drawn from the elbow for the long curves. The icon's "
+                     "style is clean: a line, not a sketchy cloud of them.",
+        "text": "Draw the jaw and chin, then the outline of the hair, including the hairline "
+                "across the forehead. Where hair falls over the face, the face's outline stops. "
+                "Add the soft curve of the chin just above its outline, and a lighter one under "
+                "where the lower lip will be.",
+    },
+    "car_eyes": {
+        "pencil": "2B or a fine liner",
+        "technique": "The upper lid is the heaviest line of the face; the lower one lighter and "
+                     "shorter.",
+        "text": "The eyes carry the expression, so this is the step to take slowly. Draw the "
+                "iris, a big dark pupil with a white catchlight left as paper, and a few short "
+                "lines from the pupil out. Then the heavy upper lid over it (the lids cover the "
+                "top and bottom of the iris), the crease above, and the lower lid lighter. Sweep "
+                "the lashes out from the outer half, longest at the corner. For the brows, a "
+                "light tapered shape, then short hair strokes leaning from the inner end out.",
+    },
+    "car_nose_mouth": {
+        "pencil": "2B or a fine liner",
+        "technique": "Curves, not dots: a nose drawn as two dots looks like a mask.",
+        "text": "Draw a round curl for each nostril wing, from above the wing, out and down into "
+                "the nostril, a soft curve under the tip between them, and one line down the "
+                "side of the nose away from the light. For the mouth, draw the top edge of the "
+                "upper lip with its two peaks, the line between the lips heavier, with a small "
+                "tick at each corner, and the lower lip. Then the two short ridges from the nose "
+                "down to the peaks, and a few light strokes across the lower lip for its fullness. "
+                "Last, the laugh lines from beside each nostril down towards the corners of the "
+                "mouth, bowing out over the cheek and stopping short of the mouth, and a short "
+                "curve under each eye's outer corner for the cheekbone. Keep these light; press "
+                "harder only where the photo shows a deep fold.",
+    },
+    "car_strands": {
+        "pencil": "A sharp 2B or a fine liner, lighter than the outline",
+        "technique": "Long strokes in the direction the hair falls, each one tapering off at both "
+                     "ends. A few strands say hair; many say a mess.",
+        "text": "Add the strands the picture shows, following the hair's flow from the parting "
+                "outwards and down. Then erase the shapes underneath.",
+    },
+    "car_hatch": {
+        "pencil": "HB, sharp",
+        "technique": "Short parallel strokes in one direction per patch, evenly spaced, stopping "
+                     "short of the outline. One layer only.",
+        "text": "Hatch the shadow side of the face and the darkest parts of the hair, where the "
+                "picture shows. Keep it light and sparse: the lines carry this drawing, the "
+                "hatching only hints at the light.",
+    },
 }
 
 # `finish` depends on the style family you chose, so it gets its own table
@@ -443,6 +599,14 @@ FINISH = {
 
 # Where one subject's finishing advice genuinely differs from its family's.
 FINISH_OVERRIDE = {
+    "car_hatch": {
+        "pencil": "2B or a fine liner; HB for the hatching",
+        "technique": "Erase the shapes before the hatching goes in, so the hatching doesn't "
+                     "get smudged.",
+        "text": "Check the lines against the picture, erase the construction, and leave it. A "
+                "caricature in this style is finished when it reads, and it reads early: more "
+                "hatching makes it heavier, not better.",
+    },
     "body_formhatch": {
         "pencil": "A sharp 2B or a fine liner",
         "technique": "Strokes that wrap the form. A line drawn straight across an arm "
@@ -500,6 +664,27 @@ FINISH_OVERRIDE = {
                 "the lashes on the eyeball below the upper lid. Then stop: over-worked lashes "
                 "and an iris with every fibre drawn are the two things that most often spoil "
                 "an eye that was right ten minutes earlier.",
+    },
+    "nose_construct": {
+        "pencil": "2H for the box and the planes, HB for the balls and nostrils",
+        "technique": "Leave the construction showing. This drawing is for understanding how the "
+                     "nose is built, and it is the page to come back to when a finished nose "
+                     "looks flat or stuck on.",
+        "text": "Firm up the balls and the nostrils and keep the planes visible underneath. "
+                "Check three things against the photo: the width against the inner corners of "
+                "the eyes, that the base plane is there at all, and that the nostrils sit under "
+                "the wings rather than on the front. Most noses that look wrong are wrong in one "
+                "of those three.",
+    },
+    "nose_realistic": {
+        "pencil": "2H through 6B, blending stump, kneaded eraser",
+        "technique": "Edges make a nose. Keep them hard where a nostril meets its wing and where "
+                     "the cast shadow starts, and soft everywhere along the bridge and the sides.",
+        "text": "Bring the nostrils and the darkest part of the cast shadow to full dark. Lift "
+                "the highlight on the tip and the strip down the bridge back to clean paper. "
+                "Soften any line left down the sides of the bridge until it is only a change of "
+                "tone. Add skin texture lightly -- pores show most round the tip and the wings -- "
+                "and stop before the nose gets more detail than the rest of the face around it.",
     },
     "hand_construct": {
         "pencil": "2H for the block-in, HB for structure, 2B for the joint creases",

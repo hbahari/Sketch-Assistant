@@ -1,0 +1,178 @@
+{
+ "front_small_finger": {
+  "tip": [
+   0.705,
+   0.465
+  ],
+  "base_y": 0.485,
+  "x0": 0.63,
+  "x1": 0.745,
+  "faces": "front",
+  "source": "pexels-138935198-11033800"
+ },
+ "right_wet_closeup": {
+  "tip": [
+   0.765,
+   0.575
+  ],
+  "base_y": 0.665,
+  "x0": 0.53,
+  "x1": 0.79,
+  "faces": "right",
+  "source": "pexels-counsellor-anonymous-3019504-5026056"
+ },
+ "front_dark_nostrils": {
+  "tip": [
+   0.565,
+   0.53
+  ],
+  "base_y": 0.58,
+  "x0": 0.42,
+  "x1": 0.68,
+  "faces": "front",
+  "source": "pexels-emilianovittoriosi-21792057"
+ },
+ "front_freckles_ring": {
+  "tip": [
+   0.53,
+   0.575
+  ],
+  "base_y": 0.605,
+  "x0": 0.43,
+  "x1": 0.61,
+  "faces": "front",
+  "source": "pexels-francesca-zama-119584170-9854104"
+ },
+ "miss_mild_turn_ring": {
+  "tip": [
+   0.77,
+   0.13
+  ],
+  "base_y": 0.2,
+  "x0": 0.61,
+  "x1": 0.89,
+  "faces": "front",
+  "source": "pexels-galandria-art-46789725-20942895"
+ },
+ "front_eyes_to_mouth": {
+  "tip": [
+   0.62,
+   0.63
+  ],
+  "base_y": 0.7,
+  "x0": 0.46,
+  "x1": 0.79,
+  "faces": "front",
+  "source": "pexels-krivitskiy-11857679"
+ },
+ "left_head_tipped_back": {
+  "tip": [
+   0.135,
+   0.405
+  ],
+  "base_y": 0.5,
+  "x0": 0.13,
+  "x1": 0.34,
+  "faces": "left",
+  "source": "pexels-krivitskiy-15124323"
+ },
+ "miss_wrong_face": {
+  "tip": [
+   0.42,
+   0.29
+  ],
+  "base_y": 0.37,
+  "x0": 0.22,
+  "x1": 0.53,
+  "faces": "front",
+  "source": "pexels-krivitskiy-15988657"
+ },
+ "front_nose_and_mouth": {
+  "tip": [
+   0.46,
+   0.29
+  ],
+  "base_y": 0.37,
+  "x0": 0.35,
+  "x1": 0.58,
+  "faces": "front",
+  "source": "pexels-marketingconmartin-7739246"
+ },
+ "miss_beard_eyes_cut": {
+  "tip": [
+   0.52,
+   0.255
+  ],
+  "base_y": 0.32,
+  "x0": 0.38,
+  "x1": 0.63,
+  "faces": "front",
+  "source": "pexels-mart-production-8078490"
+ },
+ "left_three_quarter": {
+  "tip": [
+   0.125,
+   0.55
+  ],
+  "base_y": 0.61,
+  "x0": 0.11,
+  "x1": 0.43,
+  "faces": "left",
+  "source": "pexels-melanfolia-34217562"
+ },
+ "left_profile_dark": {
+  "tip": [
+   0.085,
+   0.545
+  ],
+  "base_y": 0.585,
+  "x0": 0.08,
+  "x1": 0.26,
+  "faces": "left",
+  "source": "pexels-michael-obstoj-1772571864-31585379"
+ },
+ "left_profile_beard": {
+  "tip": [
+   0.105,
+   0.17
+  ],
+  "base_y": 0.26,
+  "x0": 0.1,
+  "x1": 0.5,
+  "faces": "left",
+  "source": "pexels-mizunokozuki-13765741"
+ },
+ "left_nose_cut_off": {
+  "tip": [
+   0.25,
+   0.11
+  ],
+  "base_y": 0.22,
+  "x0": 0.24,
+  "x1": 0.56,
+  "faces": "left",
+  "source": "pexels-pixabay-65665"
+ },
+ "left_profile_moustache": {
+  "tip": [
+   0.365,
+   0.475
+  ],
+  "base_y": 0.505,
+  "x0": 0.36,
+  "x1": 0.47,
+  "faces": "left",
+  "source": "pexels-radis-29898079"
+ },
+ "front_from_below": {
+  "tip": [
+   0.525,
+   0.3
+  ],
+  "base_y": 0.37,
+  "x0": 0.38,
+  "x1": 0.69,
+  "faces": "front",
+  "source": "pexels-vunyakurochkin-11775315"
+ }
+}

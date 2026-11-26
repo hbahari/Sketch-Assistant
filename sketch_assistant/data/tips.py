@@ -269,6 +269,91 @@ TIPS = {
             "Re-clean the highlight, add the small one on the lower rim, and stop.",
         ],
     },
+
+    # ---- noses: construction, outline and the realistic finish need their own words;
+    # value and hatch are built the same way whatever the subject, so those fall back
+    "nose_contour": {
+        "pencils": "2H for the construction, HB for the wings, 2B for the nostrils.",
+        "pressure": "Very light for the box and planes; firm only for the nostrils and the "
+                    "bottom of the wing creases. No lines down the sides of the bridge.",
+        "steps": [
+            "Mark the root between the eyes, the base, and the width across the wings.",
+            "Check the width against the gap between the inner corners of the eyes.",
+            "Draw a centre line from root to base, following the tilt of the face.",
+            "Block in a ball for the tip and a smaller ball for each wing.",
+            "Place the nostrils under the wings as small comma shapes.",
+            "Draw the wing creases, firm at the bottom and fading upward.",
+            "Leave the sides of the bridge unlined -- they are drawn with tone, not lines.",
+            "Erase the construction and add the top of the upper lip below.",
+        ],
+    },
+    "nose_construct": {
+        "pencils": "2H for the box and planes; HB for the balls and nostrils.",
+        "pressure": "Light throughout. This is a working diagram and it should stay readable.",
+        "steps": [
+            "Box the nose: root to base, wing to wing, and the centre line.",
+            "Draw the wedge: a narrow front plane down the bridge, a side plane each side.",
+            "Add the base plane underneath, between the wings.",
+            "Draw a ball for the tip and a smaller ball for each wing.",
+            "Tuck the nostrils under the wings, with the columella between them.",
+            "Shade in the side away from the light, the base plane, and the cast shadow.",
+            "Outline the highlights to keep white: the bridge strip and the tip.",
+        ],
+    },
+    "nose_realistic": {
+        "pencils": "2H to 6B, a blending stump, a kneaded eraser.",
+        "pressure": "Light, layered and blended for the planes; full pressure only deep in the "
+                    "nostrils and right under the nose where the cast shadow starts.",
+        "steps": [
+            "Build the construction first: box, planes, balls. Do not skip it.",
+            "Reserve the highlights on the tip and down the bridge.",
+            "Shade the side plane away from the light, softening its turn toward the front.",
+            "Shade the base plane, darker than the sides.",
+            "Fill the nostrils, darkest deep inside, softer at the edges.",
+            "Lift reflected light under the wings and on the columella.",
+            "Draw the cast shadow on the upper lip, sharp under the nose and fading out.",
+            "Soften any line left down the sides of the bridge into tone.",
+            "Add skin texture lightly round the tip and wings, and stop.",
+        ],
+    },
+    # ---- caricature -------------------------------------------------------------------
+    "car_hatch": {
+        "what": "A cartoon of the face in the style of the app's icon: clean lines, expressive "
+                "eyes with lashes, brows drawn hair by hair, a simple nose, flowing strands of "
+                "hair and a little hatching. The slider pushes what is already distinctive "
+                "about the face -- a long chin longer, close eyes closer -- from not at all to a "
+                "full caricature.",
+        "pencils": "HB for the shapes, 2B or a fine liner for the final lines.",
+        "pressure": "Light for the shapes; one even, confident weight for the final lines; "
+                    "lighter again for the hatching.",
+        "steps": [
+            "Draw the head shape and the hair mass as simple outlines, with the centre line.",
+            "Mark the eye, nose and mouth lines where the guide puts them - these are the "
+            "caricature's proportions, not the photo's.",
+            "Place the eyes, nose and mouth as simple shapes on those lines.",
+            "Draw the face outline and the hair's outline in one even line.",
+            "Draw the eyes: heavy upper lid, crease, iris and pupil with a white catchlight, "
+            "lashes sweeping out from the outer half. Then the brows, hair by hair.",
+            "Draw the nose as a curl round each wing and a curve under the tip, then the mouth, "
+            "then light laugh lines and cheek lines.",
+            "Add strands of hair, following the way it falls.",
+            "Hatch the shadow side in short parallel strokes, all one direction, and stop early.",
+        ],
+    },
+    "car_lines": {
+        "what": "The same cartoon as Light Hatching, with no shading at all: the lines "
+                "alone have to carry it.",
+        "pencils": "HB for the shapes, 2B or a fine liner for the final lines.",
+        "pressure": "Light for the shapes; one even, confident weight for every final line.",
+        "steps": [
+            "Draw the head shape and the hair mass as simple outlines, with the centre line.",
+            "Mark the eye, nose and mouth lines where the guide puts them.",
+            "Place the features as simple shapes on those lines.",
+            "Draw the face outline and the hair's outline.",
+            "Draw the eyes and brows, then the nose and mouth.",
+            "Add a few long strands of hair, and erase the shapes underneath.",
+        ],
+    },
 }
 
 

@@ -88,7 +88,7 @@ because OpenCV is compiled from source; later runs reuse the cache and are much 
 
 When it finishes, download the `sketch-assistant-release` artifact. It contains:
 
-- `app-1.4.0-arm64-v8a-release.aab` → upload this
+- `app-1.9.0-arm64-v8a-release.aab` → upload this
 - `sketch-assistant-universal.apk` → install this on a phone to check the release build
 
 The workflow fails loudly if the bundle comes out unsigned, so a green run means it is ready.
@@ -129,14 +129,29 @@ accounts are exempt. Plan for this — it is the slowest part of a first release
 
 ## Step 6 — Shipping updates
 
-Every upload needs a higher version code. In `buildozer.spec`:
+Every upload needs a higher version code. The version **name** lives in
+`sketch_assistant/__init__.py` (the settings page shows it, and `buildozer.spec` reads it
+from there through `version.regex`); the version **code** stays in `buildozer.spec`:
 
-```ini
-version = 1.4.0              # the version name users see
-android.numeric_version = 6  # must increase on EVERY upload (1.0.0 shipped as 1)
+```python
+__version__ = "1.9.0"        # sketch_assistant/__init__.py: the version name users see
 ```
-Both are already set to the values above for this release. For the one after it, raise
-`android.numeric_version` to 7.
+```ini
+android.numeric_version = 12  # buildozer.spec: must increase on EVERY upload (1.0.0 shipped as 1)
+```
+Both are already set to the values above for this release (first-launch tour). 1.8.0 was
+code 11 (Keep screen on), 1.7.0 was code 10 (settings page, drawing-order styles), 1.6.0 was code 9 and 1.5.0 was code 8. Code 7 was a 1.5.0 build that Play Console
+wouldn't send for review (the portrait-screen requirement, below), and a code that has
+been uploaded once can't be reused. For the next release, raise it to 13. Don't put a
+plain `version =` line back in `buildozer.spec`: buildozer refuses to build when it finds
+both that and `version.regex`.
+
+**"Required hardware feature declarations are restricting your app's availability" /
+`android.hardware.screen.portrait`.** Locking the app to portrait makes Android treat a
+portrait screen as a *required* feature, which hides the app from some tablets,
+Chromebooks and Android XR, and Play Console blocks the review. `buildozer.spec` adds
+`android_manifest/extra_manifest.xml` to the manifest, which declares the feature
+optional. Keep that line if the manifest settings are ever changed.
 
 Then run the release workflow again. Tagging a commit `v0.1.1` also triggers it.
 

@@ -1,5 +1,5 @@
 kivy>=2.2
-opencv-python-headless<5   # OpenCV 5 removed CascadeClassifier, which faces.py falls back to
+opencv-python-headless>=4.8,<5   # 4.8 reads TFLite models; OpenCV 5 removed CascadeClassifier, which faces.py falls back to
 numpy
 plyer
 pytest

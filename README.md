@@ -15,7 +15,10 @@ Everything reported against the app since v1.0.0, in the tester's own words, is 
 ## Layout
     main.py                      entry point
     sketch_assistant/app.py      App + screen manager
-    sketch_assistant/ui/         home.py (main page), guide.py (tips page), widgets.py
+    sketch_assistant/ui/         home.py (main page), guide.py (tips page), widgets.py,
+                                 settings.py (gear page), textpage.py (privacy / licences),
+                                 tour.py (first-launch walkthrough)
+    sketch_assistant/purchases.py   Pro unlock -- a placeholder until billing is built
     sketch_assistant/core/       modes.py (the subject registry), faces.py (detect/crop),
                                  hands.py (hand structure from a silhouette), styles.py
                                  (renderers), guides.py (construction lines), steps.py (stage ladders)
@@ -61,6 +64,7 @@ carries its own pencil grade, technique and instruction.
 
 ## Modes, detail slider, face model
 - **Eyes**: 5 styles on one eye, framed with the box picker. Construction and a fourteen-stage ladder are its own.
+- **Nose**: 5 styles on one nose, framed with the box picker. Construction (envelope, wedge, three balls, light plan) and a thirteen-stage ladder are its own.
 - **Portrait**: 5 styles on a selected face. **Object**: 5 styles on the whole photo (Contour, Basic Shapes, Value, Cross-Hatch, Realistic). **Hands**: 5 styles on the whole photo, with guides and steps built from the hand's own structure.
 - **Detail slider** (main page + guide page): per-style, applied when you lift your finger; each style keeps its own value.
 - **Face detection**: YuNet (ONNX, with eye/nose/mouth landmarks that tilt the guide lines) when the model file is present and OpenCV supports it, otherwise the Haar cascade.
@@ -77,6 +81,43 @@ are not lines (the palm circle, finger joints) carry no number. See `guides.at`.
 - **Save PNG** writes to `Pictures/SketchAssistant` (Windows/macOS/Linux and Android) and shows where, with an "Open folder" button on desktop.
 - **Basic Shapes** (object mode) cuts out the main object with GrabCut, then draws its angular silhouette, shadow shapes, bounding box and W:H proportion.
 - **Material guide** (object guide page): Matte, Glossy, Glass, Fabric, Wood - labelled example images (`scripts/make_material_examples.py`) plus steps, pencils and common mistakes (`data/materials.py`).
+
+## First-launch tour
+- On the very first launch (`prefs` "tour_done" is false), a six-step tour runs over the
+  main page (`ui/tour.py`): a welcome card, then the subject bar, the photo card, the style
+  tiles, the guide button and the Settings gear, each lit up in turn with a card
+  explaining it. Back, Skip, Next, and the Android back button all work; Skip, finishing
+  and the back button all mark it as seen. Settings → "Show the tour again" replays it.
+- It points at the real widgets, so it follows any layout change. The dimming is plain
+  rectangles plus rounded-corner pieces round the lit control, not a stencil: Kivy's
+  stencil test came out inverted on the first attempt.
+- While it's open it takes every touch, so a tap can't act on the page underneath.
+
+## Settings page
+- A small grey gear at the top right of the main page (in the logo bar, not a subject tab)
+  opens **Settings**: Keep screen on, Show the tour again, Send feedback, Rate Sketch
+  Assistant, Restore purchase, Privacy policy, Licences and the version number.
+- **Keep screen on** (off by default) stops the screen dimming while the app is in front,
+  using Android's `FLAG_KEEP_SCREEN_ON` (no extra permission; the phone sleeps as normal
+  once the user leaves the app). The choice is saved in `prefs.json` in the app's own
+  storage (`sketch_assistant/prefs.py`) and applied again at every start.
+- **Send feedback** opens the user's email app (a `mailto:` link) addressed to
+  golemapps1@gmail.com, with the app version, phone model, Android version and current
+  mode under a line at the bottom. The app sends nothing itself; with no email app it
+  shows the address and copies it.
+- **Restore purchase** calls `purchases.restore()`, which says there is nothing to restore
+  until Pro exists (`PRO_AVAILABLE = False`). The billing code goes in that module.
+- The privacy policy shown in the app is `assets/privacy_policy.txt`, a copy of
+  `PRIVACY_POLICY.md`. After editing the policy, copy it over:
+  a test fails if the two differ.
+- Text pages are one label per paragraph: a single label for the licences is a texture
+  taller than many phones can make, which shows as a blank page.
+- The version name is `__version__` in `sketch_assistant/__init__.py`; `buildozer.spec`
+  reads it from there.
+- The styles that will stay free once Pro exists are listed in `styles.FREE`: one per mode,
+  its contour (Line Art in Portrait, Clean Lines in Cartoon). See MONETIZATION_PLAN.md.
+  Nothing is locked yet. The style tiles run in the order a drawing is built, with
+  construction before contour, so the free style isn't always first.
 
 ## Look & feel
 - Theme in `ui/theme.py`: black ink, white paper, amber accent (matches the icon). Change colours there.
@@ -96,10 +137,34 @@ Measured against the photographs in `tests/fixtures/` (see `CREDITS.md` for sour
 | Mode | State |
 |---|---|
 | **Hands** | Strongest. Landmark models read 19 of 20 test photos, including a fist head-on, fingers round a mug and extreme foreshortening. The one miss falls back rather than guessing. |
-| **Portrait** | Solid. A face was found in all 27 test portraits, 26 with landmarks, and every one produces the full nine-stage sequence. The guide oval encloses the features on 24 of 26. |
+| **Portrait** | Solid. A face was found in all 27 test portraits, 26 with landmarks, and every one produces the full nine-stage sequence. Where MediaPipe's face mesh is available the guide oval is fitted to the face's own outline: on 15 hand-marked close-up faces it runs through the chin with the face inside on 10, against 2 when scaled from the detector box. See below. |
 | **Object** | The user draws a box round the object they want; see below for why. |
-| **Eyes** | Newest and roughest. No model: the iris is found by a circle search and the lids by fitting a template. On 18 close-up test photos the iris is right on 12, in the right place but the wrong size on 3, and wrong on 3. See below. |
+| **Cartoon** (key `caricature`) | Newest. Portraits only: the face mesh is compared, in 3D, with MediaPipe's average face, and this face's differences are pushed as far as the slider says, then drawn as clean lines from the mesh (no tracing) with hair from the person segmentation. On 8 faces, 26 of 29 distinctive proportions move the face's own way at full strength. Glasses aren't drawn, beards are rough, side profiles weak. See below. |
+| **Nose** | Recent. The face detector, given room by padding the photo, anchors the nose; the nostrils (face-on) or the nose's outline (side-on) are then read locally. On 16 hand-marked tester photos -- close-ups, three-quarter and side views -- found on 13, against 1 for the first version. The box picker starts on the nose; where MediaPipe's face mesh is available the wings and the line down the bridge come from it. See below. |
+| **Eyes** | Two halves. On a photo with a face, MediaPipe's face mesh and iris model find the eye and the box starts on it: on ten hand-marked eyes the iris size is within 21% every time, where reading a loose box alone was 2.7 to 4 times too big on six. Close-ups of one eye (no face) are still read by a circle search and a lid template: right on 10 of 19 close-ups. See below. |
 | **Posture** | Figures found by MediaPipe Pose. Tap one, or several -- two people interacting are one composition, so choosing both gives a region spanning them and the gap. |
+
+### Portrait's oval on close-ups
+
+A tester, with nineteen close-up portraits: "the guiding circle for some of these faces is
+smaller than the face itself". The oval was scaled from YuNet's box, which on a close-up
+is too small or in the wrong place. Now (`faces._with_outlines`), where the face mesh is
+available, the oval is an ellipse fitted to the mesh's 36 outline points -- forehead,
+temples, cheeks, jaw, chin -- expressed as the box the guides' own constants turn into
+that ellipse, so the guide lines, the steps' contour ring and the ear placement all
+follow without other changes. The mesh is started from the padded face finder's points
+where it found the same face (YuNet, unpadded, reads a close-up face small and the mesh
+follows it), and is used only where its face-present flag is positive, which leaves side
+profiles on the box. The same finder recovers faces YuNet misses: on the tester's photos
+at full size an extreme close-up and a face in heavy sunglasses, and one where YuNet took
+the mouth and chin for the face.
+
+Measured on the fifteen faces whose chin and widest points could be marked by hand
+(`tests/fixtures/portraits_close/marks.json`): the oval passes within 12% of the chin
+with the sides of the face inside on 10 (11 on the 900 px fixture copies), against 2 (3)
+for the box-scaled oval. The start point and the number of mesh passes were chosen on
+those same photos. The no-landmark fallback still scales from the box, and
+`test_fallback_proportions_match_real_faces` measures it on that box.
 
 ### How object mode picks the object
 
@@ -127,6 +192,246 @@ and the lashes and brow -- fourteen stages against Portrait's twelve, because th
 from an outline to a convincing eye is where beginners stop. From the blend on, each stage
 is the finished rendering with something still missing, so the sequence converges on the
 finish and `test_the_tonal_stages_only_ever_approach_the_finish` holds it to that.
+
+**Finding the eye.** A tester sent an eye whose construction circle was "way bigger than
+the eye itself" and asked for the eye to be found automatically. The rules read a crop on
+their own, so they take the eye's scale from the box. On ten hand-marked eyes in face
+photos, shown a box three eye-widths across they read the iris 2.7 to 4 times too big on
+six; a tighter box of two eye-widths, 40% or more off on five and over three times too
+big on two.
+
+On a photo with a face, Eyes now works the way MediaPipe does (`core/landmarks.py`): the
+face detector (`noses.find_face`), then the 468-point face mesh, whose points round each
+eye frame a crop 2.3 eye-widths across for the iris model, turned level and mirrored for
+the eye on the image's right, as the model expects. The iris model gives 16 lid points and
+the iris; the face says which corner is the tear duct. That reading is made once per photo
+and moved into whatever box the user settles on (`Mode.locate` -> `eyes.propose_box`,
+`Mode.on_crop` -> `eyes.note_crop`), exactly as Nose does. The box starts on the larger eye.
+
+On ten eyes marked by hand in face photos (`tests/fixtures/eyes_in_faces/marks.json`,
+marked on crops with nothing drawn on them), through the app's own flow: iris size within
+21% of the mark on all ten, median 6%, the same for a box of two or three eye-widths.
+The centre is weaker: within 0.55 iris radii on every eye, within 0.3 on six. Ten eyes in
+eight photos is a small set.
+
+**Where the face gives no eye.** On a side profile the face mesh declines, so the face
+path has no eye to give -- but the face still sets the scale. The iris radius runs at
+0.078-0.105 of the eye-to-mouth length on the ten marked eyes (0.09 typically), a length
+a turned head doesn't foreshorten. When the crop came from a photo with a face but no
+face-path eye, the rules look for an iris no bigger than 1.15 times 0.09 of that length
+(no smaller than half of it) and within 1.5 of it of a detector eye point; finding none,
+they draw it at that size on the eye point. With the face path switched off on the ten
+marked eyes: size within 14% typically, from 51% too small (a pupil taken for the iris)
+to 33% too big, against the rules alone at up to four times the size. The limits were
+chosen on those ten eyes; the irises in the tester's two profiles are hidden by lids and
+lashes, so the profile case itself couldn't be measured.
+
+**The iris model on a close-up, alone, measured worse than the rules** -- 7 of 19 close-ups
+against 10 -- because its iris comes out the size of whatever crop it is given: 19% small
+on a crop 9 iris-radii across, 8% large on one 14 across, and on an eye that fills the
+photo no crop is right. Its own eye-to-iris proportions don't reveal when it's wrong, so
+no rule picking between it and the rules beat the rules alone. So close-ups of one eye,
+17 of the 19 test photographs, are still read by the rules, and the face path is used only
+when a face is really there: the detector "finds" a face inside five of the close-ups, so
+it must agree with itself across most of its paddings (support 3.0; invented faces reached
+2.7, real ones 3.6 and up) and the face mesh must say a face is present. Both thresholds
+were set on these photos.
+
+### Cartoon (Caricature), specifically
+
+Shown in the app as **Cartoon**: the first version was called Caricature, and the tester
+found it stripped too much from the face and asked for "a more cartoonized version" with
+"some soul" -- lashes, brow lines and nose lines like the app icon, and more hair. The
+internal key is still `caricature`, and the slider still runs from no exaggeration to a
+full caricature; it starts a third of the way up.
+
+**The second pass, for expression.** Eyes: a grey iris with a dark rim, fibres, a shadow
+from the upper lid, a big pupil and a catchlight; a heavy upper lid, heavier over its
+outer two-thirds; a crease above it; six lashes sweeping out from the outer half, longest
+at the corner; three short lower lashes; the tear duct. Brows: a soft tapered shape (thin
+outside, full and rounded inside) filled with thirty short hair strokes leaning outwards.
+Nose: face-on, the mesh's lower edge of the nose is nearly straight and drew as two
+dashes, so the nose is now a cartoonist's -- a curl round each wing and a curve under the
+tip, placed and sized from the mesh's wings, tip and base and turned with the head -- plus
+one line down the side away from the light. Mouth and chin (a third pass, on request): the
+whole lower lip, a tick at each corner, the philtrum ridges to the peaks of the upper lip,
+three strokes across the lower lip, the dip under it and the chin's curve above its
+outline; a hair outline running within 3% of a face height of the jaw is dropped, as it
+drew a second chin line. Laugh lines and cheek lines (a fourth pass): each laugh line
+runs from just outside the nose's wing to just outside the mouth's corner, bowing out
+over the cheek and stopping short of the mouth; each cheek line is a short curve under the
+eye's outer corner. Both are always drawn, faint, and darker as the photo's own fold
+deepens -- measured as how much darker the photo is along the line than just beside it,
+in units of the face's contrast (0.68 on the grimacing bearded test face, 0.12 on a
+smooth young one; tested). Hair: up to 26 strands, closer together and
+shorter at the minimum. Hatching is clipped to inside the drawing's outline. Measured:
+round the eyes and nose, half as much ink again as the plain version at least (tested),
+and still under a third of Portrait's Cross-Hatch overall.
+
+
+A tester asked for a mode that turns a portrait into a simple caricature: head only, no
+surroundings, far simpler to draw than Photorealism, light hatching at most, in the
+style of the app icon, with a slider for how far to exaggerate.
+
+**What's exaggerated, and how.** A caricature is recognisable because it pushes what is
+already distinctive about one face, not because every face gets the same big head. So
+(`core/caricature.py`):
+
+1. The face mesh gives 468 points in 3D (`landmarks.face_mesh(..., with_z=True)`).
+2. MediaPipe's canonical face (`core/face_average.py`) is fitted to them by rotation,
+   uniform scale and translation only (Umeyama), so it sits in the same pose.
+3. The leftover difference -- this face's shape -- is smoothed over each point's eight
+   neighbours (three passes; unsmoothed, the mesh's jitter made every outline wavy),
+   multiplied by the slider (0 to 2.5) and added back. In 3D, so a turned head is not
+   taken for a lopsided face.
+
+Anything off the mesh (hair, hatching) moves by inverse-distance blending of the nearest
+24 mesh points' movement. Measured on 8 near face-on faces, for four proportions a
+caricaturist pushes (face width to height, nose width and mouth width to eye span,
+eye-to-mouth to face height): of the 29 that differ from the average by more than 3%,
+26 move further the face's own way at full strength. A fixed cartoon push (every
+proportion 10% larger) agrees 21 times -- the control in the test.
+
+**Drawn from the points, not traced.** Every line is a mesh contour: the jaw (only where
+it isn't under the hair; above the eyes only against the background; always below the
+mouth, so a beard doesn't erase the chin), the lids, an iris circle from the iris model
+clipped to the lids, brows as tapered shapes, two hooks for the nostrils, the top of the
+upper lip, the line between the lips and a short curve under the lower one. Corner-cut
+smoothing turns the few points per feature into curves. That is what keeps it as clean
+as the icon.
+
+**Hair and head.** MediaPipe's person segmentation (`selfie_segmentation.tflite`, 0.25 MB)
+gives the person; less the face and, below the eyes, skin-coloured pixels (ears, neck),
+it is the hair. Above the eyes everything beyond the face counts: colour alone mistook
+blonde and pink hair for skin. Below the mouth hair is kept only within a quarter of a
+face width of the face, and a patch must reach eye level (collars don't). Its outline is
+drawn except along the photo's edge and the cut just under the chin. A bald head is
+skin-coloured above the face *and* smoother than the cheek (fine texture under 0.8 of the
+cheek's: 0.43 and 0.73 on the two bald test heads, hair 0.91 and up; set on those
+photos): it keeps its outline but gets no hairline. Strands are traced along the hair's
+direction -- the structure tensor where the hair has texture, parallel to its outline
+where it doesn't -- deepest first, at most 14, each stopping short of its ends.
+
+**Light hatching.** One layer of parallel strokes over the darkest fifth of the face
+(away from the features) and the darkest 30% of the hair, angled from the lit side,
+stopping short of each edge. Light Hatching puts down under a third of the ink of
+Portrait's Cross-Hatch on the same crop; Clean Lines less again (tested).
+
+**The head's box.** Cartoon mode's boxes are the face detector's grown by
+`modes.HEAD_GROW` (20% wider, 22% more above, 8% below), so the crop takes in the hair:
+on the 24 test portraits the crop cut through the head on 3, against 11 with the face box.
+The hair's outline is inked at the upper lids' weight, the heaviest line on the page.
+
+**Portraits only, said up front.** `Mode.note` is shown on the status line as soon as the
+mode is chosen ("Cartoon works on portraits only - add a photo of a face"), and the found,
+not-found and hint lines repeat it.
+
+**Styles and steps.** Clean Lines (default) and Light Hatching; a Shapes style was taken
+out on a tester's say-so (the shapes remain the first two steps). The slider is the
+exaggeration in both -- its ends say so (`Mode.slider_labels`). Steps: head shape
+and guide lines, features as shapes, then over the fading shapes the outline, eyes and
+brows, nose and mouth, strands, the hatching, the finish. The guides are the
+caricature's own proportions, not the photo's.
+
+**Where it falls short.** Glasses aren't drawn (the eyes behind them are). Beards are
+outlined only where they show beside the jaw. Side profiles keep their mesh outline,
+which is weak there; a hat is drawn as hair. Measuring takes about 0.3-0.9 s per photo on
+a desktop, once per photo; the slider re-draws without re-measuring.
+
+### Nose, specifically
+
+Built like Eyes -- a box picker, `core/noses.py` reading the structure -- except that the
+box starts on the nose the app found (below). The ladder runs construction in four passes
+-- length, width and tilt; the wedge of planes; tip ball, wing balls and nostrils; the
+light plan -- then the nostrils and wings (the only real lines on a nose; the sides of the
+bridge have none), the surroundings, values, the shared hatching bridge, the bridge and
+side planes, the nostrils and the shadow below, and the finish. Thirteen stages for
+Photorealism.
+
+**Finding the nose.** The first version assumed the user had framed the nose and looked for
+nostrils in the lower middle of the frame. The box picker starts on 85% of the photo, so
+on a close-up that hands it the mouth and chin as well, and on the sixteen photos a tester
+sent next it found the nose on one -- "an awful job detecting the nose in the first
+place". Even with a box drawn tightly round each nose it found five.
+
+It now starts from the face detector's nose point. On its own the detector found a face on
+five of the sixteen, since most were close-ups with the face cut off; padded out with
+plain border it finds one on all sixteen, and on eight of nine tightly framed noses. Its
+threshold is lower than Portrait mode's because here a face is known to be present, and
+`find_face` only accepts an answer that at least two of five paddings agree on.
+
+Everything after that happens in a patch cut round the nose point, turned so the face's
+axis is vertical and scaled so the eye-to-mouth length is 160 px -- so every threshold is
+in fixed units whether the nose filled the photo or was a speck in it. Contrast is
+equalised on the real pixels before warping and measured only inside the photo, because
+where the patch runs past the photo's edge the warp smears the edge out.
+
+- **How turned the head is** comes from the detector's five points: how far the nose sits
+  off the line from between the eyes to the middle of the mouth, plus how foreshortened
+  the eyes are. Front, three-quarter or profile; the boundaries were calibrated on these
+  sixteen photos.
+- **Face-on**, the nostril pair is looked for under the nose point, scored on contrast,
+  symmetry about the face's centre line, position and *darkness* -- a cluster of freckles
+  beside the nose is dark and compact too, and out-scored the nostrils on one photo until
+  darkness counted. A fainter partner is looked for beside a lone nostril; failing that a
+  plausibly placed lone nostril is mirrored across the centre line. The width is held to
+  0.3-0.75 of the eye-to-mouth length (0.46-0.56 measured face-on).
+- **Side-on**, the tip is the furthest point of the nose's outline, found by following
+  each row outward from the nose point to the first strong edge -- the first, because a
+  lock of hair beside one nose was a stronger edge than the nose -- and only from a little
+  above the nose point down, because on a head tipped back the bridge reaches further
+  forward than the tip. In three-quarter the tip goes halfway between the nose point and
+  the outline: there the outline is the far side of the nose on a strong turn and only the
+  edge of the tip ball on a mild one, and nothing in the detector's points tells the two
+  apart. The near nostril is the darkest nostril-sized shape behind and below the tip.
+- **The root** of the nose sits at eye level, between the eyes face-on and moving forward
+  to the bridge's silhouette as the head turns.
+
+**The box picker starts on the nose** (`Mode.locate` -> `noses.propose_box`): from the root
+to the upper lip, wing to tip, with room round it. The status line says the nose was found
+and that a new box can be dragged if it is wrong.
+
+**A crop gets the whole photo's reading.** Inside a box drawn round the nose the detector
+does worse -- 10 of 16 found reading the crop alone against 13 -- because it needs the
+eyes and mouth. So the nose is read once per photo, and the app tells the analysis where
+each crop came from (`Mode.on_crop` -> `noses.note_crop`); the crop, recognised by a
+thumbnail since renderers only resize it, gets that reading moved into its own pixels.
+Any other image is read on its own; with no face found anywhere, the first version's
+crop-only reading is the fallback.
+
+**Side views get a side construction.** The face-on wedge drawn on a profile spreads planes
+and a second wing in front of the nose. Side-on the nose is built as drawing books do it:
+a triangle from root to tip to the back of the wing, the underside as a sliver, one wing
+ball behind the tip with the nostril under it, and in three-quarter a narrow front plane
+along the bridge with the far wing just showing past the tip.
+
+**The face mesh draws the wings and the bridge.** A tester: "the circles don't always land
+on the edges of the nose curvature and the purple line doesn't always follow the nose
+line". The wing balls were placed by proportion from the nostrils and the bridge line was
+one straight stroke from root to tip. Where MediaPipe's face mesh is available (it is
+already run for Eyes) the reading takes from it: the wing balls from the rings of mesh
+points round each wing, the tip ball from the two tip points, and the bridge as the mesh's
+five points down the ridge, root to tip, which the guide and every construction level now
+follow. Face-on, the mesh's wings run about a fifth wider than the marked nose, so they
+are scaled by 1/1.2 -- fitted on the six face-on photos it is then measured on. Outer wing
+edges, in nose-widths from the marks on those six: median 0.10, worst 0.16, against median
+0.12 and worst 0.24 for the proportional template. On the three known misses the mesh's
+wings are worse than the template's (the template was right there by accident). The tip
+and base still come from the image reading -- on side views the mesh's tip sits inside the
+outline -- so the 13 of 16 below is unchanged; the mesh alone finds 11. If the mesh is
+missing, the reading is the template one.
+
+**Where it stands**, on the sixteen tester photos (`tests/fixtures/noses/photos`, with the
+tip, base, extent and facing of each marked by eye in `marks.json`): tip and base within
+0.35 nose-widths of the marks on 13 -- the same whether the photo is read whole, through
+a tight box, or through the box the app proposes, and from 600 to 1600 px. The first
+version: 1 whole, 5 with a box. The three misses are fixtures in
+`test_the_known_misses_stay_on_the_face`: two heads turned only slightly, read as
+three-quarter so the tip lands on the edge of the nose (on one the eyes are cut off and
+the turn comes out the wrong way), and one photo on which the detector agrees with itself
+across paddings about a face that is not there. Sixteen photos is a small set, and the
+view boundaries were set on them. The lit side is guessed from which side plane is
+brighter, and assumed from the front when unclear; the step text says to check it.
 
 ### From hatching to a realistic finish (every mode)
 
@@ -294,7 +599,7 @@ the text it needs -- no screen, pipeline or widget has to change.
    existing renderers; the stage ladder is about ordering, not new image processing.
 4. **Text** -- add entries to `data/steps_text.py` for the new stage ids, and to
    `data/tips.py` only where the advice differs from the family's.
-5. **Tiles** -- regenerate with `python scripts/make_examples.py portrait.jpg object.jpg hand.jpg body.jpg eye.jpg`.
+5. **Tiles** -- regenerate with `python scripts/make_examples.py portrait.jpg object.jpg hand.jpg body.jpg eye.jpg nose.jpg`.
    A style with no tile falls back to a plain labelled button rather than failing. Use real
    photographs: a synthetic stand-in makes tiles that look nothing like what the style does
    to a photo.

@@ -19,7 +19,7 @@ from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 
-from ..core.modes import build_stages
+from ..core.modes import build_stages, mode_of
 from ..core.steps import contact_sheet
 from ..core.styles import render
 from ..data.steps_text import step_markup
@@ -100,6 +100,7 @@ class StepsScreen(Screen):
     def on_pre_enter(self, *_):
         a = self.app_ref
         self.i = 0
+        self.slider.set_labels(*mode_of(a.mode).slider_labels)
         self.slider.set_value(a.get_detail(a.style_key))
         self._fill_strip()
         self.refresh()

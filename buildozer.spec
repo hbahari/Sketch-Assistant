@@ -7,13 +7,15 @@ package.name = app
 package.domain = golemapps.sketchassistant
 
 source.dir = .
-source.include_exts = py,png,jpg,kv,xml,onnx
-source.exclude_dirs = tests,scripts,bin,.buildozer,venv,.venv,.github,.idea,shots
+source.include_exts = py,png,jpg,kv,xml,onnx,tflite,txt
+source.exclude_dirs = tests,scripts,bin,.buildozer,venv,.venv,.github,.idea,shots,android_manifest
 
-# versionName shown in the Play listing
-version = 1.4.0
+# versionName shown in the Play listing. It is read from sketch_assistant/__init__.py so the
+# app can show the same number on its settings page: change it THERE, not here.
+version.regex = __version__ = ['"](.*)['"]
+version.filename = %(source.dir)s/sketch_assistant/__init__.py
 # versionCode: MUST increase on every upload to the Play Console
-android.numeric_version = 6
+android.numeric_version = 12
 
 # Versions come from the pinned python-for-android below, which ships a tested set:
 # Python 3.14.2, Kivy 2.3.1, numpy 2.3.0, OpenCV 4.12.0, pyjnius 1.7.0.
@@ -34,6 +36,8 @@ requirements = python3,kivy,numpy,opencv,plyer,pyjnius,android,charset_normalize
 p4a.branch = v2026.05.09
 
 orientation = portrait
+# ...but don't let that *require* a portrait screen: see android_manifest/extra_manifest.xml
+android.extra_manifest_xml = ./android_manifest/extra_manifest.xml
 fullscreen = 0
 
 icon.filename = %(source.dir)s/sketch_assistant/assets/brand/icon.png
@@ -49,6 +53,9 @@ android.presplash_color = #FFFFFF
 # Google Play requires new apps and updates to target API 36 (since 31 Aug 2026).
 android.api = 36
 android.minapi = 24
+# The NDK p4a v2026.05.09 recommends, pinned so that the workflows' checked download
+# ("Fetch the Android NDK, checked") and buildozer agree on the folder name. Change both.
+android.ndk = 28c
 android.accept_sdk_license = True
 
 # ONE architecture only, deliberately. python-for-android's run_pymodules_install()

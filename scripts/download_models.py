@@ -1,16 +1,27 @@
-"""Fetch the ONNX models into sketch_assistant/assets/models/.
+"""Fetch the models into sketch_assistant/assets/models/.
 
     python scripts/download_models.py
 
-About 23 MB in total. They are not committed to the repository; the release workflow runs
+About 27 MB in total. They are not committed to the repository; the release workflow runs
 this before building, and the app degrades gracefully if any of them is missing.
 
 All three come from OpenCV Zoo and are Apache 2.0 licensed. Note the host: the models are
 stored with Git LFS, so `github.com/.../raw/...` returns a small text pointer rather than
 the model. `media.githubusercontent.com/media/...` serves the real file.
+
+The TFLite models (Eyes, Nose and Caricature) are MediaPipe's own iris model, face mesh
+and person segmentation,
+also Apache 2.0, from Google's MediaPipe asset store. They are checked against a SHA-256
+as well as a size, because the same names have been reused for other versions over the
+years. If the store is unreachable they are taken out of the `mediapipe==0.10.14` wheel,
+which bundles exactly these files (later wheels don't).
 """
+import hashlib
+import subprocess
 import sys
+import tempfile
 import urllib.request
+import zipfile
 from pathlib import Path
 
 ZOO = "https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models"
@@ -35,6 +46,70 @@ MODELS = [
      "pose_estimation_mediapipe_2023mar.onnx", 4_000_000, "33 body landmarks + body mask"),
 ]
 
+MP = "https://storage.googleapis.com/mediapipe-assets"
+TFLITE = [
+    # (url, filename, sha256, what it is for)
+    (f"{MP}/iris_landmark.tflite", "iris_landmark.tflite",
+     "d1744d2a09c25f501d39eba4faff47e53ecca8852c5ce19bce8eeac39357521f", "eye lids and iris (Eyes)"),
+    (f"{MP}/face_landmark.tflite", "face_landmark.tflite",
+     "1055cb9d4a9ca8b8c688902a3a5194311138ba256bcc94e336d8373a5f30c814", "468-point face mesh (Eyes, Nose, Caricature)"),
+    (f"{MP}/selfie_segmentation.tflite", "selfie_segmentation.tflite",
+     "9ee168ec7c8f2a16c56fe8e1cfbc514974cbbb7e434051b455635f1bd1462f5c", "person and hair outline (Caricature)"),
+]
+WHEEL = "mediapipe==0.10.14"
+
+
+def _sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def _from_wheel(wanted):
+    """{filename: bytes} for the wanted TFLite files, out of the MediaPipe wheel."""
+    got = {}
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run([sys.executable, "-m", "pip", "download", WHEEL, "--no-deps", "-d", tmp,
+                        "--only-binary=:all:", "--python-version", "3.11", "--platform",
+                        "manylinux_2_17_x86_64"], check=True, capture_output=True)
+        for whl in Path(tmp).glob("*.whl"):
+            with zipfile.ZipFile(whl) as z:
+                for n in z.namelist():
+                    if Path(n).name in wanted:
+                        got[Path(n).name] = z.read(n)
+    return got
+
+
+def _tflite(failed):
+    need = []
+    for url, name, sha, what in TFLITE:
+        dest = OUT / name
+        if dest.exists() and _sha(dest.read_bytes()) == sha:
+            print(f"  have  {name}  ({what})")
+            continue
+        try:
+            data = urllib.request.urlopen(url, timeout=120).read()
+        except Exception:                            # noqa: BLE001 - try the wheel below
+            data = b""
+        if _sha(data) == sha:
+            dest.write_bytes(data)
+            print(f"  saved {name}  {len(data):,} bytes  ({what})")
+        else:
+            need.append((name, sha, what))
+    if not need:
+        return
+    why = f"not on {MP} or in the {WHEEL} wheel"
+    try:
+        got = _from_wheel({name for name, _, _ in need})
+    except Exception as e:                           # noqa: BLE001 - report and carry on
+        got = {}
+        why = f"not on {MP} and the {WHEEL} wheel could not be fetched ({e})"
+    for name, sha, what in need:
+        data = got.get(name, b"")
+        if _sha(data) == sha:
+            (OUT / name).write_bytes(data)
+            print(f"  saved {name}  {len(data):,} bytes, from the {WHEEL} wheel  ({what})")
+        else:
+            failed.append((name, why if name not in got else "checksum did not match"))
+
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
@@ -54,13 +129,15 @@ def main():
             continue
         dest.write_bytes(data)
         print(f"  saved {name}  {len(data):,} bytes  ({what})")
+    _tflite(failed)
     if failed:
         print("\nCould not download:", file=sys.stderr)
         for name, why in failed:
             print(f"  {name}: {why}", file=sys.stderr)
         print("\nThe app still runs without these -- face detection falls back to the Haar\n"
-              "cascade and Hands mode falls back to reading the silhouette -- but both are\n"
-              "noticeably worse. Re-run this script, or download the files by hand into\n"
+              "cascade, Hands mode falls back to reading the silhouette, Eyes and Nose fall\n"
+              "back to image rules -- but all are noticeably worse. Re-run this script, or\n"
+              "download the files by hand into\n"
               f"{OUT}", file=sys.stderr)
         return 1
     return 0

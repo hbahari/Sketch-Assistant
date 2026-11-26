@@ -65,6 +65,12 @@ def dashed(img, p1, p2, color, th, dash=14):
         cv2.line(img, tuple(a.astype(int)), tuple(b.astype(int)), color, th, cv2.LINE_AA)
 
 
+def dashed_path(img, pts, color, th, dash=14):
+    """A dashed line through a series of points: the ridge of a nose, which bends."""
+    for a, b in zip(pts[:-1], pts[1:]):
+        dashed(img, a, b, color, th, dash)
+
+
 @dataclass
 class Ctx:
     """Everything a guide function might need about the subject in this sketch."""
@@ -327,7 +333,9 @@ def eye_guides(ov, w, h, th, ctx):
     # the ticks stay where the features are and only the text moves
     th_, fs_ = text_metrics(w)
     (_, hh), _ = cv2.getTextSize("0", cv2.FONT_HERSHEY_SIMPLEX, fs_, th_)
-    down, last = [], -1e9
+    # ...and below the rows of numbers along the top edge, which they would otherwise
+    # run into when a feature sits near the top of the picture
+    down, last = [], max(t[2] for t in across) + 4
     for name, y in (("upper lid", top[1]), ("pupil", c[1]), ("lower lid", bot[1])):
         placed = max(y + 6, last + hh + 8)
         down.append((at(name, y, h), tick + 4.0, placed))
@@ -337,12 +345,100 @@ def eye_guides(ov, w, h, th, ctx):
     return labels
 
 
+def nose_guides(ov, w, h, th, ctx):
+    """Noses: the axis, the base line, the tip and the wings, and where each sits.
+
+    Laid out like the eye guides -- markers on the nose, numbers in the margins -- for
+    the same reason: on a close-up the numbers would otherwise sit on the drawing.
+    """
+    from .noses import analyze                 # local: keeps the import graph one-way
+    src = ctx.source_img
+    if src is None:
+        return frame_guides(ov, w, h, th, ctx)
+    n = analyze(src)
+    sx, sy = w / src.shape[1], h / src.shape[0]
+    P = lambda p: np.array([p[0] * sx, p[1] * sy])
+    I = lambda q: (int(round(q[0])), int(round(q[1])))
+    tip, radix = P(n.tip[:2]), P(n.radix)
+    base_c, wl, wr = P(n.along(0, 0)), P(n.along(-n.half_left, 0)), P(n.along(n.half_right, 0))
+    s = n.spacing * (sx + sy) / 2
+
+    # the nose's own line: down the ridge of the bridge to the tip, then to the base
+    ridge = [P(q) for q in n.bridge]
+    dashed_path(ov, ridge + ([base_c + (base_c - ridge[-1]) * 0.12] if not n.side else []), LINE, th)
+    dashed(ov, wl + (wl - wr) * 0.15, wr + (wr - wl) * 0.15, LINE, th)       # the base line
+    arm = max(5.0, 0.18 * s)
+    cv2.line(ov, I(tip - (arm, 0)), I(tip + (arm, 0)), LINE, th, cv2.LINE_AA)
+    cv2.line(ov, I(tip - (0, arm)), I(tip + (0, arm)), LINE, th, cv2.LINE_AA)
+    # side-on the front of the base line is the tip itself, so only the back wing is marked
+    wings = [wl, wr] if not n.side else ([wr] if n.side < 0 else [wl])
+    for q in wings:
+        cv2.line(ov, I(q - (0, 0.4 * s)), I(q + (0, 0.25 * s)), LINE, th, cv2.LINE_AA)
+    for x, y, _a, _b in n.nostrils:
+        cv2.circle(ov, I(P((x, y))), max(3, th * 2), LINE, -1, cv2.LINE_AA)
+    cv2.circle(ov, I(radix), max(3, th * 2), LINE, -1, cv2.LINE_AA)
+
+    tick = max(6, th * 4)
+    for x in [q[0] for q in wings] + [tip[0]]:
+        cv2.line(ov, (int(x), 0), (int(x), tick), LINE, th, cv2.LINE_AA)
+    for y in (radix[1], tip[1], base_c[1]):
+        cv2.line(ov, (0, int(y)), (tick, int(y)), LINE, th, cv2.LINE_AA)
+    first, second = label_rows(w)
+    across = _margin_rows([(at("wing", q[0], w), q[0]) for q in wings] + [(at("tip", tip[0], w), tip[0])],
+                          w, second - first, first + tick)
+    labels = sorted(across, key=lambda t: not t[0].startswith("tip"))
+    th_, fs_ = text_metrics(w)
+    (_, hh), _ = cv2.getTextSize("0", cv2.FONT_HERSHEY_SIMPLEX, fs_, th_)
+    last = max(t[2] for t in across) + 4            # below the numbers along the top edge
+    for name, y in (("radix", radix[1]), ("tip", tip[1]), ("base", base_c[1])):
+        placed = max(y + 6, last + hh + 8)
+        labels.append((at(name, y, h), tick + 4.0, placed))
+        last = placed
+    labels.append((f"{n.length / max(n.width, 1e-6):.1f} widths long", 6.0, h - 8.0))
+    return labels
+
+
 # Modes that draw no thirds grid. The grid is a composition aid; on a close-up of a
 # single eye it says nothing useful and ran straight through the eye's own measurements.
-NO_GRID = {"eyes"}
+def caricature_guides(ov, w, h, th, ctx):
+    """Caricature: the centre line and the eye, nose and mouth lines of the *exaggerated*
+    face, with where each sits -- the proportions to copy are the caricature's, not the
+    photo's."""
+    from . import caricature                   # local: keeps the import graph one-way
+    src = ctx.source_img
+    if src is None:
+        return []
+    D = caricature._last.get(caricature._key(src)) or caricature.drawing(src, 0.5)
+    if not D.found:
+        return []
+    sx, sy = w / D.shape[1], h / D.shape[0]
+    P = lambda p: np.array([p[0] * sx, p[1] * sy])
+    c = D.construct
+    root, chin = P(c["centre"][0]), P(c["centre"][1])
+    down = (chin - root) / (np.linalg.norm(chin - root) + 1e-6)
+    (hx, hy), (ha, hb), _ = c["head"]
+    top = P((hx, hy)) - down * hb * sy / 2
+    dashed(ov, top - down * 0.04 * h, chin + down * 0.04 * h, LINE, th)
+    labels = [(at("centre", root[0], w), root[0] + 6, top[1] - 0.02 * h)]
+    across = np.array([down[1], -down[0]])
+    half = 0.5 * ha * sx
+    rows = []
+    if len(c["eye_line"]) == 2:
+        e0, e1 = P(c["eye_line"][0]), P(c["eye_line"][1])
+        rows.append(("eyes", (e0 + e1) / 2))
+    rows += [("nose", P(c["nose"])), ("mouth", P(c["mouth"])), ("chin", chin)]
+    for name, q in rows:
+        a = q - across * half * (1.15 if name == "eyes" else 0.8)
+        b = q + across * half * (1.15 if name == "eyes" else 0.8)
+        dashed(ov, a, b, LINE, th)
+        labels.append((at(name, q[1], h), min(a[0], b[0]), q[1]))
+    return labels
 
-GUIDES = {"portrait": face_guides, "object": frame_guides, "hands": hand_guides,
-          "body": body_guides, "eyes": eye_guides}
+
+NO_GRID = {"eyes", "nose", "caricature"}
+
+GUIDES = {"caricature": caricature_guides, "portrait": face_guides, "object": frame_guides, "hands": hand_guides,
+          "body": body_guides, "eyes": eye_guides, "nose": nose_guides}
 
 
 def draw_guides(sketch, mode, style_key=None, landmarks=(), crop_shape=None, box=None, source_img=None):

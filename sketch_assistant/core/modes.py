@@ -18,8 +18,35 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 from . import guides as _guides
+from . import eyes as _eyes
+from . import noses as _noses
 from . import steps as _steps
 from .faces import detect_faces
+
+
+# Cartoon draws the whole head, hair included, so its box is the face's grown to take in
+# the hair: 20% wider, and 30% taller, most of it upwards. A tester asked for 10-20%
+# "to cover the entire hair and head"; the crop then adds its usual margin round that.
+HEAD_GROW = (0.20, 0.22, 0.08)      # extra width; extra height above; extra height below
+
+
+def _detect_heads(img):
+    from dataclasses import replace
+    H, W = img.shape[:2]
+    gw, up, down = HEAD_GROW
+    heads = []
+    for f in detect_faces(img):
+        x0, x1 = max(0, int(f.x - f.w * gw / 2)), min(W, int(f.x + f.w * (1 + gw / 2)))
+        y0, y1 = max(0, int(f.y - f.h * up)), min(H, int(f.y + f.h * (1 + down)))
+        heads.append(replace(f, x=x0, y=y0, w=x1 - x0, h=y1 - y0))
+    return heads
+
+
+def _mesh_reason():
+    """Caricature can't fall back to anything without the face mesh; say why up front."""
+    from .landmarks import unavailable_reason
+    reason = unavailable_reason()
+    return None if reason is None else "Cartoon can't work here: " + reason
 
 
 def _detect_people(img):
@@ -27,7 +54,7 @@ def _detect_people(img):
     when Posture mode is actually used."""
     from .bodies import detect
     return detect(img)
-from .styles import BODY_STYLES, EYE_STYLES, HAND_STYLES, OBJECT_STYLES, STYLES
+from .styles import BODY_STYLES, CARICATURE_STYLES, EYE_STYLES, HAND_STYLES, NOSE_STYLES, OBJECT_STYLES, STYLES
 
 
 @dataclass(frozen=True)
@@ -44,6 +71,11 @@ class Mode:
     hint: str = ""                   # status line once a photo is loaded
     found_fmt: str = ""              # status line after a successful detection ({n} boxes)
     none_fmt: str = ""               # ...and after an unsuccessful one
+    locate: Optional[Callable] = None        # photo -> a box to start the box picker on, or None
+    on_crop: Optional[Callable] = None       # (photo, crop, origin) -> None, told about every crop
+    slider_labels: tuple = ("Less detail", "More detail")   # what the slider's two ends say
+    requires: Optional[Callable] = None      # () -> why the mode can't work here, or None
+    note: str = ""                   # shown whenever the mode is chosen, before any photo too
 
     @property
     def default_style(self):
@@ -51,6 +83,7 @@ class Mode:
 
 
 MODES = {m.key: m for m in (
+    # tab order, left to right, as the tester set it
     Mode(
         key="portrait",
         label="Portrait",
@@ -63,25 +96,38 @@ MODES = {m.key: m for m in (
         none_fmt="No faces found - use New photo to try another",
     ),
     Mode(
-        # No detector, on purpose: see core/eyes.py. Most eye references are close-ups with
-        # no face in them, and on those the face detector invents one more often than not.
+        # Framed by the user, but the box starts on an eye when the photo has a face: the
+        # face sets the eye's scale, which the rules reading a crop on its own get wrong
+        # (see core/eyes.py). Close-ups of one eye, with no face, start as before.
         key="eyes",
         label="Eyes",
         styles=EYE_STYLES,
         guide=_guides.eye_guides,
         stages=_steps.eye_stages,
         pick_box=True,
+        locate=_eyes.propose_box,
+        on_crop=_eyes.note_crop,
+        found_fmt="Found an eye - drag a new box if it's not right",
+        none_fmt="Drag a box round one eye",
         hint="Drag a box round one eye, then pick a style",
     ),
     Mode(
-        key="object",
-        label="Object",
-        styles=OBJECT_STYLES,
-        guide=_guides.frame_guides,
-        stages=_steps.object_stages,
-        materials=True,
+        # Framed by the user, like Eyes: a nose reference is often a close-up, and a box
+        # the user draws is the one framing every renderer can trust.
+        key="nose",
+        label="Nose",
+        styles=NOSE_STYLES,
+        guide=_guides.nose_guides,
+        stages=_steps.nose_stages,
         pick_box=True,
-        hint="Drag a box round one object, then pick a style",
+        hint="Drag a box round the nose, from between the eyes to the lip",
+        # The box starts on the nose. Started on 85% of the photo, a close-up of a face
+        # handed the analysis the mouth and chin too, and it found the nose on one of
+        # sixteen test photos. See core/noses.py.
+        locate=_noses.propose_box,
+        on_crop=_noses.note_crop,
+        found_fmt="Found the nose - drag a new box if it's not right",
+        none_fmt="Couldn't find a face - drag a box round the nose",
     ),
     Mode(
         key="hands",
@@ -102,6 +148,32 @@ MODES = {m.key: m for m in (
         hint="Pick a style",
         found_fmt="{n} figure(s) found - tap one, or several",
         none_fmt="No figure found - use New photo to try another",
+    ),
+    Mode(
+        # Portraits only: the face is found and tapped as in Portrait mode, and the slider
+        # sets how far the face's own differences from an average face are pushed.
+        key="caricature",
+        label="Cartoon",          # shown as Cartoon: a tester found "caricature" promised the wrong thing
+        styles=CARICATURE_STYLES,
+        detect=_detect_heads,
+        guide=_guides.caricature_guides,
+        stages=_steps.caricature_stages,
+        hint="Portraits only - pick a style; the slider sets how far to exaggerate",
+        found_fmt="{n} face(s) found - tap a box (Cartoon works on portraits only)",
+        none_fmt="No face found - Cartoon works on portraits only",
+        note="Cartoon works on portraits only - add a photo of a face",
+        slider_labels=("Less exaggerated", "More exaggerated"),
+        requires=_mesh_reason,
+    ),
+    Mode(
+        key="object",
+        label="Object",
+        styles=OBJECT_STYLES,
+        guide=_guides.frame_guides,
+        stages=_steps.object_stages,
+        materials=True,
+        pick_box=True,
+        hint="Drag a box round one object, then pick a style",
     ),
 )}
 

@@ -17,6 +17,7 @@ result on the photo was checked by eye and judged right. So these tests pin beha
 that was verified once; they do not prove the measurement is accurate to the tolerance
 they allow.
 """
+import json
 import sys
 from pathlib import Path
 
@@ -179,12 +180,13 @@ def test_a_circle_already_on_its_pupil_is_left_alone():
 
 
 # --------------------------------------------------------------------------- the mode
-def test_eyes_use_the_box_picker_not_the_face_detector():
-    """Seventeen of the nineteen test photographs are close-ups with no face in them,
-    and the face detector reported one inside ten of those. So there is no detection
-    step: the user frames the eye."""
+def test_eyes_use_the_box_picker_started_from_the_face():
+    """Seventeen of the nineteen test photographs are close-ups with no face in them, so
+    the user still frames the eye and nothing is tapped; where there is a face, the box
+    starts on an eye and the crop is read with the face's reading."""
     m = MODES["eyes"]
     assert m.pick_box and m.detect is None
+    assert m.locate is eyes.propose_box and m.on_crop is eyes.note_crop
 
 
 @pytest.mark.parametrize("style,expect", [("eye_contour", 7), ("eye_construct", 7),
@@ -271,3 +273,152 @@ def test_eye_guide_numbers_stay_in_the_margins(name):
             continue
         assert y <= top_band or x <= 30, f"'{text}' is drawn at ({x:.0f}, {y:.0f}), on the picture"
     assert "eyes" in NO_GRID
+
+
+# --------------------------------------------------------------------------- eyes in a face
+# A tester: "the guiding lines for the eyes are way bigger than the eye itself". On a photo
+# with a face in it the eye is now found from the face (face mesh, then the iris model at
+# the face's scale); the rules reading a box on its own set the scale from the box, and
+# read six of these ten 2.7 to 4 times too big given a loose box. Unlike READ above, these marks are
+# independent of the code: each iris was marked by hand on a crop with nothing drawn on it.
+FACES = Path(__file__).resolve().parent / "fixtures"
+FACE_MARKS = {k: v for k, v in json.loads((FACES / "eyes_in_faces" / "marks.json").read_text()).items()
+              if not k.startswith("_")}
+FACE_EYES = [(photo, i) for photo, eyes_ in sorted(FACE_MARKS.items()) for i in range(len(eyes_))]
+
+
+def _models():
+    from sketch_assistant.core import landmarks, noses
+    if not (landmarks.iris_available() and landmarks.mesh_available() and noses._detector() is not None):
+        pytest.skip("landmark models not downloaded")
+
+
+def _boxed_reading(photo, i, k, note=True):
+    """What the app does: a box round the eye about `k` eye-widths wide (as a user might
+    draw it), cut out, noted, resized by the renderer, read. Returns (error in radii of the
+    centre, signed error of the radius as a fraction)."""
+    img = load_image(str(FACES / photo))
+    H, W = img.shape[:2]
+    mx, my, mr = FACE_MARKS[photo][i]
+    tx, ty, tr = mx * W, my * H, mr * W
+    w = 5.0 * tr                                       # an eye is about five iris radii wide
+    x0, x1 = int(max(0, tx - k * w / 2)), int(min(W, tx + k * w / 2))
+    y0, y1 = int(max(0, ty - k * w / 3)), int(min(H, ty + k * w / 3))
+    crop = img[y0:y1, x0:x1].copy()
+    eyes.forget_crop()
+    if note:
+        eyes.note_crop(img, crop, (x0, y0))
+    eyes._cache.clear()
+    e = eyes.analyze(cv2.resize(crop, None, fx=2.0, fy=2.0))
+    eyes.forget_crop()
+    cx, cy, r = e.iris[0] / 2 + x0, e.iris[1] / 2 + y0, e.r / 2
+    return float(np.hypot(cx - tx, cy - ty) / tr), float(r / tr - 1), e
+
+
+def test_an_eye_in_a_face_is_drawn_at_its_true_size():
+    """Ten eyes, boxes of two and three eye-widths: the iris within a quarter of its marked
+    size every time and typically within a tenth, whatever box was drawn.
+
+    Control, run here because the claim is comparative: the rules reading the same boxes
+    on their own, which is what the app did before. Their median size error is several
+    times the face path's. Reintroducing the bug (not noting the crop, so the box is read
+    on its own) fails the first assertion."""
+    _models()
+    face, rules = [], []
+    for photo, i in FACE_EYES:
+        for k in (2.0, 3.0):
+            face.append(_boxed_reading(photo, i, k)[1])
+            rules.append(_boxed_reading(photo, i, k, note=False)[1])
+    face, rules = np.abs(face), np.abs(rules)
+    assert face.max() <= 0.25, f"an iris {face.max():.0%} off its marked size"
+    assert np.median(face) <= 0.10, f"median size error {np.median(face):.0%}"
+    assert np.median(rules) >= 3 * np.median(face), (np.median(rules), np.median(face))
+
+
+def test_an_eye_in_a_face_is_centred_within_half_an_iris():
+    """The centre is the weaker half of the reading: within about half an iris radius
+    of the mark on every eye, a third or better on half of them. (Marking a dark iris by
+    hand is itself uncertain by perhaps 0.15 radii.)"""
+    _models()
+    errs = np.array([_boxed_reading(photo, i, 2.0)[0] for photo, i in FACE_EYES])
+    assert errs.max() <= 0.6, errs.round(2)
+    assert np.median(errs) <= 0.35, errs.round(2)
+
+
+def test_the_face_tells_which_corner_is_the_tear_duct():
+    _models()
+    img = load_image(str(FACES / "noses" / "photos" / "front_freckles_ring.jpg"))
+    found = eyes.photo_eyes(img)
+    assert [e.inner for e in found] == ["right", "left"]          # both point at the nose
+    assert found[0].iris[0] < found[1].iris[0]
+
+
+def test_close_ups_of_one_eye_never_take_the_face_path():
+    """The face detector reports a "face" in five of these nine close-ups. None may be
+    read as a face. Control: with the detector's agreement check off (support 0), the
+    almadastudio close-up (`small_in_face`), whose invented face the face mesh also
+    believes, is read as one. (The mesh's verdict is a second line of defence that none of
+    these fixtures needs: the agreement check alone keeps all of them out.)"""
+    _models()
+    for f in sorted(EYES.glob("*.jpg")):
+        img = load_image(str(f))
+        assert eyes.photo_eyes(img) == [], f.name
+        assert eyes.propose_box(img) is None, f.name
+    keep = eyes.EYE_FACE_SUPPORT
+    try:
+        eyes.EYE_FACE_SUPPORT = 0.0
+        eyes._photos.clear()
+        assert eyes.photo_eyes(_img("small_in_face")) != []
+    finally:
+        eyes.EYE_FACE_SUPPORT = keep
+        eyes._photos.clear()
+
+
+def test_the_box_starts_on_the_nearer_eye():
+    _models()
+    for photo, marks in FACE_MARKS.items():
+        img = load_image(str(FACES / photo))
+        H, W = img.shape[:2]
+        box = eyes.propose_box(img)
+        assert box is not None, photo
+        x, y, w, h = box
+        assert w * h < 0.3 * W * H, photo
+        inside = [m for m in marks if x <= m[0] * W <= x + w and y <= m[1] * H <= y + h]
+        assert inside or len(marks) == 1, photo       # one marked eye: the box may take the other
+
+
+def test_a_box_drawn_away_from_the_eyes_is_read_on_its_own():
+    _models()
+    img = load_image(str(FACES / "noses" / "photos" / "front_freckles_ring.jpg"))
+    H, W = img.shape[:2]
+    crop = img[int(0.6 * H):H, 0:W // 2].copy()          # the cheek and the mouth
+    eyes.note_crop(img, crop, (0, int(0.6 * H)))
+    eyes._cache.clear()
+    try:
+        assert eyes.analyze(crop).notes.get("source") != "face"
+    finally:
+        eyes.forget_crop()
+
+
+def test_where_the_face_gives_no_eye_it_still_sets_the_size(monkeypatch):
+    """A tester: where the eye isn't found, "the guiding lines end up bigger than the
+    eye". With the face path switched off (as on a side profile, where the face mesh
+    declines), the face's eye-to-mouth length still caps the iris size and the detector's
+    eye point anchors where to look. Ten eyes, boxes of two and three eye-widths: size
+    within 55% every time and within 20% typically, centre within an iris radius.
+
+    Control, run here: the rules alone on the same boxes are typically 28-168% out and
+    up to four times the size. Reintroducing the bug (no scale noted with the crop) fails
+    the first assertion."""
+    _models()
+    monkeypatch.setattr(eyes, "photo_eyes", lambda photo: [])
+    sizes, centres, rules = [], [], []
+    for photo, i in FACE_EYES:
+        for k in (2.0, 3.0):
+            c, r, e = _boxed_reading(photo, i, k)
+            assert e.notes.get("source") == "face scale"
+            sizes.append(abs(r)); centres.append(c)
+            rules.append(abs(_boxed_reading(photo, i, k, note=False)[1]))
+    assert max(sizes) <= 0.55, np.round(sizes, 2)
+    assert np.median(sizes) <= 0.20 and max(centres) <= 1.0, (np.median(sizes), max(centres))
+    assert max(rules) >= 2.0 and np.median(rules) >= 2 * np.median(sizes)
