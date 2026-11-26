@@ -43,6 +43,12 @@ first tile), and show the Pro tiles in place with the lock badge. Tapping a lock
 construction tile showing the user's own photo, watermarked, is the strongest advert for
 Pro the app has.
 
+## Open question: is trace mode free or Pro?
+
+Trace mode was added in v1.10.0. It isn't decided yet whether it stays free or goes
+behind Pro. One option: tracing a free style (the contour) stays free, and tracing a Pro
+style needs Pro, since the style itself is locked anyway. That needs no rule of its own.
+
 ## Pricing model
 
 - **One-time "Pro unlock"** (a non-consumable in-app product), not a subscription.

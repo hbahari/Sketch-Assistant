@@ -302,3 +302,28 @@ def keep_screen_on(on):
         apply()
     except Exception:
         pass
+
+
+def set_brightness(level):
+    """Set this app's screen brightness: 0..1, or None for the phone's own setting.
+
+    Only while the app is in front, like keep_screen_on. Android only; a no-op elsewhere.
+    """
+    act = _activity()
+    if act is None:
+        return
+    try:
+        from android.runnable import run_on_ui_thread
+        from jnius import autoclass
+        LP = autoclass("android.view.WindowManager$LayoutParams")
+        value = LP.BRIGHTNESS_OVERRIDE_NONE if level is None else float(level)
+
+        @run_on_ui_thread
+        def apply():
+            window = act.getWindow()
+            attrs = window.getAttributes()
+            attrs.screenBrightness = value
+            window.setAttributes(attrs)
+        apply()
+    except Exception:
+        pass

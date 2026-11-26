@@ -60,6 +60,8 @@ class GuideScreen(Screen):
         self.guide_btn = RoundButton(text="Guides: ON", active=True, radii=[dp(25)] * 4, on_release=lambda *_: self.toggle())
         row.add_widget(self.guide_btn)
         row.add_widget(RoundButton(text="Save PNG", radii=[dp(25)] * 4, on_release=lambda *_: self.save()))
+        self.trace_btn = RoundButton(text="Trace", radii=[dp(25)] * 4, on_release=lambda *_: self.trace())
+        row.add_widget(self.trace_btn)
         gen = RoundButton(text="Generate drawing steps", bold=True, active=True, size_hint_y=None,
                           height=dp(52), radii=[dp(26)] * 4, on_release=lambda *_: self.generate())
         gen_row = BoxLayout(size_hint_y=None, height=dp(62), padding=(dp(14), 0, dp(14), dp(4)))
@@ -115,6 +117,14 @@ class GuideScreen(Screen):
         self.manager.get_screen("home").apply(a.style_key, a.sketch)  # keep main page in sync
         self.manager.transition.direction = "right"
         self.manager.current = "home"
+
+    def trace(self):
+        """Trace mode on the drawing as shown here, guide lines and all if they're on."""
+        from ..core.styles import ALL
+        title = ALL[self.app_ref.style_key].label if self.app_ref.style_key in ALL else "Drawing"
+        self.manager.get_screen("trace").open([(title, self._shown)], 0, came_from="guide")
+        self.manager.transition.direction = "left"
+        self.manager.current = "trace"
 
     def toggle(self):
         self.show_guides = not self.show_guides

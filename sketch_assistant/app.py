@@ -10,6 +10,7 @@ from .ui.home import HomeScreen
 from .ui.settings import SettingsScreen
 from .ui.steps import StepsScreen
 from .ui.textpage import TextScreen
+from .ui.trace import TraceScreen
 
 
 class Screens(ScreenManager):
@@ -54,6 +55,7 @@ class SketchApp(App):
         sm.add_widget(SettingsScreen(self, on_back=lambda: sm.back_to("home"), show_text=sm.show_text,
                                      name="settings"))
         sm.add_widget(TextScreen(on_back=lambda: sm.back_to("settings"), name="text"))
+        sm.add_widget(TraceScreen(self, name="trace"))
         Window.bind(on_keyboard=lambda w, key, *a: self._back_key(sm, key))
         return sm
 
@@ -80,7 +82,7 @@ class SketchApp(App):
     @staticmethod
     def _back_key(sm, key):
         """Android back button / Esc: leave the current page instead of quitting the app."""
-        if key == 27 and sm.current in ("guide", "steps", "settings", "text"):
+        if key == 27 and sm.current in ("guide", "steps", "settings", "text", "trace"):
             sm.get_screen(sm.current).go_back()
             return True
         return False

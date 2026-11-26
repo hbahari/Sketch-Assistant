@@ -12,6 +12,12 @@ Generating guides takes a moment, which is expected and accepted.
   Settings. It shows once, on the first launch, and again from Settings → "Show the tour
   again". This closes tester report item 3.
 
+- **Trace mode** (v1.10.0, version code 13). A Trace button on the Steps page and the guide
+  page. The drawing goes full-screen on white: pinch and drag it to fit the paper, then lock
+  it so touches are ignored, and hold the padlock to unlock. It stays on at full brightness
+  while tracing, Darker lines is on by default, and you can move through the steps without
+  moving the drawing. Free or Pro is still to be decided: see MONETIZATION_PLAN.md.
+
 ## Next
 
 1. **Pro unlock**, as soon as production access is granted. One-time purchase. Contour is
@@ -21,15 +27,12 @@ Generating guides takes a moment, which is expected and accepted.
    Indonesian, the big "learn to draw" markets. This is listing text only (title, short and
    full description, screenshot captions), not the app. It can go out at any time, since
    it needs no build.
-3. **Trace mode.** Show the sketch full-screen at full brightness with touches locked, so a
-   sheet of paper can lie on the phone and the drawing be traced. Keep screen on already
-   exists. A camera-overlay ("AR") version is a much bigger job and isn't planned.
-4. **Printable worksheets.** A PDF of the steps sheet, sized for A4 or US Letter, with
+3. **Printable worksheets.** A PDF of the steps sheet, sized for A4 or US Letter, with
    the grid, ready to print.
-5. **Beginner course.** Short exercises before photos: lines, basic shapes, a shading
+4. **Beginner course.** Short exercises before photos: lines, basic shapes, a shading
    scale, then a first eye. It reuses the existing drawing and step machinery; the work
    is mostly writing the lessons.
-6. **Check my drawing.** Photograph the finished drawing; the app finds the face in it and
+5. **Check my drawing.** Photograph the finished drawing; the app finds the face in it and
    compares it with the reference ("the eyes sit 8% too high, the jaw is too narrow").
    This is the headline feature for a 2.0. First, check whether the face finder works on
    pencil drawings at all, before promising anything.

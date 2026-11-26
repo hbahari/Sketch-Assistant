@@ -92,6 +92,8 @@ class StepsScreen(Screen):
                                     on_release=lambda *_: self.step(1))
         nav.add_widget(self.prev_btn)
         nav.add_widget(RoundButton(text="Save sheet", radii=[dp(25)] * 4, on_release=lambda *_: self.save_sheet()))
+        self.trace_btn = RoundButton(text="Trace", radii=[dp(25)] * 4, on_release=lambda *_: self.trace())
+        nav.add_widget(self.trace_btn)
         nav.add_widget(self.next_btn)
         root.add_widget(nav)
         self.add_widget(root)
@@ -99,7 +101,10 @@ class StepsScreen(Screen):
     # ---- navigation ------------------------------------------------------------------
     def on_pre_enter(self, *_):
         a = self.app_ref
-        self.i = 0
+        # Coming back from trace mode: stay on the step that was being traced (which may not
+        # be the one trace mode opened on). From anywhere else, a fresh set starts at 1.
+        resume = getattr(self, "resume_at", None)
+        self.i, self.resume_at = (resume if resume is not None else 0), None
         self.slider.set_labels(*mode_of(a.mode).slider_labels)
         self.slider.set_value(a.get_detail(a.style_key))
         self._fill_strip()
@@ -185,6 +190,13 @@ class StepsScreen(Screen):
     def go_back(self):
         self.manager.transition.direction = "right"
         self.manager.current = "guide"
+
+    def trace(self):
+        """Trace mode on this step; the other steps are a tap away inside it."""
+        pages = [(st.title, st.image) for st in self.app_ref.stages]
+        self.manager.get_screen("trace").open(pages, self.i, came_from="steps")
+        self.manager.transition.direction = "left"
+        self.manager.current = "trace"
 
     # swipe from the left edge, like the guide page
     def on_touch_down(self, touch):

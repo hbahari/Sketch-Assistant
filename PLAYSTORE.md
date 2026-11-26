@@ -88,7 +88,7 @@ because OpenCV is compiled from source; later runs reuse the cache and are much 
 
 When it finishes, download the `sketch-assistant-release` artifact. It contains:
 
-- `app-1.9.0-arm64-v8a-release.aab` → upload this
+- `app-1.10.0-arm64-v8a-release.aab` → upload this
 - `sketch-assistant-universal.apk` → install this on a phone to check the release build
 
 The workflow fails loudly if the bundle comes out unsigned, so a green run means it is ready.
@@ -134,15 +134,15 @@ Every upload needs a higher version code. The version **name** lives in
 from there through `version.regex`); the version **code** stays in `buildozer.spec`:
 
 ```python
-__version__ = "1.9.0"        # sketch_assistant/__init__.py: the version name users see
+__version__ = "1.10.0"       # sketch_assistant/__init__.py: the version name users see
 ```
 ```ini
-android.numeric_version = 12  # buildozer.spec: must increase on EVERY upload (1.0.0 shipped as 1)
+android.numeric_version = 13  # buildozer.spec: must increase on EVERY upload (1.0.0 shipped as 1)
 ```
-Both are already set to the values above for this release (first-launch tour). 1.8.0 was
-code 11 (Keep screen on), 1.7.0 was code 10 (settings page, drawing-order styles), 1.6.0 was code 9 and 1.5.0 was code 8. Code 7 was a 1.5.0 build that Play Console
+Both are already set to the values above for this release (trace mode). 1.9.0 was code 12
+(first-launch tour), 1.8.0 was code 11 (Keep screen on), 1.7.0 was code 10 (settings page, drawing-order styles), 1.6.0 was code 9 and 1.5.0 was code 8. Code 7 was a 1.5.0 build that Play Console
 wouldn't send for review (the portrait-screen requirement, below), and a code that has
-been uploaded once can't be reused. For the next release, raise it to 13. Don't put a
+been uploaded once can't be reused. For the next release, raise it to 14. Don't put a
 plain `version =` line back in `buildozer.spec`: buildozer refuses to build when it finds
 both that and `version.regex`.
 

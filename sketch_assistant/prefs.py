@@ -8,6 +8,7 @@ from pathlib import Path
 DEFAULTS = {
     "keep_screen_on": False,
     "tour_done": False,          # the first-launch tour has been seen (or skipped)
+    "trace_darker": True,        # trace mode deepens the lines so they show through paper
 }
 _path = None
 

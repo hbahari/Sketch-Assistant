@@ -17,7 +17,7 @@ Everything reported against the app since v1.0.0, in the tester's own words, is 
     sketch_assistant/app.py      App + screen manager
     sketch_assistant/ui/         home.py (main page), guide.py (tips page), widgets.py,
                                  settings.py (gear page), textpage.py (privacy / licences),
-                                 tour.py (first-launch walkthrough)
+                                 tour.py (first-launch walkthrough), trace.py (trace mode)
     sketch_assistant/purchases.py   Pro unlock -- a placeholder until billing is built
     sketch_assistant/core/       modes.py (the subject registry), faces.py (detect/crop),
                                  hands.py (hand structure from a silhouette), styles.py
@@ -81,6 +81,19 @@ are not lines (the palm circle, finger joints) carry no number. See `guides.at`.
 - **Save PNG** writes to `Pictures/SketchAssistant` (Windows/macOS/Linux and Android) and shows where, with an "Open folder" button on desktop.
 - **Basic Shapes** (object mode) cuts out the main object with GrabCut, then draws its angular silhouette, shadow shapes, bounding box and W:H proportion.
 - **Material guide** (object guide page): Matte, Glossy, Glass, Fabric, Wood - labelled example images (`scripts/make_material_examples.py`) plus steps, pencils and common mistakes (`data/materials.py`).
+
+## Trace mode
+- A **Trace** button on the Steps page (next to Save sheet) opens the step on screen; one on
+  the guide page opens the drawing as shown there. `ui/trace.py`.
+- The drawing fills the screen on plain white. Pinch to resize it and drag to place it,
+  then **Lock**: every control hides and every touch is ignored, so paper and pencil can
+  rest on the screen. To unlock, hold the padlock for a second (a ring fills). Inside, Back
+  and Next move between steps without moving the drawing, because the paper hasn't moved.
+- **Darker lines** (on by default, remembered) deepens every mark so faint pencil shows
+  through paper; white stays white.
+- While tracing, the screen stays on at full brightness, whatever Settings says.
+  Leaving restores the phone's brightness and the Settings choice. Done and the back button
+  return to the Steps page on the step you finished tracing.
 
 ## First-launch tour
 - On the very first launch (`prefs` "tour_done" is false), a six-step tour runs over the

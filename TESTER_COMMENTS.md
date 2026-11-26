@@ -14,6 +14,35 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 35 — trace mode
+
+*Shipped in: — (set up as 1.10.0, version code 13; not yet uploaded)*
+
+> "Let's go ahead and add trace mode for the next version. Should we add trace mode as a
+> button next to Save sheet in the drawing steps? That way they can turn every step into a
+> trace mode screen."
+
+**What changed.** There's a **Trace** button on the Steps page, next to Save sheet, and
+another on the guide page.
+
+- **The screen.** Tapping Trace shows that step full-screen on plain white, at full
+  brightness, with the screen kept on, so you can lay a sheet of paper over the phone and
+  trace it.
+- **Before locking.** Pinch to make the drawing the size you want on the paper and drag
+  it into place. Back and Next move between the steps without moving the drawing, so you
+  can trace the construction lines, then the next stage, and so on.
+- **Lock.** Locking hides every button and ignores every touch, so the pencil and the paper
+  can't change anything. Hold the padlock for a second to unlock.
+- **Darker lines.** On by default, this deepens faint pencil lines so they show through the
+  paper. The app remembers if you turn it off.
+- **Leaving.** Done (or the back button) returns to the Steps page on the step you were
+  tracing, and puts the phone's brightness and Keep screen on back as they were.
+
+Not done: a camera "AR" overlay that projects the drawing onto paper on the table. That's a
+much bigger job. This version is the "paper on the screen" kind.
+
+---
+
 ## Round 34 — a walkthrough the first time the app opens
 
 *Shipped in: — (set up as 1.9.0, version code 12; not yet uploaded)*
