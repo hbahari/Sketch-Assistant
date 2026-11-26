@@ -302,3 +302,114 @@ def keep_screen_on(on):
         apply()
     except Exception:
         pass
+
+
+def set_brightness(level):
+    """Set this app's screen brightness: 0..1, or None for the phone's own setting.
+
+    Only while the app is in front, like keep_screen_on. Android only; a no-op elsewhere.
+    """
+    act = _activity()
+    if act is None:
+        return
+    try:
+        from android.runnable import run_on_ui_thread
+        from jnius import autoclass
+        LP = autoclass("android.view.WindowManager$LayoutParams")
+        value = LP.BRIGHTNESS_OVERRIDE_NONE if level is None else float(level)
+
+        @run_on_ui_thread
+        def apply():
+            window = act.getWindow()
+            attrs = window.getAttributes()
+            attrs.screenBrightness = value
+            window.setAttributes(attrs)
+        apply()
+    except Exception:
+        pass
+
+
+# --------------------------------------------------------------------------- documents
+def local_country():
+    """Two-letter country code for the phone's (or computer's) region, '' if unknown."""
+    act = _activity()
+    if act is not None:
+        try:
+            from jnius import autoclass
+            return str(autoclass("java.util.Locale").getDefault().getCountry() or "")
+        except Exception:
+            return ""
+    import locale
+    try:
+        loc = locale.getlocale()[0] or ""
+    except Exception:
+        loc = ""
+    return loc.split("_")[1][:2].upper() if "_" in loc else ""
+
+
+def save_document(data, name, mime="application/pdf"):
+    """Save a document where the user can find it, and return (where, handle_to_open).
+
+    Android 10 and later: Downloads/SketchAssistant, through MediaStore, no permission needed.
+    Older Android: the app's own folder (it can't be opened by other apps from there).
+    Desktop: the export folder next to saved PNGs.
+    """
+    act = _activity()
+    if act is not None:
+        try:
+            from jnius import autoclass
+            Version = autoclass("android.os.Build$VERSION")
+            if Version.SDK_INT >= 29:
+                ContentValues = autoclass("android.content.ContentValues")
+                Downloads = autoclass("android.provider.MediaStore$Downloads")
+                values = ContentValues()
+                values.put("_display_name", name)
+                values.put("mime_type", mime)
+                values.put("relative_path", f"Download/{ALBUM}")
+                resolver = act.getContentResolver()
+                uri = resolver.insert(Downloads.EXTERNAL_CONTENT_URI, values)
+                if uri is not None:
+                    pfd = resolver.openFileDescriptor(uri, "w")
+                    with os.fdopen(pfd.detachFd(), "wb") as f:
+                        f.write(data)
+                    return f"Downloads/{ALBUM}/{name}", uri
+            folder = Path(str(act.getExternalFilesDir(None).getAbsolutePath()))
+            path = folder / name
+            path.write_bytes(data)
+            return str(path), None
+        except Exception:
+            pass
+    path = export_dir() / name
+    path.write_bytes(data)
+    return str(path), path
+
+
+def open_document(handle, mime="application/pdf"):
+    """Open a saved document in the phone's viewer (which has Print) or the desktop's.
+    Returns False if nothing could open it."""
+    if handle is None:
+        return False
+    act = _activity()
+    if act is None:
+        import subprocess
+        import sys
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(str(handle))
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(handle)])
+            else:
+                subprocess.Popen(["xdg-open", str(handle)])
+            return True
+        except Exception:
+            return False
+    try:
+        from jnius import autoclass
+        Intent = autoclass("android.content.Intent")
+        intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(handle, mime)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        act.startActivity(intent)
+        return True
+    except Exception:
+        return False

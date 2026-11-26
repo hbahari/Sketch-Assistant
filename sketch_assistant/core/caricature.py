@@ -1046,6 +1046,13 @@ def why_not(img):
     reason = landmarks.unavailable_reason()
     if reason:
         return "Can't draw the cartoon: " + reason
+    # Portrait mode finds side profiles now, and so offers their box here too; the cartoon
+    # needs the face mesh, which can't read a profile. Say that, not "no face".
+    from .noses import find_face
+    from .faces import profile_facing
+    f = find_face(img)
+    if f is not None and profile_facing(f.pts):
+        return "Cartoon needs a face turned towards the camera - side profiles aren't supported yet"
     return "No face found in this crop - tap a face in a portrait"
 
 

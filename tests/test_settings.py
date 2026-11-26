@@ -79,6 +79,7 @@ def test_settings_are_remembered_and_a_damaged_file_means_defaults(tmp_path):
     f = tmp_path / "prefs.json"
     prefs.use_file(f)
     assert prefs.get("keep_screen_on") is False, "off until the user turns it on"
+    assert prefs.get("tour_done") is False, "a new install sees the tour"
     prefs.set("keep_screen_on", True)
     assert prefs.get("keep_screen_on") is True
     f.write_text("{not json")
@@ -103,6 +104,7 @@ from kivy.clock import Clock  # noqa: E402
 def app(tmp_path_factory):
     from sketch_assistant import prefs
     prefs.use_file(tmp_path_factory.mktemp("prefs") / "prefs.json")   # never the real settings
+    prefs.set("tour_done", True)                       # tour tests live in test_tour.py
     EventLoop.ensure_window()
     from sketch_assistant.app import SketchApp
     a = SketchApp()

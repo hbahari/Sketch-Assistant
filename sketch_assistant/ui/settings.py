@@ -117,6 +117,8 @@ class SettingsScreen(Screen):
         self.rows = {
             "screen_on": ToggleRow("Keep screen on", "While the app is open, so it won't dim as you draw",
                                    prefs.get("keep_screen_on"), self.set_screen_on),
+            "tour": Row("Show the tour again", "A quick look at how the app works",
+                        on_release=lambda *_: self.replay_tour()),
             "feedback": Row("Send feedback", "Report a problem or suggest an idea",
                             on_release=lambda *_: self.send_feedback()),
             "rate": Row("Rate Sketch Assistant", "Leave a review on Google Play",
@@ -130,6 +132,7 @@ class SettingsScreen(Screen):
         }
         col.add_widget(_section("While drawing"))
         col.add_widget(self.rows["screen_on"])
+        col.add_widget(self.rows["tour"])
         col.add_widget(_section("Help us improve"))
         col.add_widget(self.rows["feedback"]); col.add_widget(self.rows["rate"])
         col.add_widget(_section("Purchases"))
@@ -147,6 +150,12 @@ class SettingsScreen(Screen):
     def set_screen_on(self, on):
         prefs.set("keep_screen_on", on)
         keep_screen_on(on)
+
+    def replay_tour(self):
+        """Back to the main page, then the tour once the page has slid into place."""
+        from kivy.clock import Clock
+        self.on_back()
+        Clock.schedule_once(lambda dt: self.app_ref.start_tour(), 0.4)
 
     def send_feedback(self):
         from ..core.modes import mode_of

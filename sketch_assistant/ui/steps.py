@@ -23,7 +23,8 @@ from ..core.modes import build_stages, mode_of
 from ..core.steps import contact_sheet
 from ..core.styles import render
 from ..data.steps_text import step_markup
-from ..platform_utils import reveal, save_png
+from .. import prefs
+from ..platform_utils import local_country, open_document, reveal, save_document, save_png
 from . import theme
 from .widgets import Card, DetailSlider, RoundButton, TitleBar, to_texture
 
@@ -91,7 +92,10 @@ class StepsScreen(Screen):
         self.next_btn = RoundButton(text="Next", bold=True, active=True, radii=[dp(25)] * 4,
                                     on_release=lambda *_: self.step(1))
         nav.add_widget(self.prev_btn)
-        nav.add_widget(RoundButton(text="Save sheet", radii=[dp(25)] * 4, on_release=lambda *_: self.save_sheet()))
+        self.save_btn = RoundButton(text="Save", radii=[dp(25)] * 4, on_release=lambda *_: self.choose_save())
+        nav.add_widget(self.save_btn)
+        self.trace_btn = RoundButton(text="Trace", radii=[dp(25)] * 4, on_release=lambda *_: self.trace())
+        nav.add_widget(self.trace_btn)
         nav.add_widget(self.next_btn)
         root.add_widget(nav)
         self.add_widget(root)
@@ -99,7 +103,10 @@ class StepsScreen(Screen):
     # ---- navigation ------------------------------------------------------------------
     def on_pre_enter(self, *_):
         a = self.app_ref
-        self.i = 0
+        # Coming back from trace mode: stay on the step that was being traced (which may not
+        # be the one trace mode opened on). From anywhere else, a fresh set starts at 1.
+        resume = getattr(self, "resume_at", None)
+        self.i, self.resume_at = (resume if resume is not None else 0), None
         self.slider.set_labels(*mode_of(a.mode).slider_labels)
         self.slider.set_value(a.get_detail(a.style_key))
         self._fill_strip()
@@ -186,6 +193,13 @@ class StepsScreen(Screen):
         self.manager.transition.direction = "right"
         self.manager.current = "guide"
 
+    def trace(self):
+        """Trace mode on this step; the other steps are a tap away inside it."""
+        pages = [(st.title, st.image) for st in self.app_ref.stages]
+        self.manager.get_screen("trace").open(pages, self.i, came_from="steps")
+        self.manager.transition.direction = "left"
+        self.manager.current = "trace"
+
     # swipe from the left edge, like the guide page
     def on_touch_down(self, touch):
         self._edge, self._x0 = touch.x < dp(28), touch.x
@@ -197,6 +211,88 @@ class StepsScreen(Screen):
             self.go_back()
             return True
         return super().on_touch_up(touch)
+
+    # ---- saving ----------------------------------------------------------------------
+    def paper(self):
+        from ..core.worksheet import paper_for_country
+        return prefs.get("paper") or paper_for_country(local_country())
+
+    def choose_save(self):
+        """Save: the printable worksheet (PDF) or, as before, all the steps on one picture."""
+        from kivy.uix.popup import Popup
+        content = BoxLayout(orientation="vertical", spacing=dp(10), padding=dp(12))
+        pop = Popup(title="Save", content=content, size_hint=(0.88, None), height=dp(330),
+                    separator_height=0, background="", background_color=theme.BG, title_color=theme.TEXT)
+
+        def option(title, sub, action):
+            b = RoundButton(text=f"[b]{title}[/b]\n[size=12sp][color=73706e]{sub}[/color][/size]", markup=True,
+                            halign="left", valign="middle", padding=(dp(16), 0), size_hint_y=None,
+                            height=dp(68), radii=[dp(18)] * 4,
+                            on_release=lambda *_: (pop.dismiss(), action()))
+            content.add_widget(b)
+            return b
+        self.pdf_btn = option("Printable worksheet (PDF)", "Grid reference, every step with its instructions, a practice page",
+                              self.save_worksheet)
+        self.png_btn = option("Steps image (PNG)", "All the steps on one picture", self.save_sheet)
+        row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
+        row.add_widget(Label(text="Paper", color=theme.MUTED, font_size=sp(14), size_hint_x=None, width=dp(60)))
+        self.paper_btns = {}
+        for key, label in (("letter", "Letter"), ("a4", "A4")):
+            b = RoundButton(text=label, radii=[dp(22)] * 4, active=self.paper() == key,
+                            on_release=lambda w, k=key: self.set_paper(k))
+            self.paper_btns[key] = b
+            row.add_widget(b)
+        content.add_widget(row)
+        self._save_popup = pop
+        pop.open()
+
+    def set_paper(self, key):
+        prefs.set("paper", key)
+        for k, b in getattr(self, "paper_btns", {}).items():
+            b.active = k == key
+
+    def save_worksheet(self):
+        """Build the PDF (on this thread: its text is drawn by Kivy), save it, open it."""
+        self.caption.text = "Making the worksheet..."
+        Clock.schedule_once(lambda dt: self._save_worksheet(), 0.05)   # let the caption show first
+
+    def worksheet_pdf(self):
+        """(file name, PDF bytes) for the current steps."""
+        from ..core.styles import ALL
+        from ..core.worksheet import build_pages, pdf_bytes
+        from .print_text import render_text
+        a = self.app_ref
+        style = ALL[a.style_key].label if a.style_key in ALL else ""
+        title = f"{mode_of(a.mode).label}  -  {style}"
+        texts = [step_markup(st.key, a.style_key) for st in a.stages]
+        paper = self.paper()
+        pages = build_pages(a.source_img, a.stages, texts, title, paper, render_text,
+                            guides_at=self.guides_at())
+        return f"worksheet_{a.mode}_{a.style_key}.pdf", pdf_bytes(pages, paper)
+
+    def guides_at(self):
+        """The current subject's guide lines (no thirds grid: the worksheet has its own),
+        drawn on white at any size the worksheet asks for."""
+        import numpy as np
+        from ..core.guides import draw_guides
+        a = self.app_ref
+
+        def at(w, h):
+            return draw_guides(np.full((h, w, 3), 255, np.uint8), a.mode, None, a.landmarks or (),
+                               a.crop_shape, a.crop_box, a.source_img, thirds=False)
+        return at
+
+    def _save_worksheet(self):
+        try:
+            name, data = self.worksheet_pdf()
+            where, handle = save_document(data, name)
+        except Exception as e:
+            self.caption.text = f"Could not make the worksheet: {e}"
+            return
+        opened = open_document(handle)
+        self.caption.text = (f"Saved [b]{name}[/b] to {where}" if not opened
+                             else f"Saved to {where}. Print it from the viewer that just opened.")
+        self.last_saved = (where, handle)
 
     def save_sheet(self):
         a = self.app_ref

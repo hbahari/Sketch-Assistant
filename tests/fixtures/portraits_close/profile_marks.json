@@ -1,0 +1,6 @@
+{
+  "_about": "Hand-marked on the 900 px fixtures, 26 Nov 2026, for the side-profile guide oval: the oval must enclose every point. forehead = where the hairline meets the front of the face; brow = brow ridge front; nose = nose tip; lips = front of the lips; chin_front = front of the chin; chin_bottom = underside of the chin; ear = middle of the ear, where it shows (hidden by hair on close_06 and close_01).",
+  "close_03.jpg": {"forehead": [300, 40], "brow": [345, 125], "nose": [440, 190], "lips": [435, 280], "chin_front": [450, 345], "chin_bottom": [410, 388], "ear": [185, 300]},
+  "close_06.jpg": {"forehead": [300, 210], "brow": [285, 320], "nose": [226, 490], "lips": [290, 612], "chin_front": [305, 700], "chin_bottom": [345, 760]},
+  "close_01.jpg": {"forehead": [215, 95], "brow": [175, 215], "nose": [105, 365], "lips": [150, 435], "chin_front": [170, 520], "chin_bottom": [220, 560]}
+}

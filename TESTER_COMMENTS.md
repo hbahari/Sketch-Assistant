@@ -14,6 +14,144 @@ No file names, no library names, nothing that needs the source open to follow.
 
 ---
 
+## Round 37 — guides on the worksheet's grid pages; side profiles in Portrait mode
+
+*Shipped in: — (set up as 1.12.0, version code 15; not yet uploaded)*
+
+> "On the PDF pages that have the blue grid (first and last two pages), can you add the blue
+> guides as well? Having both grid lines and guide lines together should help a lot. Also,
+> Portrait mode doesn't detect side portraits. Use this image as a test. Is there a way we
+> could fix that?"
+>
+> "Also, when you're doing the fix for side profiles, make sure the guide circle covers the
+> whole face and doesn't have that older issue where it wasn't covering the face."
+
+**What changed.**
+
+- **Worksheet.** The first page (photo and drawing), the practice grid and the trace page
+  now carry the guide lines as well as the grid: the oval and the eye, nose, mouth and chin
+  lines. The guides are blue and the grid is now light grey, so the two are easy to tell
+  apart. Page 1 says to sketch the blue guides in first.
+- **Side profiles.** Portrait mode now finds a face seen from the side. Your photo is the
+  same picture as one already in the test set from your earlier batch, where no face had
+  been found at all. A profile gets its own guides: the eye, nose, mouth and chin lines run
+  square to the face even when the head is tipped back, and there's no centre line down the
+  middle, which means nothing from the side.
+- **The oval covers the whole face.** On a profile the oval now takes in everything from the
+  top of the head to under the chin, and from the back of the jaw to past the tip of the
+  nose. That was checked against points marked by hand on the three side views (hairline,
+  brow, nose tip, lips, chin, under the chin, and the ear where it shows). Every point is
+  inside on all three. Side views that were already being found get the same oval in place
+  of the narrow box they had.
+- **Cartoon** still needs a face turned towards the camera. On a profile it now says so,
+  instead of "no face found".
+
+Deliberately left out: a marker for where the ear goes. The textbook rule put it well above
+the ear on the one profile where the ear shows (a head tipped back), and a guide that's
+wrong on the test photo would mislead.
+
+Owned along the way:
+- The first version of the profile oval was skull-sized, the classic way to construct a
+  head, and left the nose, lips and chin outside it: the same "doesn't cover the face"
+  problem as before. The hand-marked test caught it.
+- One face came back twice in a body photo, because the "already found" check only looked
+  at the nose, which pokes out past the first box on a profile.
+- An older test that recorded the decision to leave this profile unfound was updated, since
+  that decision has changed.
+
+---
+
+## Round 36 — a printable worksheet
+
+*Shipped in: — (set up as 1.11.0, version code 14; not yet uploaded)*
+
+> "How is a printable worksheet different from the Save PNG button?" ... "Yes, go ahead and
+> build this feature. Sounds like a good addition."
+
+**What changed.** On the Steps page, **Save sheet** is now **Save**. It offers the steps
+picture as before, or a new **printable worksheet**: a PDF made for paper, Letter or A4.
+The app remembers the choice, and until you pick one it follows where the phone is set to.
+The worksheet has:
+
+1. **A grid-method reference.** Your photo and the finished drawing side by side under the
+   same lettered and numbered grid, how big to rule the squares on your paper, and tips for
+   the method.
+2. **Every step.** Each step's picture next to its written instructions: which pencil, the
+   technique, and what to draw. You can follow it at the desk without the phone.
+3. **A practice grid.** The same grid, empty, at the size page 1 tells you, to draw straight
+   onto.
+4. **A trace page.** The finished drawing at that same size, printed faint, to trace or to
+   hold against your own drawing to check it.
+
+It saves to Downloads/SketchAssistant and opens in the phone's PDF viewer, which has Print.
+It works in every mode.
+
+The first version printed every line of text upside down, and showed the bold markers as
+text ("[b]Grid method reference[/b]"). Both were caught on the first look at the pages,
+before release, and each now has a test.
+
+---
+
+## Round 35 — trace mode
+
+*Shipped in: — (set up as 1.10.0, version code 13; not yet uploaded)*
+
+> "Let's go ahead and add trace mode for the next version. Should we add trace mode as a
+> button next to Save sheet in the drawing steps? That way they can turn every step into a
+> trace mode screen."
+
+**What changed.** There's a **Trace** button on the Steps page, next to Save sheet, and
+another on the guide page.
+
+- **The screen.** Tapping Trace shows that step full-screen on plain white, at full
+  brightness, with the screen kept on, so you can lay a sheet of paper over the phone and
+  trace it.
+- **Before locking.** Pinch to make the drawing the size you want on the paper and drag
+  it into place. Back and Next move between the steps without moving the drawing, so you
+  can trace the construction lines, then the next stage, and so on.
+- **Lock.** Locking hides every button and ignores every touch, so the pencil and the paper
+  can't change anything. Hold the padlock for a second to unlock.
+- **Darker lines.** On by default, this deepens faint pencil lines so they show through the
+  paper. The app remembers if you turn it off.
+- **Leaving.** Done (or the back button) returns to the Steps page on the step you were
+  tracing, and puts the phone's brightness and Keep screen on back as they were.
+
+Not done: a camera "AR" overlay that projects the drawing onto paper on the table. That's a
+much bigger job. This version is the "paper on the screen" kind.
+
+---
+
+## Round 34 — a walkthrough the first time the app opens
+
+*Shipped in: — (set up as 1.9.0, version code 12; not yet uploaded)*
+
+> "Let's go ahead and make this feature first: a first-launch walkthrough inside the app."
+> (Also the testers' report, item 3: "Implement an interactive walkthrough that guides
+> users through the main functionalities of the app.")
+
+**What changed.** The first time someone opens the app, a short tour runs over the main
+page. The page dims and each part lights up in turn, with a card explaining it:
+
+1. Welcome: what the app does.
+2. The subject bar: what you can draw.
+3. The photo card: add a photo, then tap the face, hand or person.
+4. The style tiles: from line art to realism.
+5. The guide button: proportion lines, then the step-by-step lesson.
+6. The gear: Settings, Keep screen on and feedback.
+
+There are Back, Skip and Next buttons, and the phone's back button closes the tour rather
+than the app. It shows only once. Settings has a new **Show the tour again** row for anyone
+who wants to see it again. While the tour is open, taps don't reach the page underneath,
+so nobody starts the camera by accident while reading.
+
+The first version lit things up backwards: the part being explained went dark and the
+rest of the page stayed bright. The screenshot check caught it before release, and a test
+now reads the screen to make sure the lit-up part really is lit. While checking the tests
+by putting each mistake back, one test turned out to be passing for the wrong reason (the
+back button); it was rewritten so that it now fails when it should.
+
+---
+
 ## Round 33 — keep the screen on while drawing
 
 *Shipped in: 1.8.0 (version code 11)*
@@ -916,10 +1054,8 @@ edges fade to show there's more off-screen.
 Known and not yet addressed. Worth listing in the write-up as acknowledged rather than
 missed.
 
-- **Portrait mode's circle on side profiles** is still scaled from the rough box, and on
-  one strict profile in the tester's photos no face is found at all. The face's outline
-  can't be read reliably from the side. Of the 15 measurable close-up faces, 5 still don't
-  fit well, mostly heads tilted or turned well to one side.
+- **Side profiles** are found and get their own oval and guides (Round 37), but the oval's
+  proportions were set on three side views, and Cartoon mode still can't draw a profile.
 - **Cartoon mode doesn't draw glasses**, outlines beards only beside the jaw, is weak on
   side profiles, and draws a hat as hair. A bald head is told from short light hair by
   how smooth it is, which was set on just two bald test photos.

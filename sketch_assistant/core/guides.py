@@ -119,6 +119,42 @@ def _landmark_guides(ov, lm, sc, th, box, w, h):
     return labels
 
 
+def _profile_guides(ov, lm, sc, th, box, w, h, facing):
+    """Side profile: the oval round the whole face, and the eye / nose / mouth / chin lines
+    square to the face's own up-and-down -- no centre line, which means nothing side on.
+
+    The eye points of a profile nearly coincide, so the face's direction comes from
+    eyes-to-mouth, not the eye line the face-on guides use. There's no ear marker: the
+    textbook rule (between the eye and nose lines, just behind the middle of the head) put
+    it well above the ear on the one profile where the ear shows, a head tipped back.
+    """
+    re, le, nose, mr, ml = [np.array(p, float) * sc for p in lm]
+    eye, mouth = (re + le) / 2, (mr + ml) / 2
+    d = max(1e-6, float(np.linalg.norm(eye - mouth)))
+    up = (eye - mouth) / d
+    across = np.array([-up[1], up[0]])                 # towards the picture's right when upright
+    if across[0] < 0:
+        across = -across
+    down = -up
+    angle = float(np.degrees(np.arctan2(across[1], across[0])))
+    cx, cy, ax1, ax2 = _oval(ov, box, angle, th)
+    centre = np.array([cx, cy])
+    top, chin = centre - down * ax2, centre + down * ax2
+    back, front = -facing * ax1 * 1.02, facing * ax1 * 1.02   # across the oval
+    labels = []
+
+    def level(pt):
+        """The point on the oval's vertical axis level with pt, measured square to the face."""
+        return centre + down * float(np.dot(pt - centre, down))
+    for name, pt in (("top of head", top), ("eyes", eye), ("nose", nose), ("mouth", mouth), ("chin", chin)):
+        c = level(pt)
+        a, b = c + across * back, c + across * front
+        dashed(ov, a, b, LINE, th)
+        left = a if a[0] < b[0] else b
+        labels.append((at(name, pt[1], h), left[0], left[1]))
+    return labels
+
+
 def _proportional_guides(ov, th, box, w, h):
     """Fallback when the detector gives no landmarks: average proportions inside the box."""
     bx, by, bw, bh = box
@@ -151,6 +187,10 @@ def face_guides(ov, w, h, th, ctx):
         bx, by, bw, bh = ctx.box
         box = (bx * sc[0], by * sc[1], bw * sc[0], bh * sc[1])
     if len(ctx.landmarks) == 5 and ctx.crop_shape:
+        from .faces import profile_facing
+        facing = profile_facing(ctx.landmarks)
+        if facing:
+            return _profile_guides(ov, ctx.landmarks, sc, th, box, w, h, facing)
         return _landmark_guides(ov, ctx.landmarks, sc, th, box, w, h)
     return _proportional_guides(ov, th, box, w, h)
 
@@ -441,7 +481,8 @@ GUIDES = {"caricature": caricature_guides, "portrait": face_guides, "object": fr
           "body": body_guides, "eyes": eye_guides, "nose": nose_guides}
 
 
-def draw_guides(sketch, mode, style_key=None, landmarks=(), crop_shape=None, box=None, source_img=None):
+def draw_guides(sketch, mode, style_key=None, landmarks=(), crop_shape=None, box=None, source_img=None,
+                thirds=True):
     """Thirds grid for every style, plus the construction lines for `mode`.
 
     A style of the `construct` family (Technical, Basic Shapes, Construction) already
@@ -453,7 +494,7 @@ def draw_guides(sketch, mode, style_key=None, landmarks=(), crop_shape=None, box
     th, fs = text_metrics(w)
     grid_row = label_rows(w)[0]
     ov, labels = out.copy(), []
-    for i in (1, 2) if mode not in NO_GRID else ():
+    for i in (1, 2) if mode not in NO_GRID and thirds else ():   # the worksheet has its own grid
         dashed(ov, (w * i / 3, 0), (w * i / 3, h), SOFT, th)
         dashed(ov, (0, h * i / 3), (w, h * i / 3), SOFT, th)
         # numbered in every mode, including the ones whose own guides are not straight

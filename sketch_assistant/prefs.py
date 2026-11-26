@@ -7,6 +7,9 @@ from pathlib import Path
 
 DEFAULTS = {
     "keep_screen_on": False,
+    "tour_done": False,          # the first-launch tour has been seen (or skipped)
+    "trace_darker": True,        # trace mode deepens the lines so they show through paper
+    "paper": None,               # worksheet paper, "letter" or "a4"; None = by the phone's region
 }
 _path = None
 

@@ -29,6 +29,7 @@ class Face:
     # mesh: (x, y, w, h) in image pixels, floats, and free to run past the photo's edge,
     # as a close-up's face does. None means the detector box above is used.
     oval_box: tuple = None
+    view: str = "front"          # "front", or "profile" for a side view (see profile_facing)
 
     def contains(self, px, py):
         return self.x <= px <= self.x + self.w and self.y <= py <= self.y + self.h
@@ -140,6 +141,73 @@ def _oval_box(img, pts):
     return (cx - bw / 2, cy + bh * OVAL_RISE - bh / 2, bw, bh)
 
 
+# --------------------------------------------------------------------------- side profiles
+# YuNet and both Haar cascades miss most side profiles (on the tester's photo, close_03, all
+# three find nothing), and the face mesh, which confirms a face the padded finder recovers,
+# reports "no face" on a profile by design. So a profile was never offered in Portrait mode.
+# The padded finder itself does see profiles: on all eight side views in the fixtures.
+# Its five points tell a profile from a face-on view by the turn measure Nose mode uses
+# (how far the nose sits off the eye-to-mouth line, and how close together the eyes are):
+# face-on faces score 0.11 or less, three-quarter views 0.21 to 0.36, side views 0.49 to
+# 0.69. PROFILE_YAW sits in the gap above the three-quarter views.
+PROFILE_YAW = 0.45
+# The profile oval encloses the whole face, as the face-on oval now does (a tester found the
+# old circle "smaller than the face itself"). Set in the face's own frame -- forward along
+# the eyes-to-nose direction, down along eyes-to-mouth -- in eye-to-mouth lengths from the
+# eyes, from hand marks on the three side views in tests/fixtures/portraits_close
+# (profile_marks.json): the nose tip sits about 0.47 in front of the eyes and 0.5 below,
+# the chin 1.4 to 1.6 below, under the chin 1.7 to 1.85, the hairline 0.7 to 1.0 above (the
+# crown higher still), and the one visible ear 1.4 behind. An ellipse half 1.85 tall and
+# 1.55 deep (the depth of a head to its height, side on), centred a little behind and below
+# the eyes, holds all of them with room to spare at the nose and chin.
+PROFILE_HALF_H = 1.85
+PROFILE_HALF_D = 1.55
+PROFILE_CENTRE = (-0.30, 0.10)      # (forward, down) of the oval's centre from the eyes
+
+
+def turn(pts):
+    """(yaw, facing) from five face points: yaw as Nose mode measures it, facing +1 when
+    the face looks towards the right of the picture, -1 towards the left."""
+    pts = np.asarray(pts, float)
+    eye, mouth = (pts[0] + pts[1]) / 2, (pts[3] + pts[4]) / 2
+    d = float(np.linalg.norm(eye - mouth))
+    if d < 1e-6:
+        return 0.0, 1
+    up = (eye - mouth) / d
+    across = np.array([-up[1], up[0]])
+    offset = float(np.dot(pts[2] - eye, across)) / d
+    iod = float(np.linalg.norm(pts[1] - pts[0]))
+    yaw = abs(offset) + 0.5 * max(0.0, 0.9 - iod / d)
+    return yaw, (1 if offset >= 0 else -1)
+
+
+def profile_facing(pts):
+    """+1 / -1 for a side profile facing right / left, 0 for anything else."""
+    if len(pts) != 5:
+        return 0
+    yaw, facing = turn(pts)
+    return facing if yaw >= PROFILE_YAW else 0
+
+
+def _profile_box(pts):
+    """The face box for a side profile, from its five points, laid out so that the guide
+    oval (guides._oval, turned to the face's own up-and-down) encloses the whole face:
+    crown to under the chin, the back of the jaw to past the nose tip."""
+    from .guides import OVAL_H, OVAL_RISE, OVAL_W
+    pts = np.asarray(pts, float)
+    _, facing = turn(pts)
+    eye, mouth = (pts[0] + pts[1]) / 2, (pts[3] + pts[4]) / 2
+    d = float(np.linalg.norm(eye - mouth))
+    up = (eye - mouth) / d
+    across = np.array([-up[1], up[0]])
+    if across[0] < 0:                       # as guides._profile_guides measures its angle
+        across = -across
+    fwd = across if facing > 0 else -across
+    c = eye + fwd * PROFILE_CENTRE[0] * d - up * PROFILE_CENTRE[1] * d
+    bw, bh = 2 * PROFILE_HALF_D * d / OVAL_W, 2 * PROFILE_HALF_H * d / OVAL_H
+    return (c[0] - bw / 2, c[1] + bh * OVAL_RISE - bh / 2, bw, bh)
+
+
 def _with_outlines(img, faces):
     from . import landmarks
     if not landmarks.mesh_available():
@@ -153,22 +221,39 @@ def _with_outlines(img, faces):
             # the padded finder's points, where it found this same face: on a close-up
             # YuNet, unpadded, reads the face smaller, and the mesh starts from them
             same = found is not None and f.contains(*found.pts[2])
-            f.oval_box = _oval_box(img, found.pts if same else f.landmarks)
+            pts = found.pts if same else f.landmarks
+            if profile_facing(f.landmarks):
+                # a profile YuNet found: its box is narrow, and the mesh's outline of a
+                # profile is unreliable even where it doesn't refuse it, so the oval is laid
+                # out from the points, as for a recovered profile. Judged on the face's own
+                # points, the ones its guides use, so the oval and the guides always agree
+                # (the padded finder rates four turned close-ups as profiles that YuNet's
+                # points, and so the guides, treat as face-on)
+                f.oval_box, f.view = _profile_box(f.landmarks), "profile"
+            else:
+                f.oval_box = _oval_box(img, pts)
     if found is None:
         return faces
     nx, ny = found.pts[2]
-    if any(f.contains(nx, ny) for f in faces):
-        return faces                                 # already have it
-    ob = _oval_box(img, found.pts)
-    if ob is None:
+    ex, ey = (found.pts[0] + found.pts[1]) / 2
+    # already have it: the nose or the eyes inside a face found above. Not the nose alone --
+    # on a profile the nose tip stands out past YuNet's box, and the same face came back
+    # twice (bodies/seated_twist)
+    if any(f.contains(nx, ny) or f.contains(ex, ey) for f in faces):
         return faces
+    ob = _oval_box(img, found.pts)
+    view = "front"
+    if ob is None:
+        if profile_facing(found.pts) == 0:
+            return faces
+        ob, view = _profile_box(found.pts), "profile"   # the mesh can't confirm a profile; the finder can
     H, W = img.shape[:2]
     x, y, w, h = ob
     x0, y0 = int(max(0, x)), int(max(0, y))
     x1, y1 = int(min(W, x + w)), int(min(H, y + h))
     if x1 - x0 < 8 or y1 - y0 < 8:
         return faces
-    new = Face(x0, y0, x1 - x0, y1 - y0, tuple((float(px), float(py)) for px, py in found.pts), ob)
+    new = Face(x0, y0, x1 - x0, y1 - y0, tuple((float(px), float(py)) for px, py in found.pts), ob, view)
     # a box YuNet put on part of this face (the mouth and chin, on one photo) goes
     kept = [f for f in faces if not (new.contains(f.x + f.w / 2, f.y + f.h / 2) and f.w * f.h < 0.4 * w * h)]
     return kept + [new]

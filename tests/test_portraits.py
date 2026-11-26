@@ -203,8 +203,9 @@ def test_the_oval_fits_the_face_on_close_ups():
 @pytest.mark.skipif(not CLOSE_MARKS, reason="no close-up fixtures present")
 def test_a_close_up_face_the_detector_misses_is_found():
     """YuNet alone finds no face on close_08, an extreme close-up; the padded face finder
-    recovers it, with an oval. close_03, a strict profile, stays unfound: the face mesh
-    says it can't read it, and it is left to the user rather than guessed.
+    recovers it, with an oval. (close_03, a strict profile, used to stay unfound here, as
+    the face mesh can't read it; since the tester asked for profiles it is found as a
+    profile instead -- see the side-profile tests below.)
 
     At the photos' original size YuNet also missed close_14 (heavy sunglasses) and read
     only the mouth and chin on close_17, and both were recovered the same way; at the
@@ -218,4 +219,108 @@ def test_a_close_up_face_the_detector_misses_is_found():
     assert len(got) == 1 and got[0].oval_box is not None
     x, y, w, h = got[0].oval_box
     assert w * h > 0.3 * img.shape[0] * img.shape[1], "the face found is too small for this close-up"
-    assert detect_faces(load_image(str(CLOSE / "close_03.jpg"))) == []
+    profile = detect_faces(load_image(str(CLOSE / "close_03.jpg")))
+    assert len(profile) == 1 and profile[0].view == "profile"
+
+
+# --------------------------------------------------------------------------- side profiles
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+def _guide_labels(img, face):
+    """The labels the portrait guides put on this face (names only)."""
+    from sketch_assistant.core import faces as F
+    from sketch_assistant.core.guides import Ctx, face_guides
+    crop, lm, box = F.crop_info(img, face)
+    h, w = crop.shape[:2]
+    ov = np.full((h, w, 3), 255, np.uint8)
+    labels = face_guides(ov, w, h, 2, Ctx(crop, tuple(lm), crop.shape[:2], box, (1.0, 1.0)))
+    return [lab[0].rsplit(" ", 1)[0] for lab in labels]
+
+
+def test_a_side_profile_is_found_in_portrait_mode():
+    """The tester's profile photo (close_03): YuNet and both Haar cascades find nothing, and
+    the face mesh can't confirm a profile, so Portrait mode used to say no face. Now the
+    padded finder's face is accepted as a profile, facing right, its box on the face."""
+    from sketch_assistant.core import faces as F
+    img = F.load_image(FIXTURES / "portraits_close" / "close_03.jpg")
+    found = F.detect_faces(img)
+    assert len(found) == 1, f"{len(found)} faces"
+    f = found[0]
+    assert f.view == "profile" and F.profile_facing(f.landmarks) == +1
+    eye = np.mean(f.landmarks[:2], axis=0)
+    assert f.contains(*eye), "the box misses the eye"
+    crop, _, _ = F.crop_info(img, f)
+    assert crop.shape[0] > 0.25 * img.shape[0], "crop too small to draw from"
+
+
+def test_profiles_get_profile_guides_and_faces_keep_theirs():
+    """A profile's guides have no centre line (it means nothing side on); a face-on portrait
+    keeps its centre line. Control: the face-on fixtures."""
+    from sketch_assistant.core import faces as F
+    img = F.load_image(FIXTURES / "portraits_close" / "close_03.jpg")
+    names = _guide_labels(img, F.detect_faces(img)[0])
+    assert "centre" not in names
+    assert {"eyes", "nose", "mouth", "chin"} <= set(names)
+    for name in ("close_12.jpg", "close_02.jpg"):
+        img = F.load_image(FIXTURES / "portraits_close" / name)
+        f = max(F.detect_faces(img), key=lambda f: f.w * f.h)
+        assert F.profile_facing(f.landmarks) == 0, f"{name} taken for a profile"
+        names = _guide_labels(img, f)
+        assert "centre" in names, name
+
+
+def test_a_profile_found_twice_is_one_face():
+    """bodies/seated_twist: YuNet finds the woman on the right, and the padded finder finds
+    her again as a profile. Her nose tip stands out past YuNet's box, so a nose-only "same
+    face?" check let the copy through. Seen to fail that way (3 faces, not 2)."""
+    from sketch_assistant.core import faces as F
+    img = F.load_image(FIXTURES / "bodies" / "seated_twist.jpg")
+    assert len(F.detect_faces(img)) == 2
+
+
+def test_cartoon_says_profiles_arent_supported():
+    from sketch_assistant.core import caricature as C, faces as F
+    img = F.load_image(FIXTURES / "portraits_close" / "close_03.jpg")
+    crop, _, _ = F.crop_info(img, F.detect_faces(img)[0])
+    assert "side profiles" in C.why_not(crop)
+    assert "No face found" in C.why_not(F.load_image(FIXTURES / "objects" / "pale_on_pale.jpg"))
+
+
+def _profile_oval(img, face):
+    """(centre, half-width, half-height, angle in degrees) of the guide oval drawn on a
+    profile, in image pixels -- the same numbers guides._oval and _profile_guides use."""
+    from sketch_assistant.core.guides import OVAL_H, OVAL_RISE, OVAL_W
+    bx, by, bw, bh = face.oval_box
+    pts = np.asarray(face.landmarks, float)
+    eye, mouth = pts[:2].mean(0), pts[3:].mean(0)
+    up = (eye - mouth) / np.linalg.norm(eye - mouth)
+    across = np.array([-up[1], up[0]])
+    if across[0] < 0:
+        across = -across
+    centre = np.array([bx + bw / 2, by + bh / 2 - bh * OVAL_RISE])
+    return centre, bw * OVAL_W / 2, bh * OVAL_H / 2, across
+
+
+@pytest.mark.parametrize("name", ["close_03.jpg", "close_06.jpg", "close_01.jpg"])
+def test_the_profile_oval_encloses_the_whole_face(name):
+    """Every hand-marked point of the face -- hairline, brow, nose tip, lips, chin, under
+    the chin, and the ear where it shows -- lies inside the profile's guide oval, and the
+    oval isn't absurdly large. The tester's complaint about the face-on oval ("smaller than
+    the face itself") applied here too at first: the skull-sized oval left the nose, lips
+    and chin outside on all three, and YuNet's narrow box did on close_06 and close_01."""
+    import json
+    from sketch_assistant.core import faces as F
+    marks = json.loads((CLOSE / "profile_marks.json").read_text())[name]
+    img = F.load_image(CLOSE / name)
+    f = max(F.detect_faces(img), key=lambda f: f.w * f.h)
+    assert f.view == "profile" and f.oval_box is not None, f.view
+    c, a1, a2, across = _profile_oval(img, f)
+    down = np.array([-across[1], across[0]]) if across[0] >= 0 else np.array([across[1], -across[0]])
+    if down[1] < 0:
+        down = -down
+    for part, p in marks.items():
+        v = np.array(p, float) - c
+        r = (v @ across / a1) ** 2 + (v @ down / a2) ** 2
+        assert r <= 1.0, f"{name}: {part} outside the oval (r={r ** 0.5:.2f})"
+    pts = np.array(list(marks.values()), float)
+    span = pts.max(0) - pts.min(0)
+    assert 2 * a2 < 1.9 * max(span), f"{name}: oval far bigger than the face"

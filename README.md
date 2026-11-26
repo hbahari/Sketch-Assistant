@@ -16,7 +16,10 @@ Everything reported against the app since v1.0.0, in the tester's own words, is 
     main.py                      entry point
     sketch_assistant/app.py      App + screen manager
     sketch_assistant/ui/         home.py (main page), guide.py (tips page), widgets.py,
-                                 settings.py (gear page), textpage.py (privacy / licences)
+                                 settings.py (gear page), textpage.py (privacy / licences),
+                                 tour.py (first-launch walkthrough), trace.py (trace mode),
+                                 print_text.py (text for printed pages)
+    sketch_assistant/core/worksheet.py   printable worksheet pages + PDF writer
     sketch_assistant/purchases.py   Pro unlock -- a placeholder until billing is built
     sketch_assistant/core/       modes.py (the subject registry), faces.py (detect/crop),
                                  hands.py (hand structure from a silhouette), styles.py
@@ -81,10 +84,71 @@ are not lines (the palm circle, finger joints) carry no number. See `guides.at`.
 - **Basic Shapes** (object mode) cuts out the main object with GrabCut, then draws its angular silhouette, shadow shapes, bounding box and W:H proportion.
 - **Material guide** (object guide page): Matte, Glossy, Glass, Fabric, Wood - labelled example images (`scripts/make_material_examples.py`) plus steps, pencils and common mistakes (`data/materials.py`).
 
+## Side profiles (Portrait mode)
+- YuNet and both Haar cascades miss most side profiles, and the face mesh (which confirms
+  a face the padded finder recovers) refuses a profile, so profiles used to go unfound. Now
+  a recovered face that the five points say is a profile (`faces.turn`: yaw >=
+  `PROFILE_YAW` 0.45; face-on <= 0.11, three-quarter 0.21-0.36, side views 0.49-0.69) is
+  accepted with `view="profile"`, and so is a profile YuNet finds.
+- A profile's oval (`faces._profile_box`) is laid out in the face's own frame from the
+  eyes, nose and mouth so it encloses the whole face, crown to under the chin and the jaw
+  to past the nose tip. The constants come from hand marks on the three side views
+  (`tests/fixtures/portraits_close/profile_marks.json`), and a test checks every mark lies
+  inside.
+- Profile guides (`guides._profile_guides`): eye, nose, mouth and chin lines square to the
+  face's up-and-down, no centre line. No ear marker: the textbook rule missed the one ear
+  that shows.
+- Cartoon still needs a face-on face (the mesh can't read a profile) and now says so.
+
+## Printable worksheet
+- The Steps page's **Save** button offers **Printable worksheet (PDF)** or, as before, **Steps
+  image (PNG)**, with a Letter / A4 choice. The paper size is remembered; until it's chosen
+  it follows the phone's region (Letter in North America, A4 elsewhere).
+- Pages (`core/worksheet.py`):
+  - a grid-method reference: photo and finished drawing under one lettered, numbered grid,
+    with the subject's blue guide lines over both, the size to rule the squares on paper,
+    and tips (the grid is grey so the guides stand out);
+  - every step's picture beside its instructions (pencil, technique, what to do), packed as
+    many to a page as fit;
+  - an empty practice grid at the stated size, with the guide lines;
+  - the finished drawing at that size, printed faint, with the guide lines, to trace or check
+    against. Guides are drawn fresh at each size (`guides_at`), without the thirds grid.
+- Pages are drawn at 200 dpi and written as a PDF of JPEG pages by our own few lines: no
+  PDF or imaging library is needed (the app ships neither on Android). Text is drawn by
+  Kivy's markup renderer (`ui/print_text.py`), so it matches the screen word for word; it
+  must run on the main thread.
+- Android 10+ saves to Downloads/SketchAssistant (MediaStore, no permission) and opens the
+  PDF in the phone's viewer, which can print. Older Android saves into the app's own folder.
+  The desktop saves next to the PNGs and opens the PDF.
+
+## Trace mode
+- A **Trace** button on the Steps page (next to Save sheet) opens the step on screen; one on
+  the guide page opens the drawing as shown there. `ui/trace.py`.
+- The drawing fills the screen on plain white. Pinch to resize it and drag to place it,
+  then **Lock**: every control hides and every touch is ignored, so paper and pencil can
+  rest on the screen. To unlock, hold the padlock for a second (a ring fills). Inside, Back
+  and Next move between steps without moving the drawing, because the paper hasn't moved.
+- **Darker lines** (on by default, remembered) deepens every mark so faint pencil shows
+  through paper; white stays white.
+- While tracing, the screen stays on at full brightness, whatever Settings says.
+  Leaving restores the phone's brightness and the Settings choice. Done and the back button
+  return to the Steps page on the step you finished tracing.
+
+## First-launch tour
+- On the very first launch (`prefs` "tour_done" is false), a six-step tour runs over the
+  main page (`ui/tour.py`): a welcome card, then the subject bar, the photo card, the style
+  tiles, the guide button and the Settings gear, each lit up in turn with a card
+  explaining it. Back, Skip, Next, and the Android back button all work; Skip, finishing
+  and the back button all mark it as seen. Settings → "Show the tour again" replays it.
+- It points at the real widgets, so it follows any layout change. The dimming is plain
+  rectangles plus rounded-corner pieces round the lit control, not a stencil: Kivy's
+  stencil test came out inverted on the first attempt.
+- While it's open it takes every touch, so a tap can't act on the page underneath.
+
 ## Settings page
 - A small grey gear at the top right of the main page (in the logo bar, not a subject tab)
-  opens **Settings**: Keep screen on, Send feedback, Rate Sketch Assistant, Restore
-  purchase, Privacy policy, Licences and the version number.
+  opens **Settings**: Keep screen on, Show the tour again, Send feedback, Rate Sketch
+  Assistant, Restore purchase, Privacy policy, Licences and the version number.
 - **Keep screen on** (off by default) stops the screen dimming while the app is in front,
   using Android's `FLAG_KEEP_SCREEN_ON` (no extra permission; the phone sleeps as normal
   once the user leaves the app). The choice is saved in `prefs.json` in the app's own

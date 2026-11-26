@@ -10,6 +10,7 @@ from .ui.home import HomeScreen
 from .ui.settings import SettingsScreen
 from .ui.steps import StepsScreen
 from .ui.textpage import TextScreen
+from .ui.trace import TraceScreen
 
 
 class Screens(ScreenManager):
@@ -54,19 +55,34 @@ class SketchApp(App):
         sm.add_widget(SettingsScreen(self, on_back=lambda: sm.back_to("home"), show_text=sm.show_text,
                                      name="settings"))
         sm.add_widget(TextScreen(on_back=lambda: sm.back_to("settings"), name="text"))
+        sm.add_widget(TraceScreen(self, name="trace"))
         Window.bind(on_keyboard=lambda w, key, *a: self._back_key(sm, key))
         return sm
 
     def on_start(self):
+        from kivy.clock import Clock
         from . import prefs
         from .platform_utils import keep_screen_on
         if prefs.get("keep_screen_on"):              # the Settings switch, remembered
             keep_screen_on(True)
+        if not prefs.get("tour_done"):               # first launch: show how it works
+            Clock.schedule_once(lambda dt: self.start_tour(), 0.6)
+
+    def start_tour(self):
+        """The walkthrough over the main page. Returns the tour (tests use it)."""
+        from .ui.tour import Tour
+        sm = self.root
+        if getattr(self, "tour", None) is not None and self.tour.parent is not None:
+            return self.tour
+        if sm.current != "home":
+            sm.back_to("home")
+        self.tour = Tour(sm.get_screen("home"), on_done=lambda: setattr(self, "tour", None)).start()
+        return self.tour
 
     @staticmethod
     def _back_key(sm, key):
         """Android back button / Esc: leave the current page instead of quitting the app."""
-        if key == 27 and sm.current in ("guide", "steps", "settings", "text"):
+        if key == 27 and sm.current in ("guide", "steps", "settings", "text", "trace"):
             sm.get_screen(sm.current).go_back()
             return True
         return False
